@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>HaiGPT Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Thư viện markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- YouTube Video Background - SẼ CÓ ÂM THANH -->
+    <iframe id="bg-video-chat" 
+            src="https://www.youtube.com/embed/Xk8aDlC2nIM?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1&playlist=Xk8aDlC2nIM&enablejsapi=1&start=0&disablekb=1&fs=0&cc_load_policy=0"
+            frameborder="0" 
+            allow="autoplay; encrypted-media" 
+            allowfullscreen>
+    </iframe>
+
+    <!-- NOTIFICATION BOX CHÀO MỪNG -->
+    <div id="welcome-notification" class="welcome-notification">
+        <div class="notification-backdrop"></div>
+        <div class="notification-box rainbow-border-notification">
+            <div class="notification-header">
+                <div class="notification-avatar">
+                    <img src="../avatar.jpg" alt="TuanHaiDZ">
+                </div>
+                <h2 class="notification-title rainbow-text-glow">TuanHaiDZ Xin chào!</h2>
+            </div>
+            <div class="notification-content">
+                <p class="notification-message">Anh Hải dz lắm em ạ</p>
+                <div class="notification-features">
+                    <div class="feature-item">
+                        <i class="fas fa-music"></i>
+                        <span>Nhạc nền chill</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-robot"></i>
+                        <span>AI thông minh</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-heart"></i>
+                        <span>Trải nghiệm tuyệt vời</span>
+                    </div>
+                </div>
+            </div>
+            <div class="notification-footer">
+                <button id="welcome-ok-btn" class="welcome-ok-btn">
+                    <span>OK, LET'S GO!</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE MENU -->
+    <div class="slide-menu" id="slide-menu">
+        <div class="menu-header">
+            <h2 class="menu-title rainbow-text">MENU</h2>
+            <button class="close-menu" id="close-menu">✕</button>
+        </div>
+        <div class="menu-content">
+            <a href="../index.html" class="menu-item rainbow-border-menu">
+                <span class="menu-icon">🏠</span>
+                <span>Quay lại Bio</span>
+            </a>
+            <div class="menu-item rainbow-border-menu" onclick="resetChat()">
+                <span class="menu-icon">🔄</span>
+                <span>Reset Chat</span>
+            </div>
+            <!-- NÚT CONTROL ÂM THANH TRONG MENU -->
+            <div class="menu-item rainbow-border-menu" onclick="toggleSound()">
+                <span class="menu-icon">🔊</span>
+                <span id="sound-menu-text">Tắt nhạc nền</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-info">
+                <p>Created by <span class="rainbow-text">TuanHaiDz</span></p>
+                <div class="social-links">
+                    <a href="https://www.youtube.com/@GemloginTool1" target="_blank">📺 Youtube</a>
+                    <a href="https://t.me/tuanhaideptrai" target="_blank">💬 Telegram</a>
+                    <a href="https://discord.com/invite/SfFayNKxUE" target="_blank">🎮 Discord</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- OVERLAY KHI MỞ MENU -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <div class="chat-container rainbow-border-outer">
+        <div class="chat-header">
+            <!-- NÚT HAMBURGER -->
+            <button class="hamburger-menu" id="hamburger-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <img src="../avatar.jpg" alt="HaiGPT Avatar" class="chat-avatar">
+            <span class="chat-title rainbow-text-animated">HaiGPT</span>
+            
+            <!-- NÚT CONTROL ÂM THANH TRONG HEADER -->
+            <button id="sound-toggle" class="sound-toggle" title="Bật/Tắt nhạc nền">
+                <i class="fas fa-volume-mute" id="sound-icon"></i>
+            </button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Tin nhắn sẽ được thêm ở đây -->
+        </div>
+        <form class="chat-input-area" id="chat-form" autocomplete="off">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn hoặc dán ảnh..." autocomplete="off" required>
+            <input type="file" id="image-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none">
+            <button type="button" id="image-btn" title="Gửi ảnh">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM5 5h14v14H5V5zm2 10l3-4 2 3 3-4 4 5H7z" fill="#00bcd4"/>
+                </svg>
+            </button>
+            <button type="submit" class="send-btn rainbow-btn">Gửi</button>
+        </form>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
