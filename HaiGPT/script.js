@@ -483,12 +483,18 @@ let conversation = [
     }
 ];
 
-// Load điều khoản từ GitHub khi khởi động
 async function initializeTerms() {
     const terms = await fetchTermsOfService();
-    SYSTEM_PROMPT = SYSTEM_PROMPT.replace('[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]', terms);
-    conversation[0].parts[0].text = SYSTEM_PROMPT;
+    
+    // THAY THẾ đúng phần placeholder trong SYSTEM_PROMPT
+    SYSTEM_PROMPT = SYSTEM_PROMPT.replace('[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]', terms.trim());
+
+    // Cập nhật vào conversation nếu đã khởi tạo
+    if (conversation.length > 0 && conversation[0].parts && conversation[0].parts[0]) {
+        conversation[0].parts[0].text = SYSTEM_PROMPT;
+    }
 }
+
 
 // Hiệu ứng cầu vồng động cho border ngoài, từng message, và tên
 let rainbowDeg = 0;
