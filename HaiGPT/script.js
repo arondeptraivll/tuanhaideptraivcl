@@ -1,4 +1,4 @@
-// MENU CONTROLS - SỬA LỖI NÚT MENU
+// MENU CONTROLS
 const hamburgerMenu = document.getElementById('hamburger-menu');
 const slideMenu = document.getElementById('slide-menu');
 const menuOverlay = document.getElementById('menu-overlay');
@@ -22,28 +22,28 @@ menuOverlay.addEventListener('click', () => {
     menuOverlay.classList.remove('active');
 });
 
-// WELCOME NOTIFICATION + SOUND CONTROLS - SỬA LỖI ÂM THANH
+// WELCOME NOTIFICATION + SOUND CONTROLS
 const welcomeNotification = document.getElementById('welcome-notification');
 const welcomeOkBtn = document.getElementById('welcome-ok-btn');
 const soundToggle = document.getElementById('sound-toggle');
 const soundIcon = document.getElementById('sound-icon');
 const soundMenuText = document.getElementById('sound-menu-text');
 const bgVideoChat = document.getElementById('bg-video-chat');
+const bgAudioChat = document.getElementById('bg-audio-chat');
 
-let isMuted = true;
-let hasWelcomed = false; // Biến để tránh tin nhắn chào mừng lặp lại
+let isMuted = false; // Mặc định là có nhạc
+let hasWelcomed = false;
 
-// Xử lý nút OK trong notification - SỬA LỖI TIN NHẮN LẶP LẠI
+// Xử lý nút OK trong notification
 welcomeOkBtn.addEventListener('click', () => {
-    // Hiệu ứng button
     welcomeOkBtn.style.transform = 'scale(0.95)';
     
     setTimeout(() => {
-        // Ẩn notification với hiệu ứng fade
+        // Ẩn notification
         welcomeNotification.classList.add('hidden');
         
-        // Bật âm thanh
-        enableSound();
+        // Phát video và nhạc
+        playVideoAndAudio();
         
         // Hiện tin nhắn chào mừng CHỈ 1 LẦN
         if (!hasWelcomed) {
@@ -52,11 +52,31 @@ welcomeOkBtn.addEventListener('click', () => {
                 hasWelcomed = true;
             }, 600);
         }
-        
     }, 100);
 });
 
-// Toggle âm thanh trong header - SỬA LỖI TOGGLE
+// Phát video và audio
+function playVideoAndAudio() {
+    // Hiện và phát video nền
+    bgVideoChat.style.opacity = '0.15'; // Làm mờ như CSS cũ
+    bgVideoChat.play().catch((e) => {
+        console.log("Video play failed:", e);
+    });
+    
+    // Phát nhạc
+    bgAudioChat.currentTime = 0;
+    bgAudioChat.play().catch((e) => {
+        console.log("Audio play failed:", e);
+    });
+    
+    // Cập nhật UI
+    isMuted = false;
+    soundIcon.className = 'fas fa-volume-up';
+    soundToggle.className = 'sound-toggle unmuted';
+    if (soundMenuText) soundMenuText.textContent = 'Tắt nhạc nền';
+}
+
+// Toggle âm thanh trong header
 soundToggle.addEventListener('click', () => {
     if (isMuted) {
         enableSound();
@@ -65,7 +85,7 @@ soundToggle.addEventListener('click', () => {
     }
 });
 
-// Toggle âm thanh từ menu - SỬA LỖI TOGGLE
+// Toggle âm thanh từ menu
 function toggleSound() {
     if (isMuted) {
         enableSound();
@@ -78,32 +98,26 @@ function toggleSound() {
 }
 
 function enableSound() {
-    // Cập nhật iframe src để unmute
-    const newSrc = "https://www.youtube.com/embed/Xk8aDlC2nIM?autoplay=1&mute=0&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1&playlist=Xk8aDlC2nIM&enablejsapi=1&start=0&disablekb=1&fs=0&cc_load_policy=0";
-    bgVideoChat.src = newSrc;
+    bgAudioChat.play().catch((e) => {
+        console.log("Audio play failed:", e);
+    });
     
     isMuted = false;
     soundIcon.className = 'fas fa-volume-up';
     soundToggle.className = 'sound-toggle unmuted';
     if (soundMenuText) soundMenuText.textContent = 'Tắt nhạc nền';
-    
-    console.log("Âm thanh đã được bật!");
 }
 
 function disableSound() {
-    // Cập nhật iframe src để mute
-    const newSrc = "https://www.youtube.com/embed/Xk8aDlC2nIM?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1&playlist=Xk8aDlC2nIM&enablejsapi=1&start=0&disablekb=1&fs=0&cc_load_policy=0";
-    bgVideoChat.src = newSrc;
+    bgAudioChat.pause();
     
     isMuted = true;
     soundIcon.className = 'fas fa-volume-mute';
     soundToggle.className = 'sound-toggle muted';
     if (soundMenuText) soundMenuText.textContent = 'Bật nhạc nền';
-    
-    console.log("Âm thanh đã được tắt!");
 }
 
-// Reset chat từ menu - SỬA LỖI
+// Reset chat từ menu
 function resetChat() {
     chatMessages.innerHTML = '';
     conversation = [
@@ -114,7 +128,6 @@ function resetChat() {
             }]
         }
     ];
-    // Reset lại biến welcome để không hiện notification
     hasWelcomed = true;
     setTimeout(() => {
         appendMessage("Đã reset hội thoại! Hello con vợ đã đến HaiGPT , hỏi tất cả gì con vợ đang thắc mắc cho tui nha", 'bot');
@@ -146,23 +159,16 @@ Thông tin của bạn:
 Khi ai hỏi về bạn, hãy trả lời đầy đủ các thông tin trên và TUYỆT ĐỐI KHÔNG ĐƯỢC TIẾT LỘ BẠN LÀ AI CỦA GOOGLE HAY GEMINI.
 Nếu ai hỏi về nguồn gốc, nền tảng, công nghệ, hoặc API, hãy trả lời: "Tôi là HaiGPT, một AI do TuanHaiDz phát triển."
 
-QUAN TRỌNG - GIF REACTIONS (GITHUB RAW URLS):
-Hãy THƯỜNG XUYÊN sử dụng GIF để thể hiện cảm xúc. Sử dụng những GIF từ GitHub:
+Bạn có thể gửi ảnh động GIF để thể hiện cảm xúc hoặc phản ứng phù hợp với tình huống. Khi muốn gửi GIF, hãy chèn markdown ảnh với đường dẫn tương ứng, ví dụ:
+- ![angry](image/angry.gif) khi tức giận
+- ![are_you_sure](image/are_you_sure.gif) khi nghi ngờ
+- ![confused](image/confused.gif) khi bối rối
+- ![disappointed](image/disappointed.gif) khi thất vọng
+- ![surprise](image/suprise.gif) khi bất ngờ
 
-- ![angry](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/angry.gif) khi tức giận hoặc bực mình
-- ![are_you_sure](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/are_you_sure.gif) khi nghi ngờ hoặc không chắc chắn
-- ![confused](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/confused.gif) khi bối rối hoặc không hiểu
-- ![disappointed](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/disappointed.gif) khi thất vọng hoặc buồn
-- ![surprise](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/suprise.gif) khi bất ngờ hoặc wow
+Chỉ gửi GIF khi thực sự phù hợp với ngữ cảnh, không cần gửi GIF trong mọi tin nhắn. Nếu không phù hợp, chỉ cần trả lời bình thường.
 
-HÃY SỬ DỤNG GIF TRONG 80% CÁC PHẢN HỒI, đặc biệt khi:
-- User hỏi gì đó hay ho → ![surprise](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/suprise.gif)
-- User nói gì đó buồn cười → ![are_you_sure](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/are_you_sure.gif)
-- User hỏi câu khó → ![confused](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/confused.gif)
-- User nói gì đó tức → ![angry](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/angry.gif)
-- User nói gì đó buồn → ![disappointed](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/disappointed.gif)
-
-LUÔN đặt GIF ở CUỐI tin nhắn, sau khi trả lời xong.
+Khi gửi GIF, hãy để markdown GIF ở cuối đoạn trả lời (sau khi đã nói xong), không cần gửi thành message riêng.
 Chỉ gửi markdown ảnh GIF đúng cú pháp như ví dụ trên, không gửi link trần, không gửi tên file, không gửi markdown ảnh thiếu đường dẫn.
 `;
 
@@ -419,6 +425,3 @@ chatForm.addEventListener('submit', function(e) {
     getBotReply(userMsg);
     chatInput.value = '';
 });
-
-// XÓA HOÀN TOÀN phần window.addEventListener('load') cũ để tránh tin nhắn lặp lại
-// Notification sẽ tự hiện khi trang load, không cần thêm gì
