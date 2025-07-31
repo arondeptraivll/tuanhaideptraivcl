@@ -312,20 +312,86 @@ function resetChat() {
     menuOverlay.classList.remove('active');
 }
 
-// Function tìm kiếm Google - SỬA LẠI ĐỂ DÙNG API BACKEND
-async function searchGoogle(query, numResults = 3) {
+// API KEYS - FALLBACK KHI CHƯA CÓ BACKEND
+const GEMINI_API_KEY = "AIzaSyCnyXOshEORsDRZEVD4t027xXbCBVBnkgA";
+const GOOGLE_SEARCH_API_KEY = "AIzaSyD3STLc19Ev92medLhggRKIDGKG4gLxffA";
+const GOOGLE_SEARCH_ENGINE_ID = "34b8aabce319f4175";
+
+// Kiểm tra xem API routes có tồn tại không
+let useBackendAPI = true;
+
+// Function kiểm tra API backend có hoạt động không
+async function checkBackendAPI() {
     try {
-        const response = await fetch('/api/search', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                query: query,
-                numResults: numResults
+                conversation: [
+                    {
+                        role: "user",
+                        parts: [{ text: "test" }]
+                    }
+                ]
             })
         });
         
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            console.log('✅ Backend API hoạt động');
+            return true;
+        } else {
+            console.log('❌ Backend API chưa sẵn sàng, dùng fallback');
+            return false;
+        }
+    } catch (error) {
+        console.log('❌ Backend API không hoạt động, dùng fallback');
+        return false;
+    }
+}
+
+// Function tìm kiếm Google - TỰ ĐỘNG FALLBACK
+async function searchGoogle(query, numResults = 3) {
+    // Thử dùng backend API trước
+    if (useBackendAPI) {
+        try {
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query,
+                    numResults: numResults
+                })
+            });
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Search API Error:', data.error);
+                    return null;
+                }
+                
+                return data.results;
+            } else {
+                throw new Error('Backend API not ready');
+            }
+        } catch (error) {
+            console.log('Fallback to direct API call for search');
+            useBackendAPI = false;
+        }
+    }
+    
+    // Fallback: Gọi trực tiếp API
+    try {
+        const searchUrl = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${numResults}`;
+        
+        const response = await fetch(searchUrl);
         const data = await response.json();
         
         if (data.error) {
@@ -333,7 +399,15 @@ async function searchGoogle(query, numResults = 3) {
             return null;
         }
         
-        return data.results;
+        if (data.items && data.items.length > 0) {
+            return data.items.map(item => ({
+                title: item.title,
+                link: item.link,
+                snippet: item.snippet
+            }));
+        } else {
+            return null;
+        }
     } catch (error) {
         console.error('Search error:', error);
         return null;
@@ -357,23 +431,58 @@ function formatSearchResults(results, query) {
     return formatted;
 }
 
-// Function gọi Gemini API thông qua backend - MỚI THÊM
+// Function gọi Gemini API - TỰ ĐỘNG FALLBACK
 async function callGeminiAPI(conversation) {
+    // Thử dùng backend API trước
+    if (useBackendAPI) {
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation: conversation
+                })
+            });
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                return data;
+            } else {
+                throw new Error('Backend API not ready');
+            }
+        } catch (error) {
+            console.log('Fallback to direct API call for Gemini');
+            useBackendAPI = false;
+        }
+    }
+    
+    // Fallback: Gọi trực tiếp API
     try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                conversation: conversation
-            })
-        });
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    contents: conversation
+                })
+            }
+        );
         
         const data = await response.json();
         
         if (data.error) {
-            throw new Error(data.error);
+            throw new Error(data.error.message || 'API Error');
         }
         
         return data;
@@ -921,7 +1030,7 @@ function clearPendingFilePreview() {
     }
 }
 
-// Gửi tin nhắn với Google Search, File Support và Strict Terms Compliance - ĐÃ SỬA ĐỂ DÙNG BACKEND API
+// Gửi tin nhắn với Google Search, File Support và Strict Terms Compliance - TỰ ĐỘNG FALLBACK
 async function getBotReply(userMsg) {
     // Kiểm tra nếu user bị block
     if (isBlocked) {
@@ -956,7 +1065,7 @@ async function getBotReply(userMsg) {
 
         conversation.push({ role: "user", parts });
 
-        // GỌI API THÔNG QUA BACKEND
+        // GỌI API VỚI TỰ ĐỘNG FALLBACK
         const data = await callGeminiAPI(conversation);
         
         typingMsg.remove();
@@ -1135,8 +1244,11 @@ chatForm.addEventListener('submit', function(e) {
     chatInput.value = '';
 });
 
-// Kiểm tra block status và load điều khoản khi load trang
+// Kiểm tra backend API và load điều khoản khi load trang
 window.addEventListener('load', async () => {
+    // Kiểm tra backend API có hoạt động không
+    useBackendAPI = await checkBackendAPI();
+    
     // Load điều khoản từ GitHub
     await initializeTerms();
     
