@@ -1,4 +1,4 @@
-// api/memory.js
+// api/memory.js - SUPABASE SDK VERSION
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -11,30 +11,32 @@ export default async function handler(req, res) {
     const { method } = req;
     const { userIP, memory, action } = req.body || {};
 
-    // TRY MULTIPLE CONNECTION STRINGS
-    const connections = [
-        process.env.POSTGRES_URL_NON_POOLING,
-        process.env.POSTGRES_PRISMA_URL,
-        process.env.POSTGRES_URL
-    ];
+    console.log('Memory API called:', { method, action, userIP: userIP?.substring(0, 10) + '...' });
+
+    // Supabase config
+    const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    const workingConnection = connections.find(conn => conn);
-    
-    if (!workingConnection) {
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+        console.error('Supabase config not found');
         return res.status(500).json({ error: 'Database not configured' });
     }
 
     try {
+        // Import Supabase
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
         switch (method) {
             case 'POST':
                 if (action === 'get') {
-                    const userMemories = await getMemoriesFromDB(userIP, workingConnection);
+                    const userMemories = await getMemoriesFromSupabase(supabase, userIP);
                     return res.status(200).json({ memories: userMemories });
                 } else if (action === 'add') {
-                    await addMemoryToDB(userIP, memory, workingConnection);
+                    await addMemoryToSupabase(supabase, userIP, memory);
                     return res.status(200).json({ success: true });
                 } else if (action === 'clear') {
-                    await clearMemoriesFromDB(userIP, workingConnection);
+                    await clearMemoriesFromSupabase(supabase, userIP);
                     return res.status(200).json({ success: true });
                 } else {
                     return res.status(400).json({ error: 'Invalid action' });
@@ -52,65 +54,25 @@ export default async function handler(req, res) {
     }
 }
 
-// AGGRESSIVE SSL BYPASS FOR MEMORY
-async function getMemoriesFromDB(userIP, connectionString) {
-    let client = null;
+// Supabase SDK functions
+async function getMemoriesFromSupabase(supabase, userIP) {
     try {
-        const { Client } = await import('pg');
+        console.log('Getting memories from Supabase for:', userIP);
         
-        const sslConfigs = [
-            false,
-            { rejectUnauthorized: false },
-            { rejectUnauthorized: false, ca: false },
-            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
-        ];
+        const { data, error } = await supabase
+            .from('user_memories')
+            .select('memory_text, created_at')
+            .eq('user_ip', userIP)
+            .order('created_at', { ascending: false });
         
-        let connected = false;
-        
-        for (const sslConfig of sslConfigs) {
-            try {
-                let modifiedConnectionString = connectionString;
-                if (sslConfig === false) {
-                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
-                }
-                
-                client = new Client({ 
-                    connectionString: modifiedConnectionString,
-                    ssl: sslConfig
-                });
-                
-                await client.connect();
-                console.log('Memory connected with SSL config:', sslConfig);
-                connected = true;
-                break;
-                
-            } catch (err) {
-                if (client) {
-                    try { await client.end(); } catch {}
-                    client = null;
-                }
-            }
-        }
-        
-        if (!connected) {
+        if (error) {
+            console.error('Supabase get memories error:', error);
             return [];
         }
         
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS user_memories (
-                id SERIAL PRIMARY KEY,
-                user_ip VARCHAR(45) NOT NULL,
-                memory_text TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        console.log('Supabase memories found:', data?.length || 0);
         
-        const result = await client.query(
-            'SELECT memory_text, created_at FROM user_memories WHERE user_ip = $1 ORDER BY created_at DESC',
-            [userIP]
-        );
-        
-        return result.rows.map(row => ({
+        return (data || []).map(row => ({
             id: Date.now() + Math.random(),
             text: row.memory_text,
             date: new Date(row.created_at).toLocaleString('vi-VN'),
@@ -118,138 +80,57 @@ async function getMemoriesFromDB(userIP, connectionString) {
         }));
         
     } catch (error) {
-        console.error('Database getMemories error:', error);
+        console.error('Get memories error:', error);
         return [];
-    } finally {
-        if (client) {
-            try { await client.end(); } catch {}
-        }
     }
 }
 
-async function addMemoryToDB(userIP, memory, connectionString) {
-    let client = null;
+async function addMemoryToSupabase(supabase, userIP, memory) {
     try {
-        const { Client } = await import('pg');
+        console.log('Adding memory to Supabase:', memory);
         
-        const sslConfigs = [
-            false,
-            { rejectUnauthorized: false },
-            { rejectUnauthorized: false, ca: false },
-            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
-        ];
-        
-        let connected = false;
-        
-        for (const sslConfig of sslConfigs) {
-            try {
-                let modifiedConnectionString = connectionString;
-                if (sslConfig === false) {
-                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
+        const { data, error } = await supabase
+            .from('user_memories')
+            .insert([
+                {
+                    user_ip: userIP,
+                    memory_text: memory.text || memory
                 }
-                
-                client = new Client({ 
-                    connectionString: modifiedConnectionString,
-                    ssl: sslConfig
-                });
-                
-                await client.connect();
-                connected = true;
-                break;
-                
-            } catch (err) {
-                if (client) {
-                    try { await client.end(); } catch {}
-                    client = null;
-                }
-            }
+            ]);
+        
+        if (error) {
+            console.error('Supabase add memory error:', error);
+            throw error;
         }
         
-        if (!connected) {
-            throw new Error('All connection attempts failed');
-        }
-        
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS user_memories (
-                id SERIAL PRIMARY KEY,
-                user_ip VARCHAR(45) NOT NULL,
-                memory_text TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        
-        await client.query(
-            'INSERT INTO user_memories (user_ip, memory_text) VALUES ($1, $2)',
-            [userIP, memory.text || memory]
-        );
-        
+        console.log('Memory added successfully to Supabase');
         return true;
         
     } catch (error) {
-        console.error('Database addMemory error:', error);
+        console.error('Add memory error:', error);
         throw error;
-    } finally {
-        if (client) {
-            try { await client.end(); } catch {}
-        }
     }
 }
 
-async function clearMemoriesFromDB(userIP, connectionString) {
-    let client = null;
+async function clearMemoriesFromSupabase(supabase, userIP) {
     try {
-        const { Client } = await import('pg');
+        console.log('Clearing memories from Supabase for:', userIP);
         
-        const sslConfigs = [
-            false,
-            { rejectUnauthorized: false },
-            { rejectUnauthorized: false, ca: false },
-            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
-        ];
+        const { data, error } = await supabase
+            .from('user_memories')
+            .delete()
+            .eq('user_ip', userIP);
         
-        let connected = false;
-        
-        for (const sslConfig of sslConfigs) {
-            try {
-                let modifiedConnectionString = connectionString;
-                if (sslConfig === false) {
-                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
-                }
-                
-                client = new Client({ 
-                    connectionString: modifiedConnectionString,
-                    ssl: sslConfig
-                });
-                
-                await client.connect();
-                connected = true;
-                break;
-                
-            } catch (err) {
-                if (client) {
-                    try { await client.end(); } catch {}
-                    client = null;
-                }
-            }
+        if (error) {
+            console.error('Supabase clear memories error:', error);
+            throw error;
         }
         
-        if (!connected) {
-            throw new Error('All connection attempts failed');
-        }
-        
-        await client.query(
-            'DELETE FROM user_memories WHERE user_ip = $1',
-            [userIP]
-        );
-        
+        console.log('Memories cleared successfully from Supabase');
         return true;
         
     } catch (error) {
-        console.error('Database clearMemories error:', error);
+        console.error('Clear memories error:', error);
         throw error;
-    } finally {
-        if (client) {
-            try { await client.end(); } catch {}
-        }
     }
 }
