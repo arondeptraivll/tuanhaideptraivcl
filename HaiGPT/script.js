@@ -74,9 +74,10 @@ Hãy sử dụng HaiGPT một cách văn minh và tích cực!
     }
 }
 
-// MEMORY SYSTEM FUNCTIONS
+// MEMORY SYSTEM FUNCTIONS - FIXED
 async function loadUserMemories() {
     try {
+        console.log('🧠 Loading user memories...');
         const response = await fetch('/api/memory', {
             method: 'POST',
             headers: {
@@ -92,23 +93,25 @@ async function loadUserMemories() {
             const data = await response.json();
             userMemories = data.memories || [];
             updateMemoryDisplay();
-            console.log('📚 Loaded memories:', userMemories.length);
+            console.log('📚 Loaded memories from database:', userMemories.length);
         } else {
+            console.log('❌ Database load failed, using localStorage');
             // Fallback to localStorage
             const savedMemories = localStorage.getItem(`memories_${userIP}`);
             userMemories = savedMemories ? JSON.parse(savedMemories) : [];
             updateMemoryDisplay();
         }
     } catch (error) {
-        console.log('Failed to load from database, using localStorage');
+        console.log('❌ Failed to load from database, using localStorage:', error);
         const savedMemories = localStorage.getItem(`memories_${userIP}`);
         userMemories = savedMemories ? JSON.parse(savedMemories) : [];
         updateMemoryDisplay();
     }
 }
 
-async function saveMemoryToDB(memory) {
+async function saveMemoryToDB(memoryText) {
     try {
+        console.log('🧠 Saving memory to database:', memoryText);
         const response = await fetch('/api/memory', {
             method: 'POST',
             headers: {
@@ -116,7 +119,7 @@ async function saveMemoryToDB(memory) {
             },
             body: JSON.stringify({
                 userIP: userIP,
-                memory: memory,
+                memory: { text: memoryText },
                 action: 'add'
             })
         });
@@ -124,8 +127,9 @@ async function saveMemoryToDB(memory) {
         if (!response.ok) {
             throw new Error('Database save failed');
         }
+        console.log('✅ Memory saved to database successfully');
     } catch (error) {
-        console.log('Fallback to localStorage for memory');
+        console.log('❌ Fallback to localStorage for memory:', error);
         // Fallback to localStorage
         localStorage.setItem(`memories_${userIP}`, JSON.stringify(userMemories));
     }
@@ -133,6 +137,7 @@ async function saveMemoryToDB(memory) {
 
 async function clearMemoriesFromDB() {
     try {
+        console.log('🧠 Clearing memories from database...');
         const response = await fetch('/api/memory', {
             method: 'POST',
             headers: {
@@ -147,8 +152,9 @@ async function clearMemoriesFromDB() {
         if (!response.ok) {
             throw new Error('Database clear failed');
         }
+        console.log('✅ Memories cleared from database successfully');
     } catch (error) {
-        console.log('Fallback to localStorage for clearing');
+        console.log('❌ Fallback to localStorage for clearing:', error);
         localStorage.removeItem(`memories_${userIP}`);
     }
 }
@@ -170,8 +176,9 @@ async function saveChatHistory() {
         if (!response.ok) {
             throw new Error('Database save failed');
         }
+        console.log('✅ Chat history saved to database');
     } catch (error) {
-        console.log('Fallback to localStorage for chat history');
+        console.log('❌ Fallback to localStorage for chat history:', error);
         localStorage.setItem(`chat_history_${userIP}`, JSON.stringify(conversation));
     }
 }
@@ -225,7 +232,7 @@ async function loadChatHistory() {
             }
         }
     } catch (error) {
-        console.log('Failed to load chat history, starting fresh');
+        console.log('❌ Failed to load chat history, starting fresh:', error);
         const savedHistory = localStorage.getItem(`chat_history_${userIP}`);
         if (savedHistory) {
             conversation = JSON.parse(savedHistory);
@@ -245,7 +252,7 @@ function addMemory(memoryText) {
     memoryCount++;
     
     // Lưu vào database
-    saveMemoryToDB(memory);
+    saveMemoryToDB(memoryText);
     
     // Cập nhật display
     updateMemoryDisplay();
@@ -806,8 +813,8 @@ Trò chuyện như bạn thân chí cốt, thoải mái, cà khịa vui vẻ, ch
 
 2. **CÁCH GHI NHỚ:**
    - Khi phát hiện thông tin quan trọng, hãy ghi: **REMEMBER:[thông tin cần nhớ]**
-   - Ví dụ: "REMEMBER:User tên Minh, 22 tuổi, thích ăn bánh kẹp"
-   - Ví dụ: "REMEMBER:User đang học lập trình Python, muốn làm AI developer"
+   - Ví dụ: "REMEMBER:[User tên Minh, 22 tuổi, thích ăn bánh kẹp]"
+   - Ví dụ: "REMEMBER:[User đang học lập trình Python, muốn làm AI developer]"
    - **LƯU Ý:** Chỉ ghi REMEMBER ở cuối tin nhắn, không ảnh hưởng đến nội dung chính
 
 3. **SỬ DỤNG TRÍ NHỚ:**
@@ -1012,8 +1019,8 @@ htmlContent = marked.parse(finalContent);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Function để hiển thị memory notification
-function appendMemoryNotification(memoryText) {
+// Function để hiển thị memory notification - FIXED
+function appendMemoryNotification() {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message bot`;
     messageDiv.innerHTML = `
@@ -1024,8 +1031,8 @@ function appendMemoryNotification(memoryText) {
                 <div class="memory-notification">
                     <span>🧠</span>
                     <span>Đã lưu vào bộ nhớ</span>
-                    <button onclick="showMemoryPreview()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px 8px;border-radius:10px;font-size:0.8rem;margin-left:10px;cursor:pointer;">
-                        Xem
+                    <button onclick="showMemoryPreview()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px 8px;border-radius:10px;font-size:0.8rem;margin-left:10px;cursor:pointer;transition:all 0.3s ease;">
+                        Xem thông tin
                     </button>
                 </div>
             </div>
@@ -1373,8 +1380,7 @@ function clearPendingFilePreview() {
     }
 }
 
-// Gửi tin nhắn với Memory Context - UPGRADED
-// Gửi tin nhắn với Memory Context - UPGRADED
+// Gửi tin nhắn với Memory Context - FIXED COMPLETELY
 async function getBotReply(userMsg) {
     // Kiểm tra nếu user bị block
     if (isBlocked) {
@@ -1457,27 +1463,31 @@ async function getBotReply(userMsg) {
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
             let botReply = data.candidates[0].content.parts.map(p => p.text).join('');
             
-            // KIỂM TRA VÀ XỬ LÝ MEMORY COMMANDS
-            const rememberMatches = botReply.match(/REMEMBER:```math ([^```]+)```/g);
+            // KIỂM TRA VÀ XỬ LÝ MEMORY COMMANDS - FIXED
+            const rememberMatches = botReply.match(/REMEMBER:math ([^]+)```/g);
             if (rememberMatches) {
+                console.log('🧠 Found REMEMBER commands:', rememberMatches);
+                
                 // Xử lý từng memory command
-                rememberMatches.forEach(match => {
+                for (const match of rememberMatches) {
                     const memoryText = match.replace('REMEMBER:[', '').replace(']', '');
+                    console.log('🧠 Adding memory:', memoryText);
                     addMemory(memoryText);
-                    console.log('🧠 AI remembered:', memoryText);
-                });
+                }
                 
-                // Xóa REMEMBER commands khỏi response hiển thị
-                botReply = botReply.replace(/REMEMBER:```math ([^```]+)```/g, '').trim();
+                botReply = botReply.replace(/REMEMBER:math [^]+```/g, '').trim();
+                console.log('🧠 Cleaned bot reply:', botReply);
                 
-                // Hiển thị response đã được clean
+                // Hiển thị response đã được clean (nếu còn nội dung)
                 if (botReply) {
                     appendMessage(botReply, 'bot');
                     conversation.push({ role: "model", parts: [{ text: botReply }] });
                 }
                 
-                // Hiển thị memory notification
-                appendMemoryNotification();
+                // Hiển thị memory notification với button
+                setTimeout(() => {
+                    appendMemoryNotification();
+                }, 300);
                 
                 // Lưu chat history
                 saveChatHistory();
