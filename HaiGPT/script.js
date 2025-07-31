@@ -1389,7 +1389,7 @@ function clearPendingFilePreview() {
     }
 }
 
-// Gửi tin nhắn với Memory Context - PHIÊN BẢN CUỐI CÙNG, ĐƠN GIẢN VÀ HOẠT ĐỘNG 100%
+// Gửi tin nhắn với Memory Context - PHIÊN BẢN CUỐI CÙNG, KHÔNG DÙNG REGEX PHỨC TẠP
 async function getBotReply(userMsg) {
     // 1. Kiểm tra block và hiển thị typing...
     if (isBlocked) return;
@@ -1434,28 +1434,28 @@ async function getBotReply(userMsg) {
             let botReply = data.candidates[0].content.parts.map(p => p.text).join('');
             console.log('RAW BOTREPLY:', JSON.stringify(botReply)); // DEBUG
 
-            // --- PHẦN XỬ LÝ REMEMBER ĐƠN GIẢN VÀ CHUẨN XÁC NHẤT ---
-            const memoriesToSave = [];
-            const rememberRegex = /REMEMBER:```math[\s\S]+?```/g;
+            // --- PHẦN XỬ LÝ REMEMBER KHÔNG DÙNG REGEX ---
+            // Cách này đơn giản và chắc chắn hoạt động
+            if (botReply.includes("REMEMBER:[")) {
+                // Tách chuỗi thành 2 phần: phần trước và phần sau "REMEMBER:["
+                const parts = botReply.split("REMEMBER:[");
+                
+                // Phần trước là nội dung tin nhắn cần hiển thị
+                const cleanedReply = parts[0].trim();
 
+                // Phần sau sẽ chứa nội dung cần nhớ và có thể cả phần thừa
+                // Ví dụ: "User tên Hải] blah blah"
+                const memoryPart = parts[1];
 
-            // Dùng matchAll để lấy tất cả các nhóm con (nội dung bên trong [ ])
-            const matches = botReply.matchAll(rememberRegex);
-            for (const match of matches) {
-                // match[1] chính là nội dung bên trong [ ]
-                memoriesToSave.push(match[1].trim());
-            }
+                // Tách tiếp phần sau tại dấu "]" để lấy đúng nội dung cần nhớ
+                const memoryAndRest = memoryPart.split("]");
+                const memoryText = memoryAndRest[0].trim(); // Đây chính là "User tên Hải"
 
-            // Nếu có memory cần lưu
-            if (memoriesToSave.length > 0) {
-                // Lưu tất cả memory tìm được
-                memoriesToSave.forEach(memoryText => {
-                    console.log('🧠 Adding memory:', memoryText);
+                // Lưu vào trí nhớ
+                if (memoryText) {
+                    console.log('🧠 Adding memory (non-regex):', memoryText);
                     addMemory(memoryText);
-                });
-
-                // Xóa tất cả REMEMBER khỏi tin nhắn hiển thị
-                const cleanedReply = botReply.replace(rememberRegex, '').trim();
+                }
 
                 // Nếu còn nội dung thì hiển thị
                 if (cleanedReply) {
