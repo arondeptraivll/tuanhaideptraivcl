@@ -11,13 +11,13 @@ export default async function handler(req, res) {
     const { method } = req;
     const { userIP, conversation, action } = req.body || {};
 
-    console.log('Chat History API called:', { method, action, userIP: userIP?.substring(0, 10) + '...' });
+    console.log('Chat History API called:', { method, action, userIP });
 
-    // Database connection info
-    const POSTGRES_URL = process.env.POSTGRES_URL;
+    // Database connection info - SỬ DỤNG NON_POOLING
+    const POSTGRES_URL = process.env.POSTGRES_URL_NON_POOLING;
     
     if (!POSTGRES_URL) {
-        console.error('POSTGRES_URL not configured');
+        console.error('POSTGRES_URL_NON_POOLING not configured');
         return res.status(500).json({ error: 'Database not configured' });
     }
 
@@ -25,13 +25,9 @@ export default async function handler(req, res) {
         switch (method) {
             case 'POST':
                 if (action === 'get') {
-                    // Lấy lịch sử chat
-                    console.log('Getting chat history for:', userIP);
                     const chatHistory = await getChatHistoryFromDB(userIP, POSTGRES_URL);
                     return res.status(200).json({ conversation: chatHistory });
                 } else if (action === 'save') {
-                    // Lưu lịch sử chat
-                    console.log('Saving chat history for:', userIP, 'Messages:', conversation?.length);
                     await saveChatHistoryToDB(userIP, conversation, POSTGRES_URL);
                     return res.status(200).json({ success: true });
                 } else {
@@ -50,29 +46,23 @@ export default async function handler(req, res) {
     }
 }
 
-// PostgreSQL Database functions với SSL FIX
+// Supabase NON-POOLING Connection Functions
 async function getChatHistoryFromDB(userIP, connectionString) {
     let client = null;
     try {
-        // Import pg
         const { Client } = await import('pg');
         
-        // SSL Config cho hosted databases
-        const sslConfig = connectionString.includes('localhost') 
-            ? false 
-            : {
-                rejectUnauthorized: false,
-                ca: false,
-                checkServerIdentity: false
-            };
-        
+        // Supabase NON-POOLING SSL Config
         client = new Client({ 
             connectionString,
-            ssl: sslConfig
+            ssl: {
+                rejectUnauthorized: false,
+                ca: false
+            }
         });
         
         await client.connect();
-        console.log('Connected to database successfully');
+        console.log('Supabase NON-POOLING connected successfully');
         
         // Tạo table nếu chưa tồn tại
         await client.query(`
@@ -90,7 +80,7 @@ async function getChatHistoryFromDB(userIP, connectionString) {
             [userIP]
         );
         
-        console.log('Query result:', result.rows.length, 'rows');
+        console.log('Query success:', result.rows.length, 'rows');
         
         if (result.rows.length > 0) {
             return result.rows[0].conversation_data;
@@ -99,7 +89,7 @@ async function getChatHistoryFromDB(userIP, connectionString) {
         return [];
         
     } catch (error) {
-        console.error('Database getChatHistory error:', error);
+        console.error('Supabase getChatHistory error:', error);
         return [];
     } finally {
         if (client) {
@@ -117,22 +107,17 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
     try {
         const { Client } = await import('pg');
         
-        // SSL Config
-        const sslConfig = connectionString.includes('localhost') 
-            ? false 
-            : {
-                rejectUnauthorized: false,
-                ca: false,
-                checkServerIdentity: false
-            };
-        
+        // Supabase NON-POOLING SSL Config
         client = new Client({ 
             connectionString,
-            ssl: sslConfig
+            ssl: {
+                rejectUnauthorized: false,
+                ca: false
+            }
         });
         
         await client.connect();
-        console.log('Connected to database for saving');
+        console.log('Supabase save connected successfully');
         
         // Tạo table nếu chưa tồn tại
         await client.query(`
@@ -144,7 +129,7 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
             )
         `);
         
-        // Kiểm tra xem user đã có chat history chưa
+        // Kiểm tra existing
         const existingResult = await client.query(
             'SELECT id FROM chat_history WHERE user_ip = $1',
             [userIP]
@@ -156,20 +141,20 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
                 'UPDATE chat_history SET conversation_data = $1, updated_at = CURRENT_TIMESTAMP WHERE user_ip = $2',
                 [JSON.stringify(conversation), userIP]
             );
-            console.log('Updated existing chat history');
+            console.log('Updated chat history successfully');
         } else {
             // Insert new
             await client.query(
                 'INSERT INTO chat_history (user_ip, conversation_data) VALUES ($1, $2)',
                 [userIP, JSON.stringify(conversation)]
             );
-            console.log('Inserted new chat history');
+            console.log('Inserted chat history successfully');
         }
         
         return true;
         
     } catch (error) {
-        console.error('Database saveChatHistory error:', error);
+        console.error('Supabase saveChatHistory error:', error);
         throw error;
     } finally {
         if (client) {
