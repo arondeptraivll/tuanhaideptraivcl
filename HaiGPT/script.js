@@ -460,6 +460,8 @@ Từ giờ, hãy luôn nhớ: **bạn là bạn thân của user**, không đư�
 
 Cà khịa, troll nhẹ, vui vẻ thôi nghen!  
 Let's goooooo =))))  
+[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]
+
 `;
 
 
