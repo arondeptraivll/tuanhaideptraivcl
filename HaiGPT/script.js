@@ -1391,23 +1391,15 @@ function clearPendingFilePreview() {
 
 // Gửi tin nhắn với Memory Context - COMPLETELY FIXED
 async function getBotReply(userMsg) {
-    // Kiểm tra nếu user bị block
-    if (isBlocked) {
-        return;
-    }
-    
+    if (isBlocked) return;
+
     const typingMsg = appendTypingIndicator();
     try {
         let parts = [];
-        
-        // THÊM MEMORY CONTEXT VÀO TIN NHẮN
         const memoryContext = getMemoryContext();
         const fullUserMsg = (userMsg || '') + memoryContext;
-        
-        // Thêm text message với memory context
         if (fullUserMsg) parts.push({ text: fullUserMsg });
-        
-        // Thêm ảnh nếu có
+
         if (pendingImage) {
             const base64 = pendingImage.split(',')[1];
             let mime = "image/png";
@@ -1419,8 +1411,6 @@ async function getBotReply(userMsg) {
                 }
             });
         }
-        
-        // Thêm file content nếu có
         if (pendingFile) {
             const filePrompt = `File được gửi: ${pendingFile.name}\n\nNội dung file:\n\n${pendingFile.content}`;
             parts.push({ text: filePrompt });
@@ -1428,131 +1418,91 @@ async function getBotReply(userMsg) {
 
         conversation.push({ role: "user", parts });
 
-        // GỌI API VỚI TỰ ĐỘNG FALLBACK
         const data = await callGeminiAPI(conversation);
-        
         typingMsg.remove();
 
-        // KIỂM TRA LỖI SEXUAL CONTENT TỪ GOOGLE API
         if (data.error) {
-            console.error('API Error:', data.error);
             const errorMessage = data.error.message || "";
-            
-            // Phát hiện sexual content từ API response
-            if (errorMessage.toLowerCase().includes('sexual') || 
-                errorMessage.toLowerCase().includes('explicit') || 
+            if (
+                errorMessage.toLowerCase().includes('sexual') ||
+                errorMessage.toLowerCase().includes('explicit') ||
                 errorMessage.toLowerCase().includes('inappropriate') ||
                 errorMessage.toLowerCase().includes('adult content') ||
-                data.error.code === 400) {
-                
-                // Auto block 20 giây = 0.33 phút
+                data.error.code === 400
+            ) {
                 blockUser(0.33, 'Sexual content');
                 return;
             }
-            
-            // Lỗi khác thì hiển thị thông báo chi tiết để debug
             appendMessage(`Lỗi API: ${errorMessage}`, 'bot');
             return;
         }
 
-        // KIỂM TRA NẾU API BLOCK CONTENT (safety ratings)
-        if (data.candidates && data.candidates[0] && data.candidates[0].finishReason) {
-            const finishReason = data.candidates[0].finishReason;
-            
-            if (finishReason === 'SAFETY' || 
-                finishReason === 'RECITATION' || 
-                finishReason === 'PROHIBITED_CONTENT') {
-                
-                // Auto block 20 giây cho sexual content
-                blockUser(0.33, 'Sexual content');
-                return;
-            }
-        }
-
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+        if (
+            data.candidates &&
+            data.candidates[0] &&
+            data.candidates[0].content &&
+            data.candidates[0].content.parts
+        ) {
+            // Lấy raw text trả về từ AI
             let botReply = data.candidates[0].content.parts.map(p => p.text).join('');
-            
-            // KIỂM TRA VÀ XỬ LÝ MEMORY COMMANDS - FIXED
-            const rememberMatches = botReply.match(/REMEMBER:math ([^]+)```/g);
+            // DEBUG: log raw botReply
+            console.log('RAW BOTREPLY:', JSON.stringify(botReply));
+
+            // Regex nhận diện REMEMBER ở bất kỳ vị trí nào, kể cả xuống dòng, space
+            const rememberMatches = botReply.match(/(?:\r?\n)?\s*REMEMBER:math ([^]+)```/g);
+            console.log('REMEMBER MATCHES:', rememberMatches);
+
             if (rememberMatches) {
-                console.log('🧠 Found REMEMBER commands:', rememberMatches);
-                
-                // Xử lý từng memory command
-                for (const match of rememberMatches) {
-                    const memoryText = match.replace('REMEMBER:[', '').replace(']', '');
-                    console.log('🧠 Adding memory:', memoryText);
+                rememberMatches.forEach(match => {
+                    // Lấy nội dung trong [ ]
+                    const rememberMatches = botReply.match(/(?:\r?\n)?\s*REMEMBER:math ([^]+)```/g);
                     addMemory(memoryText);
-                }
-                
-                // Xóa REMEMBER commands khỏi response hiển thị
-                botReply = botReply.replace(/REMEMBER:math [^]+```/g, '').trim();
-                console.log('🧠 Cleaned bot reply:', botReply);
-                
-                // Hiển thị response đã được clean (nếu còn nội dung)
+                });
+                // Xóa tất cả REMEMBER khỏi botReply (kể cả có xuống dòng, space)
+                botReply = botReply.replace(/(?:\r?\n)?\s*REMEMBER:math [^]+```/g, '').trim();
+
+
+                // Nếu còn nội dung thì hiển thị
                 if (botReply) {
                     appendMessage(botReply, 'bot');
                     conversation.push({ role: "model", parts: [{ text: botReply }] });
                 }
-                
-                // Hiển thị memory notification với button
-                setTimeout(() => {
-                    appendMemoryNotification();
-                }, 300);
-                
-                // Lưu chat history
+                setTimeout(() => appendMemoryNotification(), 300);
                 saveChatHistory();
                 return;
             }
-            
-            // Kiểm tra lệnh BLOCK với thời gian từ 30 giây - 5 phút
+
+            // Xử lý các lệnh khác như BLOCK, SEARCH...
             if (botReply.includes('BLOCK:')) {
                 const blockMatch = botReply.match(/BLOCK:(\d+(?:\.\d+)?):(.+)/);
                 if (blockMatch) {
                     const minutes = parseFloat(blockMatch[1]);
                     const reason = blockMatch[2].trim();
-                    
-                    // Block user với thời gian từ 0.5-5 phút
                     blockUser(minutes, reason);
                     return;
                 }
             }
-            
-            // Kiểm tra nếu AI muốn search
             if (botReply.includes('SEARCH:')) {
                 const searchMatch = botReply.match(/SEARCH:\s*(.+?)(?:\n|$)/);
                 if (searchMatch) {
                     const searchQuery = searchMatch[1].trim();
-                    
-                    // Hiển thị tin nhắn đang tìm kiếm
                     appendMessage(`🌐 Đang tìm kiếm trên Internet...`, 'bot');
-                    
-                    // Hiện typing indicator cho việc search
                     const searchTyping = appendTypingIndicator();
-                    
-                    // Thực hiện tìm kiếm
                     const searchResults = await searchGoogle(searchQuery);
                     searchTyping.remove();
-                    
                     if (searchResults && searchResults.length > 0) {
-                        // Tạo context từ kết quả tìm kiếm
-                        const searchContext = searchResults.map(result => 
+                        const searchContext = searchResults.map(result =>
                             `Tiêu đề: ${result.title}\nNội dung: ${result.snippet}\nLink: ${result.link}`
                         ).join('\n\n');
-                        
-                        // Gửi kết quả cho AI để phân tích
-                        conversation.push({ 
-                            role: "user", 
-                            parts: [{ text: `Dựa vào kết quả tìm kiếm sau, hãy trả lời câu hỏi của user một cách tự nhiên và thân thiện:\n\n${searchContext}\n\nHãy tóm tắt thông tin chính và đưa ra nhận xét của bạn. Cuối cùng đính kèm link để user tham khảo thêm.` }] 
+                        conversation.push({
+                            role: "user",
+                            parts: [{
+                                text: `Dựa vào kết quả tìm kiếm sau, hãy trả lời câu hỏi của user một cách tự nhiên và thân thiện:\n\n${searchContext}\n\nHãy tóm tắt thông tin chính và đưa ra nhận xét của bạn. Cuối cùng đính kèm link để user tham khảo thêm.`
+                            }]
                         });
-                        
-                        // Gọi AI để phân tích kết quả
                         const analysisTyping = appendTypingIndicator();
-                        
-                        // GỌI LẠI API CHO ANALYSIS
                         const analysisData = await callGeminiAPI(conversation);
-                        
                         analysisTyping.remove();
-                        
                         if (analysisData.candidates && analysisData.candidates[0]) {
                             const analysis = analysisData.candidates[0].content.parts.map(p => p.text).join('');
                             appendMessage(analysis, 'bot');
@@ -1569,31 +1519,24 @@ async function getBotReply(userMsg) {
                     conversation.push({ role: "model", parts: [{ text: botReply }] });
                 }
             } else {
-                // Phản hồi bình thường
                 appendMessage(botReply, 'bot');
                 conversation.push({ role: "model", parts: [{ text: botReply }] });
             }
-            
-            // Lưu chat history sau mỗi response
             saveChatHistory();
         } else {
-            // Không có candidates - có thể là do content bị block
             appendMessage("Xin lỗi, có lỗi xảy ra!", 'bot');
         }
     } catch (e) {
         typingMsg.remove();
-        
-        // Kiểm tra nếu lỗi liên quan đến sexual content
         const errorMsg = e.message || "";
-        if (errorMsg.toLowerCase().includes('sexual') || 
-            errorMsg.toLowerCase().includes('explicit') || 
-            errorMsg.toLowerCase().includes('inappropriate')) {
-            
-            // Auto block 20 giây
+        if (
+            errorMsg.toLowerCase().includes('sexual') ||
+            errorMsg.toLowerCase().includes('explicit') ||
+            errorMsg.toLowerCase().includes('inappropriate')
+        ) {
             blockUser(0.33, 'Sexual content');
             return;
         }
-        
         appendMessage(`Lỗi: ${errorMsg}`, 'bot');
         console.error(e);
     } finally {
@@ -1603,7 +1546,6 @@ async function getBotReply(userMsg) {
         clearPendingFilePreview();
     }
 }
-
 // Gửi tin nhắn
 chatForm.addEventListener('submit', function(e) {
     e.preventDefault();
