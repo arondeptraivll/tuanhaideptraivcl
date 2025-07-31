@@ -11,48 +11,58 @@ export default async function handler(req, res) {
     const { method } = req;
     const { userIP, conversation, action } = req.body || {};
 
+    console.log('Chat History API called:', { method, action, userIP: userIP?.substring(0, 10) + '...' });
+
     // Database connection info
     const POSTGRES_URL = process.env.POSTGRES_URL;
     
     if (!POSTGRES_URL) {
+        console.error('POSTGRES_URL not configured');
         return res.status(500).json({ error: 'Database not configured' });
     }
 
     try {
         switch (method) {
-            case 'GET':
-                // Lấy lịch sử chat
-                const history = await getChatHistoryFromDB(userIP, POSTGRES_URL);
-                return res.status(200).json({ conversation: history });
-
             case 'POST':
                 if (action === 'get') {
                     // Lấy lịch sử chat
+                    console.log('Getting chat history for:', userIP);
                     const chatHistory = await getChatHistoryFromDB(userIP, POSTGRES_URL);
                     return res.status(200).json({ conversation: chatHistory });
                 } else if (action === 'save') {
                     // Lưu lịch sử chat
+                    console.log('Saving chat history for:', userIP, 'Messages:', conversation?.length);
                     await saveChatHistoryToDB(userIP, conversation, POSTGRES_URL);
                     return res.status(200).json({ success: true });
+                } else {
+                    return res.status(400).json({ error: 'Invalid action' });
                 }
-                break;
 
             default:
                 return res.status(405).json({ error: 'Method not allowed' });
         }
     } catch (error) {
         console.error('Chat History API Error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
     }
 }
 
-// PostgreSQL Database functions
+// PostgreSQL Database functions với better error handling
 async function getChatHistoryFromDB(userIP, connectionString) {
+    let client = null;
     try {
+        // Import pg
         const { Client } = await import('pg');
-        const client = new Client({ connectionString });
+        client = new Client({ 
+            connectionString,
+            ssl: { rejectUnauthorized: false } // For hosted databases
+        });
         
         await client.connect();
+        console.log('Connected to database successfully');
         
         // Tạo table nếu chưa tồn tại
         await client.query(`
@@ -70,7 +80,7 @@ async function getChatHistoryFromDB(userIP, connectionString) {
             [userIP]
         );
         
-        await client.end();
+        console.log('Query result:', result.rows.length, 'rows');
         
         if (result.rows.length > 0) {
             return result.rows[0].conversation_data;
@@ -79,17 +89,30 @@ async function getChatHistoryFromDB(userIP, connectionString) {
         return [];
         
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Database getChatHistory error:', error);
         return [];
+    } finally {
+        if (client) {
+            try {
+                await client.end();
+            } catch (e) {
+                console.error('Error closing connection:', e);
+            }
+        }
     }
 }
 
 async function saveChatHistoryToDB(userIP, conversation, connectionString) {
+    let client = null;
     try {
         const { Client } = await import('pg');
-        const client = new Client({ connectionString });
+        client = new Client({ 
+            connectionString,
+            ssl: { rejectUnauthorized: false }
+        });
         
         await client.connect();
+        console.log('Connected to database for saving');
         
         // Tạo table nếu chưa tồn tại
         await client.query(`
@@ -113,19 +136,28 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
                 'UPDATE chat_history SET conversation_data = $1, updated_at = CURRENT_TIMESTAMP WHERE user_ip = $2',
                 [JSON.stringify(conversation), userIP]
             );
+            console.log('Updated existing chat history');
         } else {
             // Insert new
             await client.query(
                 'INSERT INTO chat_history (user_ip, conversation_data) VALUES ($1, $2)',
                 [userIP, JSON.stringify(conversation)]
             );
+            console.log('Inserted new chat history');
         }
         
-        await client.end();
         return true;
         
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Database saveChatHistory error:', error);
         throw error;
+    } finally {
+        if (client) {
+            try {
+                await client.end();
+            } catch (e) {
+                console.error('Error closing connection:', e);
+            }
+        }
     }
 }

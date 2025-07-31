@@ -12,20 +12,18 @@ export default async function handler(req, res) {
     const { method } = req;
     const { userIP, memory, action } = req.body || {};
 
+    console.log('Memory API called:', { method, action, userIP: userIP?.substring(0, 10) + '...' });
+
     // Database connection info
     const POSTGRES_URL = process.env.POSTGRES_URL;
     
     if (!POSTGRES_URL) {
+        console.error('POSTGRES_URL not configured');
         return res.status(500).json({ error: 'Database not configured' });
     }
 
     try {
         switch (method) {
-            case 'GET':
-                // Lấy tất cả memories của user
-                const memories = await getMemoriesFromDB(userIP, POSTGRES_URL);
-                return res.status(200).json({ memories });
-
             case 'POST':
                 if (action === 'get') {
                     // Lấy memories
@@ -39,24 +37,31 @@ export default async function handler(req, res) {
                     // Xóa tất cả memories
                     await clearMemoriesFromDB(userIP, POSTGRES_URL);
                     return res.status(200).json({ success: true });
+                } else {
+                    return res.status(400).json({ error: 'Invalid action' });
                 }
-                break;
 
             default:
                 return res.status(405).json({ error: 'Method not allowed' });
         }
     } catch (error) {
         console.error('Memory API Error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
     }
 }
 
 // PostgreSQL Database functions
 async function getMemoriesFromDB(userIP, connectionString) {
+    let client = null;
     try {
-        // Import pg dynamically
         const { Client } = await import('pg');
-        const client = new Client({ connectionString });
+        client = new Client({ 
+            connectionString,
+            ssl: { rejectUnauthorized: false }
+        });
         
         await client.connect();
         
@@ -76,8 +81,6 @@ async function getMemoriesFromDB(userIP, connectionString) {
             [userIP]
         );
         
-        await client.end();
-        
         // Format memories
         return result.rows.map(row => ({
             id: Date.now() + Math.random(),
@@ -87,15 +90,27 @@ async function getMemoriesFromDB(userIP, connectionString) {
         }));
         
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Database getMemories error:', error);
         return [];
+    } finally {
+        if (client) {
+            try {
+                await client.end();
+            } catch (e) {
+                console.error('Error closing connection:', e);
+            }
+        }
     }
 }
 
 async function addMemoryToDB(userIP, memory, connectionString) {
+    let client = null;
     try {
         const { Client } = await import('pg');
-        const client = new Client({ connectionString });
+        client = new Client({ 
+            connectionString,
+            ssl: { rejectUnauthorized: false }
+        });
         
         await client.connect();
         
@@ -115,19 +130,30 @@ async function addMemoryToDB(userIP, memory, connectionString) {
             [userIP, memory.text || memory]
         );
         
-        await client.end();
         return true;
         
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Database addMemory error:', error);
         throw error;
+    } finally {
+        if (client) {
+            try {
+                await client.end();
+            } catch (e) {
+                console.error('Error closing connection:', e);
+            }
+        }
     }
 }
 
 async function clearMemoriesFromDB(userIP, connectionString) {
+    let client = null;
     try {
         const { Client } = await import('pg');
-        const client = new Client({ connectionString });
+        client = new Client({ 
+            connectionString,
+            ssl: { rejectUnauthorized: false }
+        });
         
         await client.connect();
         
@@ -137,11 +163,18 @@ async function clearMemoriesFromDB(userIP, connectionString) {
             [userIP]
         );
         
-        await client.end();
         return true;
         
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Database clearMemories error:', error);
         throw error;
+    } finally {
+        if (client) {
+            try {
+                await client.end();
+            } catch (e) {
+                console.error('Error closing connection:', e);
+            }
+        }
     }
 }
