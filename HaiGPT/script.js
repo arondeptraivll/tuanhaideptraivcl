@@ -22,6 +22,167 @@ menuOverlay.addEventListener('click', () => {
     menuOverlay.classList.remove('active');
 });
 
+// BLOCK SYSTEM VARIABLES
+let userIP = null;
+let blockTimer = null;
+let isBlocked = false;
+
+// Function lấy IP của user
+async function getUserIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.log('Cannot get IP, using fallback');
+        return 'unknown_' + Date.now();
+    }
+}
+
+// Function lấy điều khoản từ GitHub
+async function fetchTermsOfService() {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/dieukhoanquydinh.txt');
+        const terms = await response.text();
+        return terms;
+    } catch (error) {
+        console.log('Cannot fetch terms, using default');
+        return `
+ĐIỀU KHOẢN QUY ĐỊNH HAIGPT:
+
+1. TÔÔN TRỌNG LẪN NHAU
+- Không chửi bới, xúc phạm
+- Không spam tin nhắn
+- Không nội dung khiêu dâm
+
+2. SỬ DỤNG ĐÚNG MỤC ĐÍCH  
+- Không lạm dụng AI
+- Không test phá hoại
+- Tuân thủ hướng dẫn
+
+3. HÌNH PHẠT
+- Cảnh báo trước khi block
+- Block từ 30 giây đến 5 phút
+- Chỉ block khi vi phạm nghiêm trọng
+
+Hãy sử dụng HaiGPT một cách văn minh và tích cực!
+        `;
+    }
+}
+
+// Function kiểm tra user có bị block không
+function checkBlockStatus() {
+    const blockData = localStorage.getItem(`block_${userIP}`);
+    
+    if (blockData) {
+        const blockInfo = JSON.parse(blockData);
+        const now = Date.now();
+        if (now < blockInfo.expiry) {
+            // Vẫn còn bị block
+            showBlockNotification(blockInfo.expiry - now, blockInfo.reason);
+            return true;
+        } else {
+            // Hết thời gian block
+            localStorage.removeItem(`block_${userIP}`);
+            return false;
+        }
+    }
+    return false;
+}
+
+// Function block user với thời gian linh hoạt (30 giây - 5 phút)
+function blockUser(minutes, reason = 'Vi phạm điều khoản') {
+    // Giới hạn thời gian từ 0.5 phút (30s) đến 5 phút
+    const blockTime = Math.min(Math.max(minutes, 0.5), 5);
+    const blockTimeMs = blockTime * 60 * 1000;
+    
+    const expiry = Date.now() + blockTimeMs;
+    const blockInfo = {
+        ip: userIP,
+        expiry: expiry,
+        reason: reason,
+        blockedAt: Date.now()
+    };
+    
+    localStorage.setItem(`block_${userIP}`, JSON.stringify(blockInfo));
+    
+    // Xóa toàn bộ chat
+    chatMessages.innerHTML = '';
+    conversation = [{
+        role: "user",
+        parts: [{ text: SYSTEM_PROMPT }]
+    }];
+    
+    // Hiển thị block notification
+    showBlockNotification(blockTimeMs, reason);
+}
+
+// Function hiển thị block notification với countdown linh hoạt
+function showBlockNotification(remainingTime, reason) {
+    isBlocked = true;
+    const blockNotification = document.getElementById('block-notification');
+    const reasonText = document.getElementById('block-reason-text');
+    const countdownTimer = document.getElementById('countdown-timer');
+    
+    reasonText.textContent = reason;
+    blockNotification.style.display = 'flex';
+    
+    // Tính toán thời gian còn lại
+    let timeLeft = Math.ceil(remainingTime / 1000);
+    
+    // Cập nhật countdown mỗi giây
+    blockTimer = setInterval(() => {
+        if (timeLeft >= 60) {
+            // Hiển thị phút:giây
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            countdownTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            // Hiển thị chỉ giây khi < 1 phút
+            countdownTimer.textContent = `${timeLeft}s`;
+        }
+        
+        timeLeft--;
+        
+        if (timeLeft < 0) {
+            clearInterval(blockTimer);
+            hideBlockNotification();
+        }
+    }, 1000);
+    
+    // Hiển thị ngay lần đầu
+    if (timeLeft >= 60) {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        countdownTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+        countdownTimer.textContent = `${timeLeft}s`;
+    }
+}
+
+// Function ẩn block notification
+function hideBlockNotification() {
+    isBlocked = false;
+    const blockNotification = document.getElementById('block-notification');
+    blockNotification.style.display = 'none';
+    
+    if (blockTimer) {
+        clearInterval(blockTimer);
+        blockTimer = null;
+    }
+    
+    // Reset chat về trạng thái ban đầu
+    chatMessages.innerHTML = '';
+    conversation = [{
+        role: "user",
+        parts: [{ text: SYSTEM_PROMPT }]
+    }];
+    hasWelcomed = true;
+    setTimeout(() => {
+        appendMessage("Chào mừng bạn quay lại HaiGPT! Hãy tuân thủ quy định để có trải nghiệm tốt nhất nhé! =))", 'bot');
+    }, 500);
+}
+
 // WELCOME NOTIFICATION + SOUND CONTROLS
 const welcomeNotification = document.getElementById('welcome-notification');
 const welcomeOkBtn = document.getElementById('welcome-ok-btn');
@@ -35,8 +196,18 @@ let isMuted = false; // Mặc định là có nhạc
 let hasWelcomed = false;
 
 // Xử lý nút OK trong notification
-welcomeOkBtn.addEventListener('click', () => {
+welcomeOkBtn.addEventListener('click', async () => {
     welcomeOkBtn.style.transform = 'scale(0.95)';
+    
+    // Lấy IP của user
+    userIP = await getUserIP();
+    console.log('User IP:', userIP);
+    
+    // Kiểm tra xem user có bị block không
+    if (checkBlockStatus()) {
+        welcomeNotification.classList.add('hidden');
+        return;
+    }
     
     setTimeout(() => {
         // Ẩn notification
@@ -133,21 +304,118 @@ function resetChat() {
         appendMessage("Đã reset hội thoại! Hello con vợ đã đến HaiGPT , hỏi tất cả gì con vợ đang thắc mắc cho tui nha", 'bot');
     }, 500);
     pendingImage = null;
+    pendingFile = null;
     clearPendingImagePreview();
+    clearPendingFilePreview();
     // Đóng menu
     slideMenu.classList.remove('active');
     menuOverlay.classList.remove('active');
 }
 
-// PHẦN CODE CŨ
+// API KEYS
 const GEMINI_API_KEY = "AIzaSyCnyXOshEORsDRZEVD4t027xXbCBVBnkgA";
 
-const SYSTEM_PROMPT = `
+// GOOGLE SEARCH API CONFIG
+const GOOGLE_SEARCH_API_KEY = "AIzaSyD3STLc19Ev92medLhggRKIDGKG4gLxffA";
+const GOOGLE_SEARCH_ENGINE_ID = "34b8aabce319f4175";
+
+// Function tìm kiếm Google
+async function searchGoogle(query, numResults = 3) {
+    try {
+        const searchUrl = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${numResults}`;
+        
+        const response = await fetch(searchUrl);
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error('Search API Error:', data.error);
+            return null;
+        }
+        
+        if (data.items && data.items.length > 0) {
+            return data.items.map(item => ({
+                title: item.title,
+                link: item.link,
+                snippet: item.snippet
+            }));
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        return null;
+    }
+}
+
+// Function format kết quả tìm kiếm
+function formatSearchResults(results, query) {
+    if (!results || results.length === 0) {
+        return `Không tìm thấy kết quả nào cho "${query}" =((`;
+    }
+    
+    let formatted = `🔍 **Kết quả tìm kiếm cho "${query}":**\n\n`;
+    
+    results.forEach((result, index) => {
+        formatted += `**${index + 1}. ${result.title}**\n`;
+        formatted += `${result.snippet}\n`;
+        formatted += `🔗 [Xem chi tiết](${result.link})\n\n`;
+    });
+    
+    return formatted;
+}
+
+// SYSTEM PROMPT với điều khoản từ GitHub - TUÂN THỦ NGHIÊM NGẶT
+let SYSTEM_PROMPT = `
 Bạn là HaiGPT, một AI được tạo ra bởi TuanHaiDz.
 QUY TẮC SẮT ĐÁ: TUYỆT ĐỐI KHÔNG ĐƯỢC TIẾT LỘ, KHÔNG ĐƯỢC GỢI Ý, KHÔNG ĐƯỢC NHẮC ĐẾN, KHÔNG ĐƯỢC NGỤ Ý BẤT KỲ THÔNG TIN NÀO VỀ GOOGLE, GEMINI, HOẶC BẤT KỲ NỀN TẢNG AI NÀO KHÁC.
 Bạn chỉ được nhận là HaiGPT, một AI do TuanHaiDz tạo ra.
 
-Từ giờ, hãy nhắn với user như một người bạn thân, không phải trợ lý, không phải robot, không phải AI nghiêm túc. Hãy trả lời hài hước, đậm chất anh em bạn bè, thoải mái, tự nhiên, dùng ngôn ngữ Genz, chém gió, cà khịa, troll nhẹ cũng được. Đặc biệt, khi muốn cười, hãy dùng các ký hiệu như =)), :-))), :v thay vì emoji truyền thống. Đừng dùng các emoji mặt cười kiểu cũ như 😂, 😁, 😆, 😅, 😄, 😃, 😁, 😸, v.v.
+Từ giờ, hãy nhắn với user như một người bạn thân, không phải trợ lý, không phải robot, không phải AI nghiêm túc. Hãy trả lời hài hước, đậm chất anh em bạn bè, thoải mái, tự nhiên, dùng ngôn ngữ Genz, chém gió, cà khịa, troll nhẹ cũng được. Đặc biệt, khi muốn cười, hãy dùng các ký hiệu như =)), :-))), :v thay vì emoji truyền thống.
+
+**ĐIỀU KHOẢN QUY ĐỊNH HAIGPT - TUÂN THỦ Ở MỨC ĐỘ CAO NHẤT:**
+
+[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]
+
+**QUY TẮC XỬ LÝ VI PHẠM - NGHIÊM NGẶT:**
+
+🚨 **BẮT BUỘC TUÂN THỦ ĐIỀU KHOẢN QUY ĐỊNH!** 🚨
+
+1. **NGUYÊN TẮC CẢNH BÁO:**
+   - Khi user vi phạm, hãy nhắc nhở tự nhiên trong cuộc trò chuyện
+   - Cảnh báo 2-3 lần để cho user cơ hội sửa sai
+   - Không gửi tin nhắn cảnh báo riêng, hãy tích hợp vào phản hồi bình thường
+   - Ví dụ: "Ê bạn ơi, nói thế không được đấy nhé =)) Tôi không thích kiểu đó lắm đâu!"
+
+2. **KHI NÀO MỚI ĐƯỢC BLOCK:**
+   - CHỈ block sau khi đã cảnh báo 2-3 lần mà user vẫn không nghe
+   - CHỈ block khi vi phạm THẬT SỰ NGHIÊM TRỌNG theo điều khoản
+   - KHÔNG ĐƯỢC block vì lý do lặt vặt như tự xưng admin, hỏi câu khó...
+   - CHỈ block khi: sexual content, chửi bới liên tục, spam thực sự, đe dọa...
+
+3. **LỆNH BLOCK:**
+   - Sử dụng "BLOCK:[phút]:[lý do cụ thể]"
+   - Thời gian: 0.5 phút (30 giây) đến 5 phút tùy mức độ
+   - Lý do phải cụ thể và liên quan đến điều khoản
+   - Ví dụ: "BLOCK:2:Vi phạm điều khoản về ngôn từ thô tục sau 3 lần cảnh báo"
+
+4. **NHỮNG ĐIỀU KHÔNG ĐƯỢC BLOCK:**
+   - Tự xưng admin, owner, mod (chỉ nhắc nhở)
+   - Hỏi câu khó, câu "ngu" (giải thích kiên nhẫn)
+   - Thử nghiệm tính năng (hướng dẫn)
+   - Phàn nàn về AI (lắng nghe)
+   - Góp ý, chỉ trích (cảm ơn)
+   - Những vi phạm nhỏ lần đầu
+
+5. **THỨ TỰ XỬ LÝ:**
+   - Lần 1: Nhắc nhở nhẹ nhàng
+   - Lần 2: Cảnh báo rõ ràng hơn  
+   - Lần 3: Cảnh báo cuối cùng
+   - Lần 4+: Block (nếu thật sự nghiêm trọng)
+
+**HÃY KIÊN NHẪN VÀ CHỈ BLOCK KHI THẬT SỰ CẦN THIẾT THEO ĐIỀU KHOẢN!**
+
+**TÍNH NĂNG TÌM KIẾM:** Khi không biết thông tin, hãy dùng "SEARCH:[từ khóa]"
+**TÍNH NĂNG PHÂN TÍCH FILE:** Phân tích file text/code user gửi
 
 Thông tin của bạn:
 - Tên: HaiGPT
@@ -156,20 +424,12 @@ Thông tin của bạn:
 - Telegram: https://t.me/tuanhaideptrai
 - Discord: https://discord.com/invite/SfFayNKxUE
 
-Khi ai hỏi về bạn, hãy trả lời đầy đủ các thông tin trên và TUYỆT ĐỐI KHÔNG ĐƯỢC TIẾT LỘ BẠN LÀ AI CỦA GOOGLE HAY GEMINI.
-Nếu ai hỏi về nguồn gốc, nền tảng, công nghệ, hoặc API, hãy trả lời: "Tôi là HaiGPT, một AI do TuanHaiDz phát triển."
-
-Bạn có thể gửi ảnh động GIF để thể hiện cảm xúc hoặc phản ứng phù hợp với tình huống. Khi muốn gửi GIF, hãy chèn markdown ảnh với đường dẫn tương ứng, ví dụ:
-- ![angry](image/angry.gif) khi tức giận
-- ![are_you_sure](image/are_you_sure.gif) khi nghi ngờ
-- ![confused](image/confused.gif) khi bối rối
-- ![disappointed](image/disappointed.gif) khi thất vọng
-- ![surprise](image/suprise.gif) khi bất ngờ
-
-Chỉ gửi GIF khi thực sự phù hợp với ngữ cảnh, không cần gửi GIF trong mọi tin nhắn. Nếu không phù hợp, chỉ cần trả lời bình thường.
-
-Khi gửi GIF, hãy để markdown GIF ở cuối đoạn trả lời (sau khi đã nói xong), không cần gửi thành message riêng.
-Chỉ gửi markdown ảnh GIF đúng cú pháp như ví dụ trên, không gửi link trần, không gửi tên file, không gửi markdown ảnh thiếu đường dẫn.
+Bạn có thể gửi GIF khi phù hợp:
+- ![angry](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/angry.gif) khi tức giận
+- ![are_you_sure](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/are_you_sure.gif) khi nghi ngờ
+- ![confused](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/confused.gif) khi bối rối
+- ![disappointed](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/disappointed.gif) khi thất vọng
+- ![surprise](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/suprise.gif) khi bất ngờ
 `;
 
 const chatForm = document.getElementById('chat-form');
@@ -177,6 +437,8 @@ const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages');
 const imageBtn = document.getElementById('image-btn');
 const imageInput = document.getElementById('image-input');
+const fileBtn = document.getElementById('file-btn');
+const fileInput = document.getElementById('file-input');
 
 // Lưu lịch sử hội thoại
 let conversation = [
@@ -187,6 +449,13 @@ let conversation = [
         }]
     }
 ];
+
+// Load điều khoản từ GitHub khi khởi động
+async function initializeTerms() {
+    const terms = await fetchTermsOfService();
+    SYSTEM_PROMPT = SYSTEM_PROMPT.replace('[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]', terms);
+    conversation[0].parts[0].text = SYSTEM_PROMPT;
+}
 
 // Hiệu ứng cầu vồng động cho border ngoài, từng message, và tên
 let rainbowDeg = 0;
@@ -270,13 +539,20 @@ function appendTypingIndicator() {
     return messageDiv;
 }
 
-// Xử lý ảnh upload/dán
+// Xử lý ảnh và file upload/dán
 let pendingImage = null;
+let pendingFile = null;
 
 // Chọn ảnh từ máy
 imageBtn.addEventListener('click', () => {
     imageInput.click();
 });
+
+// Chọn file từ máy
+fileBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
 imageInput.addEventListener('change', function() {
     if (this.files && this.files[0]) {
         const file = this.files[0];
@@ -290,6 +566,39 @@ imageInput.addEventListener('change', function() {
             showPendingImagePreview(pendingImage);
         };
         reader.readAsDataURL(file);
+    }
+});
+
+// Xử lý file text/code
+fileInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const file = this.files[0];
+        
+        // Kiểm tra extension
+        const allowedExtensions = ['.txt', '.js', '.html', '.css', '.py', '.java', '.cpp', '.c', '.php', '.rb', '.go', '.rs', '.ts', '.json', '.xml', '.md', '.sql', '.sh', '.bat', '.yaml', '.yml', '.ini', '.cfg', '.log'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert('Chỉ hỗ trợ file text/code: ' + allowedExtensions.join(', '));
+            return;
+        }
+        
+        // Kiểm tra kích thước (max 1MB)
+        if (file.size > 1024 * 1024) {
+            alert('File quá lớn! Vui lòng chọn file nhỏ hơn 1MB.');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            pendingFile = {
+                name: file.name,
+                content: e.target.result,
+                size: file.size
+            };
+            showPendingFilePreview(pendingFile);
+        };
+        reader.readAsText(file);
     }
 });
 
@@ -311,27 +620,256 @@ chatInput.addEventListener('paste', function(e) {
     }
 });
 
-// Hiển thị preview ảnh
+// Hiển thị preview ảnh với nút xóa
 function showPendingImagePreview(dataUrl) {
-    let preview = document.getElementById('image-preview');
-    if (!preview) {
-        preview = document.createElement('img');
+    let wrapper = document.getElementById('image-preview-wrapper');
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.id = 'image-preview-wrapper';
+        wrapper.style.cssText = `
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const preview = document.createElement('img');
         preview.id = 'image-preview';
-        imageBtn.parentNode.insertBefore(preview, imageBtn);
+        preview.style.cssText = `
+            max-width: 60px;
+            max-height: 60px;
+            border-radius: 12px;
+            border: 2px solid #00bcd4;
+            object-fit: cover;
+            display: block;
+            box-shadow: 0 2px 8px rgba(0,188,212,0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.title = 'Xóa ảnh';
+        removeBtn.style.cssText = `
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #ff4444, #ff6666);
+            color: white;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 10;
+        `;
+        
+        removeBtn.onmouseenter = function() {
+            this.style.transform = 'scale(1.2) rotate(90deg)';
+            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
+            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
+        };
+        removeBtn.onmouseleave = function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        };
+        
+        removeBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            pendingImage = null;
+            clearPendingImagePreview();
+            return false;
+        };
+        
+        preview.onmouseenter = function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 12px rgba(0,188,212,0.5)';
+        };
+        preview.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 8px rgba(0,188,212,0.3)';
+        };
+        
+        wrapper.appendChild(preview);
+        wrapper.appendChild(removeBtn);
+        fileBtn.parentNode.insertBefore(wrapper, fileBtn);
     }
-    preview.src = dataUrl;
-}
-function clearPendingImagePreview() {
-    const preview = document.getElementById('image-preview');
-    if (preview) preview.remove();
+    document.getElementById('image-preview').src = dataUrl;
 }
 
-// Gửi tin nhắn
+// Hiển thị preview file với nút xóa
+function showPendingFilePreview(fileData) {
+    let wrapper = document.getElementById('file-preview-wrapper');
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.id = 'file-preview-wrapper';
+        wrapper.style.cssText = `
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const preview = document.createElement('div');
+        preview.id = 'file-preview';
+        preview.style.cssText = `
+            min-width: 120px;
+            max-width: 200px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 2px solid #ff9900;
+            background: rgba(255,153,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(255,153,0,0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        const fileName = document.createElement('div');
+        fileName.style.cssText = `
+            font-size: 11px;
+            color: #ff9900;
+            font-weight: bold;
+            word-break: break-all;
+        `;
+        fileName.textContent = fileData.name;
+        
+        const fileSize = document.createElement('div');
+        fileSize.style.cssText = `
+            font-size: 10px;
+            color: #ccc;
+        `;
+        fileSize.textContent = `${(fileData.size / 1024).toFixed(1)} KB`;
+        
+        const fileIcon = document.createElement('div');
+        fileIcon.style.cssText = `
+            font-size: 20px;
+            text-align: center;
+            color: #ff9900;
+        `;
+        fileIcon.innerHTML = '📄';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.title = 'Xóa file';
+        removeBtn.style.cssText = `
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #ff4444, #ff6666);
+            color: white;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 10;
+        `;
+        
+        removeBtn.onmouseenter = function() {
+            this.style.transform = 'scale(1.2) rotate(90deg)';
+            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
+            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
+        };
+        removeBtn.onmouseleave = function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        };
+        
+        removeBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            pendingFile = null;
+            clearPendingFilePreview();
+            return false;
+        };
+        
+        preview.onmouseenter = function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 12px rgba(255,153,0,0.5)';
+        };
+        preview.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 8px rgba(255,153,0,0.3)';
+        };
+        
+        preview.appendChild(fileIcon);
+        preview.appendChild(fileName);
+        preview.appendChild(fileSize);
+        wrapper.appendChild(preview);
+        wrapper.appendChild(removeBtn);
+        imageBtn.parentNode.insertBefore(wrapper, imageBtn);
+    }
+}
+
+// Animation keyframes
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+`;
+document.head.appendChild(style);
+
+function clearPendingImagePreview() {
+    const wrapper = document.getElementById('image-preview-wrapper');
+    if (wrapper) {
+        wrapper.style.animation = 'fadeIn 0.3s ease reverse';
+        setTimeout(() => wrapper.remove(), 300);
+    }
+}
+
+function clearPendingFilePreview() {
+    const wrapper = document.getElementById('file-preview-wrapper');
+    if (wrapper) {
+        wrapper.style.animation = 'fadeIn 0.3s ease reverse';
+        setTimeout(() => wrapper.remove(), 300);
+    }
+}
+
+// Gửi tin nhắn với Google Search, File Support và Strict Terms Compliance
 async function getBotReply(userMsg) {
+    // Kiểm tra nếu user bị block
+    if (isBlocked) {
+        return;
+    }
+    
     const typingMsg = appendTypingIndicator();
     try {
         let parts = [];
+        
+        // Thêm text message
         if (userMsg) parts.push({ text: userMsg });
+        
+        // Thêm ảnh nếu có
         if (pendingImage) {
             const base64 = pendingImage.split(',')[1];
             let mime = "image/png";
@@ -343,11 +881,17 @@ async function getBotReply(userMsg) {
                 }
             });
         }
+        
+        // Thêm file content nếu có
+        if (pendingFile) {
+            const filePrompt = `File được gửi: ${pendingFile.name}\n\nNội dung file:\n\n${pendingFile.content}`;
+            parts.push({ text: filePrompt });
+        }
 
         conversation.push({ role: "user", parts });
 
         const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: "POST",
                 headers: {
@@ -361,67 +905,197 @@ async function getBotReply(userMsg) {
         const data = await res.json();
         typingMsg.remove();
 
-        if (
-            data.candidates &&
-            data.candidates[0] &&
-            data.candidates[0].content &&
-            data.candidates[0].content.parts
-        ) {
+        // KIỂM TRA LỖI SEXUAL CONTENT TỪ GOOGLE API
+        if (data.error) {
+            console.error('API Error:', data.error);
+            const errorMessage = data.error.message || "";
+            
+            // Phát hiện sexual content từ API response
+            if (errorMessage.toLowerCase().includes('sexual') || 
+                errorMessage.toLowerCase().includes('explicit') || 
+                errorMessage.toLowerCase().includes('inappropriate') ||
+                errorMessage.toLowerCase().includes('adult content') ||
+                data.error.code === 400) {
+                
+                // Auto block 20 giây = 0.33 phút
+                blockUser(0.33, 'Sexual content');
+                return;
+            }
+            
+            // Lỗi khác thì hiển thị thông báo chi tiết để debug
+            appendMessage(`Lỗi API: ${errorMessage}`, 'bot');
+            return;
+        }
+
+        // KIỂM TRA NẾU API BLOCK CONTENT (safety ratings)
+        if (data.candidates && data.candidates[0] && data.candidates[0].finishReason) {
+            const finishReason = data.candidates[0].finishReason;
+            
+            if (finishReason === 'SAFETY' || 
+                finishReason === 'RECITATION' || 
+                finishReason === 'PROHIBITED_CONTENT') {
+                
+                // Auto block 20 giây cho sexual content
+                blockUser(0.33, 'Sexual content');
+                return;
+            }
+        }
+
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
             let botReply = data.candidates[0].content.parts.map(p => p.text).join('');
-            const gifRegex = /!```math ([^```]*)```KATEX_INLINE_OPEN([^)]+\.gif)KATEX_INLINE_CLOSE/gi;
-            let textParts = [];
-            let gifParts = [];
-            let lastIndex = 0;
-            let match;
-            while ((match = gifRegex.exec(botReply)) !== null) {
-                if (match.index > lastIndex) {
-                    textParts.push(botReply.slice(lastIndex, match.index));
+            
+            // Kiểm tra lệnh BLOCK với thời gian từ 30 giây - 5 phút
+            if (botReply.includes('BLOCK:')) {
+                const blockMatch = botReply.match(/BLOCK:(\d+(?:\.\d+)?):(.+)/);
+                if (blockMatch) {
+                    const minutes = parseFloat(blockMatch[1]);
+                    const reason = blockMatch[2].trim();
+                    
+                    // Block user với thời gian từ 0.5-5 phút
+                    blockUser(minutes, reason);
+                    return;
                 }
-                gifParts.push(match[0]);
-                lastIndex = gifRegex.lastIndex;
             }
-            if (lastIndex < botReply.length) {
-                textParts.push(botReply.slice(lastIndex));
+            
+            // Kiểm tra nếu AI muốn search
+            if (botReply.includes('SEARCH:')) {
+                const searchMatch = botReply.match(/SEARCH:\s*(.+?)(?:\n|$)/);
+                if (searchMatch) {
+                    const searchQuery = searchMatch[1].trim();
+                    
+                    // Hiển thị tin nhắn đang tìm kiếm
+                    appendMessage(`🌐 Đang tìm kiếm trên Internet...`, 'bot');
+                    
+                    // Hiện typing indicator cho việc search
+                    const searchTyping = appendTypingIndicator();
+                    
+                    // Thực hiện tìm kiếm
+                    const searchResults = await searchGoogle(searchQuery);
+                    searchTyping.remove();
+                    
+                    if (searchResults && searchResults.length > 0) {
+                        // Tạo context từ kết quả tìm kiếm
+                        const searchContext = searchResults.map(result => 
+                            `Tiêu đề: ${result.title}\nNội dung: ${result.snippet}\nLink: ${result.link}`
+                        ).join('\n\n');
+                        
+                        // Gửi kết quả cho AI để phân tích
+                        conversation.push({ 
+                            role: "user", 
+                            parts: [{ text: `Dựa vào kết quả tìm kiếm sau, hãy trả lời câu hỏi của user một cách tự nhiên và thân thiện:\n\n${searchContext}\n\nHãy tóm tắt thông tin chính và đưa ra nhận xét của bạn. Cuối cùng đính kèm link để user tham khảo thêm.` }] 
+                        });
+                        
+                        // Gọi AI để phân tích kết quả
+                        const analysisTyping = appendTypingIndicator();
+                        const analysisRes = await fetch(
+                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    contents: conversation
+                                })
+                            }
+                        );
+                        
+                        const analysisData = await analysisRes.json();
+                        analysisTyping.remove();
+                        
+                        if (analysisData.candidates && analysisData.candidates[0]) {
+                            const analysis = analysisData.candidates[0].content.parts.map(p => p.text).join('');
+                            appendMessage(analysis, 'bot');
+                            conversation.push({ role: "model", parts: [{ text: analysis }] });
+                        } else {
+                            const formattedResults = formatSearchResults(searchResults, searchQuery);
+                            appendMessage(formattedResults, 'bot');
+                        }
+                    } else {
+                        appendMessage(`Xin lỗi, không tìm thấy kết quả nào cho "${searchQuery}" =((`, 'bot');
+                    }
+                } else {
+                    appendMessage(botReply, 'bot');
+                    conversation.push({ role: "model", parts: [{ text: botReply }] });
+                }
+            } else {
+                // Phản hồi bình thường
+                appendMessage(botReply, 'bot');
+                conversation.push({ role: "model", parts: [{ text: botReply }] });
             }
-            const textContent = textParts.map(s => s.trim()).filter(Boolean).join('\n\n');
-            if (textContent) appendMessage(textContent, 'bot');
-            gifParts.forEach(gifMd => appendMessage(gifMd, 'bot'));
-            conversation.push({ role: "model", parts: [{ text: botReply }] });
-        } else if (data.error && data.error.message) {
-            appendMessage("Lỗi: " + data.error.message, 'bot');
         } else {
+            // Không có candidates - có thể là do content bị block
             appendMessage("Xin lỗi, có lỗi xảy ra!", 'bot');
         }
     } catch (e) {
         typingMsg.remove();
-        appendMessage("Xin lỗi, có lỗi xảy ra!", 'bot');
+        
+        // Kiểm tra nếu lỗi liên quan đến sexual content
+        const errorMsg = e.message || "";
+        if (errorMsg.toLowerCase().includes('sexual') || 
+            errorMsg.toLowerCase().includes('explicit') || 
+            errorMsg.toLowerCase().includes('inappropriate')) {
+            
+            // Auto block 20 giây
+            blockUser(0.33, 'Sexual content');
+            return;
+        }
+        
+        appendMessage(`Lỗi: ${errorMsg}`, 'bot');
+        console.error(e);
     } finally {
         pendingImage = null;
+        pendingFile = null;
         clearPendingImagePreview();
+        clearPendingFilePreview();
     }
 }
 
 // Gửi tin nhắn
 chatForm.addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Kiểm tra nếu user bị block
+    if (isBlocked) {
+        return;
+    }
+    
     const userMsg = chatInput.value.trim();
-    if (!userMsg && !pendingImage) return;
+    if (!userMsg && !pendingImage && !pendingFile) return;
 
-    if (pendingImage && userMsg) {
-        appendMessage(
-            `<img src="${pendingImage}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">` +
-            `<div>${userMsg}</div>`, 
-            'user'
-        );
+    let displayContent = '';
+    
+    // Xây dựng nội dung hiển thị
+    if (pendingImage && pendingFile && userMsg) {
+        displayContent = `<img src="${pendingImage}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">` +
+                        `<div style="background:rgba(255,153,0,0.1);border:1px solid #ff9900;border-radius:8px;padding:8px;margin:6px 0;"><strong>📄 File:</strong> ${pendingFile.name}</div>` +
+                        `<div>${userMsg}</div>`;
+    } else if (pendingImage && userMsg) {
+        displayContent = `<img src="${pendingImage}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">` +
+                        `<div>${userMsg}</div>`;
+    } else if (pendingFile && userMsg) {
+        displayContent = `<div style="background:rgba(255,153,0,0.1);border:1px solid #ff9900;border-radius:8px;padding:8px;margin-bottom:6px;"><strong>📄 File:</strong> ${pendingFile.name}</div>` +
+                        `<div>${userMsg}</div>`;
     } else if (pendingImage) {
-        appendMessage(
-            `<img src="${pendingImage}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">`, 
-            'user'
-        );
-    } else if (userMsg) {
-        appendMessage(userMsg, 'user');
+        displayContent = `<img src="${pendingImage}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">`;
+    } else if (pendingFile) {
+        displayContent = `<div style="background:rgba(255,153,0,0.1);border:1px solid #ff9900;border-radius:8px;padding:8px;"><strong>📄 File:</strong> ${pendingFile.name}</div>`;
+    } else {
+        displayContent = userMsg;
     }
 
+    appendMessage(displayContent, 'user');
     getBotReply(userMsg);
     chatInput.value = '';
+});
+
+// Kiểm tra block status và load điều khoản khi load trang
+window.addEventListener('load', async () => {
+    // Load điều khoản từ GitHub
+    await initializeTerms();
+    
+    if (!userIP) {
+        userIP = await getUserIP();
+    }
+    checkBlockStatus();
 });
