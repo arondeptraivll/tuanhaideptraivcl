@@ -890,8 +890,9 @@ async function getBotReply(userMsg) {
 
         conversation.push({ role: "user", parts });
 
+        // ĐÃ ĐỔI THÀNH GEMINI 2.5 FLASH
         const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: "POST",
                 headers: {
@@ -985,10 +986,10 @@ async function getBotReply(userMsg) {
                             parts: [{ text: `Dựa vào kết quả tìm kiếm sau, hãy trả lời câu hỏi của user một cách tự nhiên và thân thiện:\n\n${searchContext}\n\nHãy tóm tắt thông tin chính và đưa ra nhận xét của bạn. Cuối cùng đính kèm link để user tham khảo thêm.` }] 
                         });
                         
-                        // Gọi AI để phân tích kết quả
+                        // Gọi AI để phân tích kết quả - CŨNG DÙNG GEMINI 2.5 FLASH
                         const analysisTyping = appendTypingIndicator();
                         const analysisRes = await fetch(
-                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
                             {
                                 method: "POST",
                                 headers: {
