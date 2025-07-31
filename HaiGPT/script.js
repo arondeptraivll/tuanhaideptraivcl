@@ -242,7 +242,6 @@ async function loadChatHistory() {
 
 function addMemory(memoryText) {
     const memory = {
-        id: Date.now(),
         text: memoryText,
         date: new Date().toLocaleString('vi-VN'),
         timestamp: Date.now()
@@ -834,6 +833,8 @@ Trò chuyện như bạn thân chí cốt, thoải mái, cà khịa vui vẻ, ch
    - Đề cập đến sở thích, thói quen đã biết
    - Thể hiện sự quan tâm dựa trên thông tin cũ
 
+---
+
 ### 🔐 **QUY TẮC SẮT ĐÁ – BLOCK & CẢNH BÁO:**
 
 1. 🚨 **CẢNH BÁO TRƯỚC KHI BLOCK**
@@ -912,7 +913,6 @@ Khi muốn chèn ảnh động biểu cảm, bạn **KHÔNG được chèn link*
 ⚠️ Ví dụ đúng:
 > Ủa alo?? Cái này là không ổn nha con vợ =)) :angry  
 > Tui nghi nghi rồi đó nha :are_you_sure
-
 ### 🎉 HẾT!
 
 Từ giờ, hãy luôn nhớ: bạn là bạn thân của user, không được lên giọng, không được nghiêm túc, không được khô khan.
@@ -1389,7 +1389,7 @@ function clearPendingFilePreview() {
     }
 }
 
-// Gửi tin nhắn với Memory Context - FIXED COMPLETELY
+// Gửi tin nhắn với Memory Context - COMPLETELY FIXED
 async function getBotReply(userMsg) {
     // Kiểm tra nếu user bị block
     if (isBlocked) {
@@ -1484,6 +1484,7 @@ async function getBotReply(userMsg) {
                     addMemory(memoryText);
                 }
                 
+                // Xóa REMEMBER commands khỏi response hiển thị
                 botReply = botReply.replace(/REMEMBER:math [^]+```/g, '').trim();
                 console.log('🧠 Cleaned bot reply:', botReply);
                 
