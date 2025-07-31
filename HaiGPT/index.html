@@ -54,35 +54,82 @@
             </div>
         </div>
     </div>
+
     <!-- BLOCK NOTIFICATION BOX - CẬP NHẬT -->
-<div id="block-notification" class="block-notification" style="display: none;">
-    <div class="notification-backdrop"></div>
-    <div class="notification-box rainbow-border-notification">
-        <div class="notification-header">
-            <div class="block-icon">
-                <div class="block-symbol">🔞</div>
+    <div id="block-notification" class="block-notification" style="display: none;">
+        <div class="notification-backdrop"></div>
+        <div class="notification-box rainbow-border-notification">
+            <div class="notification-header">
+                <div class="block-icon">
+                    <div class="block-symbol">🔞</div>
+                </div>
+                <h2 class="notification-title rainbow-text-glow">BẠN ĐÃ BỊ CẤM!</h2>
             </div>
-            <h2 class="notification-title rainbow-text-glow">BẠN ĐÃ BỊ CẤM!</h2>
-        </div>
-        <div class="notification-content">
-            <p class="block-reason">
-                <strong>Lý do:</strong> <span id="block-reason-text">Sexual Content</span>
-            </p>
-            <p class="block-message">
-                Bạn đã vi phạm quy định của HaiGPT. Vui lòng chờ hết thời gian cấm để tiếp tục sử dụng.
-            </p>
-            <div class="block-timer">
-                <div class="timer-label">Thời gian còn lại:</div>
-                <div id="countdown-timer" class="countdown-display">05:00</div>
+            <div class="notification-content">
+                <p class="block-reason">
+                    <strong>Lý do:</strong> <span id="block-reason-text">Sexual Content</span>
+                </p>
+                <p class="block-message">
+                    Bạn đã vi phạm quy định của HaiGPT. Vui lòng chờ hết thời gian cấm để tiếp tục sử dụng.
+                </p>
+                <div class="block-timer">
+                    <div class="timer-label">Thời gian còn lại:</div>
+                    <div id="countdown-timer" class="countdown-display">05:00</div>
+                </div>
             </div>
-        </div>
-        <div class="notification-footer">
-            <div class="block-footer-text">
-                Hãy tuân thủ quy định để có trải nghiệm tốt nhất! 🚫
+            <div class="notification-footer">
+                <div class="block-footer-text">
+                    Hãy tuân thủ quy định để có trải nghiệm tốt nhất! 🚫
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- MEMORY PANEL -->
+    <div id="memory-panel" class="memory-panel" style="display: none;">
+        <div class="notification-backdrop"></div>
+        <div class="notification-box rainbow-border-notification">
+            <div class="notification-header">
+                <div class="notification-avatar">
+                    <div style="width:80px;height:80px;border-radius:50%;background:conic-gradient(from 0deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000);display:flex;align-items:center;justify-content:center;font-size:40px;">🧠</div>
+                </div>
+                <h2 class="notification-title rainbow-text-glow">Trí Nhớ AI</h2>
+            </div>
+            <div class="notification-content">
+                <div class="memory-info">
+                    <p><strong>IP của bạn:</strong> <span id="user-ip-display">Loading...</span></p>
+                    <div class="memory-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Thông tin đã nhớ:</span>
+                            <span id="memory-count" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Tin nhắn đã lưu:</span>
+                            <span id="chat-count" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="memory-content">
+                    <h3>🧠 Thông tin AI đã nhớ về bạn:</h3>
+                    <div id="memory-list" class="memory-list">
+                        <div style="text-align:center;color:#999;padding:20px;">
+                            Chưa có thông tin nào được lưu...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="notification-footer">
+                <button onclick="clearAllMemories()" class="memory-danger-btn">
+                    <i class="fas fa-trash"></i>
+                    Xóa toàn bộ trí nhớ
+                </button>
+                <button onclick="closeMemoryPanel()" class="welcome-ok-btn">
+                    <span>Đóng</span>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- SLIDE MENU -->
     <div class="slide-menu" id="slide-menu">
@@ -98,6 +145,10 @@
             <div class="menu-item rainbow-border-menu" onclick="resetChat()">
                 <span class="menu-icon">🔄</span>
                 <span>Reset Chat</span>
+            </div>
+            <div class="menu-item rainbow-border-menu" onclick="openMemoryPanel()">
+                <span class="menu-icon">🧠</span>
+                <span>Trí nhớ</span>
             </div>
             <!-- NÚT CONTROL ÂM THANH TRONG MENU -->
             <div class="menu-item rainbow-border-menu" onclick="toggleSound()">
@@ -119,6 +170,25 @@
     <!-- OVERLAY KHI MỞ MENU -->
     <div class="menu-overlay" id="menu-overlay"></div>
 
+    <!-- MEMORY INFO BUTTON - floating button -->
+    <div id="memory-info-btn" class="memory-info-btn" style="display: none;" onclick="showMemoryPreview()">
+        <span>🧠</span>
+        <span class="memory-count-badge" id="memory-badge">0</span>
+    </div>
+
+    <!-- MEMORY PREVIEW POPUP -->
+    <div id="memory-preview" class="memory-preview" style="display: none;">
+        <div class="memory-preview-header">
+            <span>🧠 AI đã nhớ về bạn</span>
+            <button onclick="hideMemoryPreview()">×</button>
+        </div>
+        <div id="memory-preview-content" class="memory-preview-content">
+            <div style="text-align:center;color:#999;padding:20px;">
+                Chưa có thông tin nào...
+            </div>
+        </div>
+    </div>
+
     <div class="chat-container rainbow-border-outer">
         <div class="chat-header">
             <!-- NÚT HAMBURGER -->
@@ -139,30 +209,31 @@
             <!-- Tin nhắn sẽ được thêm ở đây -->
         </div>
         <form class="chat-input-area" id="chat-form" autocomplete="off">
-    <input type="text" id="chat-input" placeholder="Nhập tin nhắn, dán ảnh hoặc chọn file..." autocomplete="off" required>
-    
-    <!-- Input ẩn cho ảnh -->
-    <input type="file" id="image-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none">
-    
-    <!-- Input ẩn cho file text/code -->
-    <input type="file" id="file-input" accept=".txt,.js,.html,.css,.py,.java,.cpp,.c,.php,.rb,.go,.rs,.ts,.json,.xml,.md,.sql,.sh,.bat,.yaml,.yml,.ini,.cfg,.log" style="display:none">
-    
-    <!-- Button ảnh -->
-    <button type="button" id="image-btn" title="Gửi ảnh">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM5 5h14v14H5V5zm2 10l3-4 2 3 3-4 4 5H7z" fill="#00bcd4"/>
-        </svg>
-    </button>
-    
-    <!-- Button file mới -->
-    <button type="button" id="file-btn" title="Gửi file text/code">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#ff9900"/>
-        </svg>
-    </button>
-    
-    <button type="submit" class="send-btn rainbow-btn">Gửi</button>
-</form>
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn, dán ảnh hoặc chọn file..." autocomplete="off" required>
+            
+            <!-- Input ẩn cho ảnh -->
+            <input type="file" id="image-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none">
+            
+            <!-- Input ẩn cho file text/code -->
+            <input type="file" id="file-input" accept=".txt,.js,.html,.css,.py,.java,.cpp,.c,.php,.rb,.go,.rs,.ts,.json,.xml,.md,.sql,.sh,.bat,.yaml,.yml,.ini,.cfg,.log" style="display:none">
+            
+            <!-- Button ảnh -->
+            <button type="button" id="image-btn" title="Gửi ảnh">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM5 5h14v14H5V5zm2 10l3-4 2 3 3-4 4 5H7z" fill="#00bcd4"/>
+                </svg>
+            </button>
+            
+            <!-- Button file mới -->
+            <button type="button" id="file-btn" title="Gửi file text/code">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#ff9900"/>
+                </svg>
+            </button>
+            
+            <button type="submit" class="send-btn rainbow-btn">Gửi</button>
+        </form>
+    </div>
     
     <script src="script.js"></script>
 </body>

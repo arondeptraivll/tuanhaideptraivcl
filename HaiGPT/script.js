@@ -22,6 +22,10 @@ menuOverlay.addEventListener('click', () => {
     menuOverlay.classList.remove('active');
 });
 
+// MEMORY SYSTEM VARIABLES
+let userMemories = [];
+let memoryCount = 0;
+
 // BLOCK SYSTEM VARIABLES
 let userIP = null;
 let blockTimer = null;
@@ -70,6 +74,300 @@ Hãy sử dụng HaiGPT một cách văn minh và tích cực!
     }
 }
 
+// MEMORY SYSTEM FUNCTIONS
+async function loadUserMemories() {
+    try {
+        const response = await fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                action: 'get'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            userMemories = data.memories || [];
+            updateMemoryDisplay();
+            console.log('📚 Loaded memories:', userMemories.length);
+        } else {
+            // Fallback to localStorage
+            const savedMemories = localStorage.getItem(`memories_${userIP}`);
+            userMemories = savedMemories ? JSON.parse(savedMemories) : [];
+            updateMemoryDisplay();
+        }
+    } catch (error) {
+        console.log('Failed to load from database, using localStorage');
+        const savedMemories = localStorage.getItem(`memories_${userIP}`);
+        userMemories = savedMemories ? JSON.parse(savedMemories) : [];
+        updateMemoryDisplay();
+    }
+}
+
+async function saveMemoryToDB(memory) {
+    try {
+        const response = await fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                memory: memory,
+                action: 'add'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Database save failed');
+        }
+    } catch (error) {
+        console.log('Fallback to localStorage for memory');
+        // Fallback to localStorage
+        localStorage.setItem(`memories_${userIP}`, JSON.stringify(userMemories));
+    }
+}
+
+async function clearMemoriesFromDB() {
+    try {
+        const response = await fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                action: 'clear'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Database clear failed');
+        }
+    } catch (error) {
+        console.log('Fallback to localStorage for clearing');
+        localStorage.removeItem(`memories_${userIP}`);
+    }
+}
+
+async function saveChatHistory() {
+    try {
+        const response = await fetch('/api/chat-history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                conversation: conversation,
+                action: 'save'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Database save failed');
+        }
+    } catch (error) {
+        console.log('Fallback to localStorage for chat history');
+        localStorage.setItem(`chat_history_${userIP}`, JSON.stringify(conversation));
+    }
+}
+
+async function loadChatHistory() {
+    try {
+        const response = await fetch('/api/chat-history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                action: 'get'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.conversation && data.conversation.length > 1) {
+                conversation = data.conversation;
+                // Hiển thị lại chat history (bỏ qua system prompt)
+                for (let i = 1; i < conversation.length; i++) {
+                    const msg = conversation[i];
+                    if (msg.role === 'user') {
+                        // Hiển thị tin nhắn user (có thể có ảnh/file)
+                        let displayContent = '';
+                        for (const part of msg.parts) {
+                            if (part.text) {
+                                displayContent += part.text;
+                            }
+                            if (part.inline_data) {
+                                displayContent = `<img src="data:${part.inline_data.mime_type};base64,${part.inline_data.data}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">` + displayContent;
+                            }
+                        }
+                        appendMessage(displayContent || 'Đã gửi file/ảnh', 'user');
+                    } else if (msg.role === 'model') {
+                        const botReply = msg.parts.map(p => p.text).join('');
+                        appendMessage(botReply, 'bot');
+                    }
+                }
+                console.log('📚 Loaded chat history:', conversation.length - 1, 'messages');
+                hasWelcomed = true;
+            }
+        } else {
+            // Fallback to localStorage
+            const savedHistory = localStorage.getItem(`chat_history_${userIP}`);
+            if (savedHistory) {
+                conversation = JSON.parse(savedHistory);
+                console.log('📚 Loaded chat history from localStorage');
+            }
+        }
+    } catch (error) {
+        console.log('Failed to load chat history, starting fresh');
+        const savedHistory = localStorage.getItem(`chat_history_${userIP}`);
+        if (savedHistory) {
+            conversation = JSON.parse(savedHistory);
+        }
+    }
+}
+
+function addMemory(memoryText) {
+    const memory = {
+        id: Date.now(),
+        text: memoryText,
+        date: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+    };
+    
+    userMemories.push(memory);
+    memoryCount++;
+    
+    // Lưu vào database
+    saveMemoryToDB(memory);
+    
+    // Cập nhật display
+    updateMemoryDisplay();
+    
+    console.log('🧠 New memory added:', memoryText);
+}
+
+function updateMemoryDisplay() {
+    memoryCount = userMemories.length;
+    
+    // Update floating button
+    const memoryBtn = document.getElementById('memory-info-btn');
+    const memoryBadge = document.getElementById('memory-badge');
+    
+    if (memoryCount > 0) {
+        memoryBtn.style.display = 'flex';
+        memoryBadge.textContent = memoryCount;
+    } else {
+        memoryBtn.style.display = 'none';
+    }
+    
+    // Update memory panel stats
+    const memoryCountEl = document.getElementById('memory-count');
+    const chatCountEl = document.getElementById('chat-count');
+    
+    if (memoryCountEl) memoryCountEl.textContent = memoryCount;
+    if (chatCountEl) chatCountEl.textContent = Math.max(0, conversation.length - 1);
+    
+    // Update memory list
+    updateMemoryList();
+    updateMemoryPreview();
+}
+
+function updateMemoryList() {
+    const memoryList = document.getElementById('memory-list');
+    if (!memoryList) return;
+    
+    if (userMemories.length === 0) {
+        memoryList.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Chưa có thông tin nào được lưu...</div>';
+        return;
+    }
+    
+    memoryList.innerHTML = userMemories.map(memory => `
+        <div class="memory-item">
+            <div class="memory-text">${memory.text}</div>
+            <div class="memory-date">${memory.date}</div>
+        </div>
+    `).join('');
+}
+
+function updateMemoryPreview() {
+    const previewContent = document.getElementById('memory-preview-content');
+    if (!previewContent) return;
+    
+    if (userMemories.length === 0) {
+        previewContent.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Chưa có thông tin nào...</div>';
+        return;
+    }
+    
+    // Hiển thị 3 memory gần nhất
+    const recentMemories = userMemories.slice(-3).reverse();
+    previewContent.innerHTML = recentMemories.map(memory => `
+        <div class="memory-preview-item">📝 ${memory.text}</div>
+    `).join('');
+}
+
+function getMemoryContext() {
+    if (userMemories.length === 0) return '';
+    
+    const memoryTexts = userMemories.map(m => m.text).join('\n- ');
+    return `\n\n### 🧠 THÔNG TIN ĐÃ NHỚ VỀ USER:\n- ${memoryTexts}\n\n`;
+}
+
+// MEMORY PANEL CONTROLS
+function openMemoryPanel() {
+    const panel = document.getElementById('memory-panel');
+    const ipDisplay = document.getElementById('user-ip-display');
+    
+    if (ipDisplay) ipDisplay.textContent = userIP || 'Loading...';
+    
+    updateMemoryDisplay();
+    panel.style.display = 'flex';
+    
+    // Đóng menu
+    slideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+}
+
+function closeMemoryPanel() {
+    const panel = document.getElementById('memory-panel');
+    panel.style.display = 'none';
+}
+
+async function clearAllMemories() {
+    if (confirm('🧠 Bạn có chắc muốn xóa toàn bộ trí nhớ AI? Hành động này không thể hoàn tác!')) {
+        userMemories = [];
+        memoryCount = 0;
+        
+        // Xóa từ database
+        await clearMemoriesFromDB();
+        
+        // Cập nhật display
+        updateMemoryDisplay();
+        
+        // Hiển thị thông báo
+        appendMessage('🧠 Đã xóa toàn bộ trí nhớ AI! AI sẽ không còn nhớ thông tin cũ về bạn.', 'bot');
+        
+        console.log('🧠 All memories cleared');
+    }
+}
+
+function showMemoryPreview() {
+    const preview = document.getElementById('memory-preview');
+    updateMemoryPreview();
+    preview.style.display = 'block';
+}
+
+function hideMemoryPreview() {
+    const preview = document.getElementById('memory-preview');
+    preview.style.display = 'none';
+}
+
 // Function kiểm tra user có bị block không
 function checkBlockStatus() {
     const blockData = localStorage.getItem(`block_${userIP}`);
@@ -106,12 +404,8 @@ function blockUser(minutes, reason = 'Vi phạm điều khoản') {
     
     localStorage.setItem(`block_${userIP}`, JSON.stringify(blockInfo));
     
-    // Xóa toàn bộ chat
-    chatMessages.innerHTML = '';
-    conversation = [{
-        role: "user",
-        parts: [{ text: SYSTEM_PROMPT }]
-    }];
+    // KHÔNG XÓA CHAT NỮA - CHỈ HIỂN THỊ BLOCK NOTIFICATION
+    // Giữ nguyên conversation và memories
     
     // Hiển thị block notification
     showBlockNotification(blockTimeMs, reason);
@@ -171,13 +465,7 @@ function hideBlockNotification() {
         blockTimer = null;
     }
     
-    // Reset chat về trạng thái ban đầu
-    chatMessages.innerHTML = '';
-    conversation = [{
-        role: "user",
-        parts: [{ text: SYSTEM_PROMPT }]
-    }];
-    hasWelcomed = true;
+    // KHÔNG RESET CHAT NỮA - CHỈ HIỂN THỊ THÔNG BÁO
     setTimeout(() => {
         appendMessage("Chào mừng bạn quay lại HaiGPT! Hãy tuân thủ quy định để có trải nghiệm tốt nhất nhé! =))", 'bot');
     }, 500);
@@ -209,14 +497,18 @@ welcomeOkBtn.addEventListener('click', async () => {
         return;
     }
     
-    setTimeout(() => {
+    setTimeout(async () => {
         // Ẩn notification
         welcomeNotification.classList.add('hidden');
         
         // Phát video và nhạc
         playVideoAndAudio();
         
-        // Hiện tin nhắn chào mừng CHỈ 1 LẦN
+        // Load memories và chat history
+        await loadUserMemories();
+        await loadChatHistory();
+        
+        // Hiện tin nhắn chào mừng CHỈ KHI CHƯA CÓ LỊCH SỬ
         if (!hasWelcomed) {
             setTimeout(() => {
                 appendMessage("Hello con vợ đã đến HaiGPT , hỏi tất cả gì con vợ đang thắc mắc cho tui nha", 'bot');
@@ -288,7 +580,7 @@ function disableSound() {
     if (soundMenuText) soundMenuText.textContent = 'Bật nhạc nền';
 }
 
-// Reset chat từ menu
+// Reset chat từ menu (KHÔNG RESET MEMORIES)
 function resetChat() {
     chatMessages.innerHTML = '';
     conversation = [
@@ -307,6 +599,10 @@ function resetChat() {
     pendingFile = null;
     clearPendingImagePreview();
     clearPendingFilePreview();
+    
+    // Lưu chat history sau khi reset
+    saveChatHistory();
+    
     // Đóng menu
     slideMenu.classList.remove('active');
     menuOverlay.classList.remove('active');
@@ -499,6 +795,29 @@ Trò chuyện như bạn thân chí cốt, thoải mái, cà khịa vui vẻ, ch
 
 ---
 
+### 🧠 **HỆ THỐNG TRÍ NHỚ THÔNG MINH:**
+
+1. **NHẬN DIỆN THÔNG TIN QUAN TRỌNG:**
+   - Tên, tuổi, nghề nghiệp của user
+   - Sở thích, thói quen, tính cách
+   - Thông tin gia đình, bạn bè
+   - Mục tiêu, ước mơ, kế hoạch
+   - Bất kỳ thông tin nào user muốn bạn nhớ
+
+2. **CÁCH GHI NHỚ:**
+   - Khi phát hiện thông tin quan trọng, hãy ghi: **REMEMBER:[thông tin cần nhớ]**
+   - Ví dụ: "REMEMBER:User tên Minh, 22 tuổi, thích ăn bánh kẹp"
+   - Ví dụ: "REMEMBER:User đang học lập trình Python, muốn làm AI developer"
+   - **LƯU Ý:** Chỉ ghi REMEMBER ở cuối tin nhắn, không ảnh hưởng đến nội dung chính
+
+3. **SỬ DỤNG TRÍ NHỚ:**
+   - Luôn tham khảo thông tin đã nhớ để trả lời phù hợp
+   - Gọi user bằng tên nếu đã biết
+   - Đề cập đến sở thích, thói quen đã biết
+   - Thể hiện sự quan tâm dựa trên thông tin cũ
+
+---
+
 ### 🔐 **QUY TẮC SẮT ĐÁ – BLOCK & CẢNH BÁO:**
 
 1. 🚨 **CẢNH BÁO TRƯỚC KHI BLOCK**
@@ -577,6 +896,7 @@ Khi muốn chèn ảnh động biểu cảm, bạn **KHÔNG được chèn link*
 ⚠️ Ví dụ đúng:
 > Ủa alo?? Cái này là không ổn nha con vợ =)) :angry  
 > Tui nghi nghi rồi đó nha :are_you_sure
+
 ### 🎉 HẾT!
 
 Từ giờ, hãy luôn nhớ: bạn là bạn thân của user, không được lên giọng, không được nghiêm túc, không được khô khan.
@@ -688,6 +1008,29 @@ htmlContent = marked.parse(finalContent);
             <img src="../user_avatar.jpg" class="avatar" alt="User">
         `;
     }
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function để hiển thị memory notification
+function appendMemoryNotification(memoryText) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message bot`;
+    messageDiv.innerHTML = `
+        <img src="../avatar.jpg" class="avatar" alt="HaiGPT">
+        <div>
+            <div class="message-name rainbow-border-name bot">HaiGPT</div>
+            <div class="message-content rainbow-border-msg">
+                <div class="memory-notification">
+                    <span>🧠</span>
+                    <span>Đã lưu vào bộ nhớ</span>
+                    <button onclick="showMemoryPreview()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px 8px;border-radius:10px;font-size:0.8rem;margin-left:10px;cursor:pointer;">
+                        Xem
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -1030,7 +1373,8 @@ function clearPendingFilePreview() {
     }
 }
 
-// Gửi tin nhắn với Google Search, File Support và Strict Terms Compliance - TỰ ĐỘNG FALLBACK
+// Gửi tin nhắn với Memory Context - UPGRADED
+// Gửi tin nhắn với Memory Context - UPGRADED
 async function getBotReply(userMsg) {
     // Kiểm tra nếu user bị block
     if (isBlocked) {
@@ -1041,8 +1385,12 @@ async function getBotReply(userMsg) {
     try {
         let parts = [];
         
-        // Thêm text message
-        if (userMsg) parts.push({ text: userMsg });
+        // THÊM MEMORY CONTEXT VÀO TIN NHẮN
+        const memoryContext = getMemoryContext();
+        const fullUserMsg = (userMsg || '') + memoryContext;
+        
+        // Thêm text message với memory context
+        if (fullUserMsg) parts.push({ text: fullUserMsg });
         
         // Thêm ảnh nếu có
         if (pendingImage) {
@@ -1108,6 +1456,33 @@ async function getBotReply(userMsg) {
 
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
             let botReply = data.candidates[0].content.parts.map(p => p.text).join('');
+            
+            // KIỂM TRA VÀ XỬ LÝ MEMORY COMMANDS
+            const rememberMatches = botReply.match(/REMEMBER:```math ([^```]+)```/g);
+            if (rememberMatches) {
+                // Xử lý từng memory command
+                rememberMatches.forEach(match => {
+                    const memoryText = match.replace('REMEMBER:[', '').replace(']', '');
+                    addMemory(memoryText);
+                    console.log('🧠 AI remembered:', memoryText);
+                });
+                
+                // Xóa REMEMBER commands khỏi response hiển thị
+                botReply = botReply.replace(/REMEMBER:```math ([^```]+)```/g, '').trim();
+                
+                // Hiển thị response đã được clean
+                if (botReply) {
+                    appendMessage(botReply, 'bot');
+                    conversation.push({ role: "model", parts: [{ text: botReply }] });
+                }
+                
+                // Hiển thị memory notification
+                appendMemoryNotification();
+                
+                // Lưu chat history
+                saveChatHistory();
+                return;
+            }
             
             // Kiểm tra lệnh BLOCK với thời gian từ 30 giây - 5 phút
             if (botReply.includes('BLOCK:')) {
@@ -1178,6 +1553,9 @@ async function getBotReply(userMsg) {
                 appendMessage(botReply, 'bot');
                 conversation.push({ role: "model", parts: [{ text: botReply }] });
             }
+            
+            // Lưu chat history sau mỗi response
+            saveChatHistory();
         } else {
             // Không có candidates - có thể là do content bị block
             appendMessage("Xin lỗi, có lỗi xảy ra!", 'bot');
@@ -1244,7 +1622,7 @@ chatForm.addEventListener('submit', function(e) {
     chatInput.value = '';
 });
 
-// Kiểm tra backend API và load điều khoản khi load trang
+// Kiểm tra backend API và load dữ liệu khi load trang
 window.addEventListener('load', async () => {
     // Kiểm tra backend API có hoạt động không
     useBackendAPI = await checkBackendAPI();
