@@ -11,21 +11,21 @@ body {
     justify-content: center;
 }
 
-/* YouTube Background cho HaiGPT - CHẠY ẨN */
+/* Video Background cho HaiGPT */
 #bg-video-chat {
     position: fixed;
     top: 50%;
     left: 50%;
-    width: 100vw;
-    height: 56.25vw;
+    min-width: 100vw;
     min-height: 100vh;
-    min-width: 177.77vh;
-    transform: translate(-50%, -50%);
+    width: auto;
+    height: auto;
     z-index: 0;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
     pointer-events: none;
-    opacity: 0.15; /* RẤT MỜ - CHẠY ẨN */
-    border: none;
-    outline: none;
+    opacity: 0; /* Ban đầu ẩn */
+    transition: opacity 1s ease;
 }
 
 /* HIỆU ỨNG CẦU VỒNG CHO TEXT */
