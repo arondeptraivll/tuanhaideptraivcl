@@ -13,30 +13,31 @@ export default async function handler(req, res) {
     const { userIP, memory, action } = req.body || {};
 
     // Database connection info
-    const DB_URL = process.env.DATABASE_URL;
+    const POSTGRES_URL = process.env.POSTGRES_URL;
     
-    if (!DB_URL) {
+    if (!POSTGRES_URL) {
         return res.status(500).json({ error: 'Database not configured' });
     }
 
     try {
-        // Đây là mock implementation - bạn thay bằng database thật
-        // Ví dụ với Supabase hoặc MongoDB
-        
         switch (method) {
             case 'GET':
                 // Lấy tất cả memories của user
-                const memories = await getMemoriesFromDB(userIP);
+                const memories = await getMemoriesFromDB(userIP, POSTGRES_URL);
                 return res.status(200).json({ memories });
 
             case 'POST':
-                if (action === 'add') {
+                if (action === 'get') {
+                    // Lấy memories
+                    const userMemories = await getMemoriesFromDB(userIP, POSTGRES_URL);
+                    return res.status(200).json({ memories: userMemories });
+                } else if (action === 'add') {
                     // Thêm memory mới
-                    await addMemoryToDB(userIP, memory);
+                    await addMemoryToDB(userIP, memory, POSTGRES_URL);
                     return res.status(200).json({ success: true });
                 } else if (action === 'clear') {
                     // Xóa tất cả memories
-                    await clearMemoriesFromDB(userIP);
+                    await clearMemoriesFromDB(userIP, POSTGRES_URL);
                     return res.status(200).json({ success: true });
                 }
                 break;
@@ -50,21 +51,97 @@ export default async function handler(req, res) {
     }
 }
 
-// Mock database functions - THAY BẰNG DATABASE THẬT
-async function getMemoriesFromDB(userIP) {
-    // TODO: Implement real database query
-    // return await db.memories.findMany({ where: { userIP } });
-    return [];
+// PostgreSQL Database functions
+async function getMemoriesFromDB(userIP, connectionString) {
+    try {
+        // Import pg dynamically
+        const { Client } = await import('pg');
+        const client = new Client({ connectionString });
+        
+        await client.connect();
+        
+        // Tạo table nếu chưa tồn tại
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS user_memories (
+                id SERIAL PRIMARY KEY,
+                user_ip VARCHAR(45) NOT NULL,
+                memory_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Lấy memories của user
+        const result = await client.query(
+            'SELECT memory_text, created_at FROM user_memories WHERE user_ip = $1 ORDER BY created_at DESC',
+            [userIP]
+        );
+        
+        await client.end();
+        
+        // Format memories
+        return result.rows.map(row => ({
+            id: Date.now() + Math.random(),
+            text: row.memory_text,
+            date: new Date(row.created_at).toLocaleString('vi-VN'),
+            timestamp: new Date(row.created_at).getTime()
+        }));
+        
+    } catch (error) {
+        console.error('Database error:', error);
+        return [];
+    }
 }
 
-async function addMemoryToDB(userIP, memory) {
-    // TODO: Implement real database insert
-    // return await db.memories.create({ data: { userIP, memory, createdAt: new Date() } });
-    return true;
+async function addMemoryToDB(userIP, memory, connectionString) {
+    try {
+        const { Client } = await import('pg');
+        const client = new Client({ connectionString });
+        
+        await client.connect();
+        
+        // Tạo table nếu chưa tồn tại
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS user_memories (
+                id SERIAL PRIMARY KEY,
+                user_ip VARCHAR(45) NOT NULL,
+                memory_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Thêm memory mới
+        await client.query(
+            'INSERT INTO user_memories (user_ip, memory_text) VALUES ($1, $2)',
+            [userIP, memory.text || memory]
+        );
+        
+        await client.end();
+        return true;
+        
+    } catch (error) {
+        console.error('Database error:', error);
+        throw error;
+    }
 }
 
-async function clearMemoriesFromDB(userIP) {
-    // TODO: Implement real database delete
-    // return await db.memories.deleteMany({ where: { userIP } });
-    return true;
+async function clearMemoriesFromDB(userIP, connectionString) {
+    try {
+        const { Client } = await import('pg');
+        const client = new Client({ connectionString });
+        
+        await client.connect();
+        
+        // Xóa tất cả memories của user
+        await client.query(
+            'DELETE FROM user_memories WHERE user_ip = $1',
+            [userIP]
+        );
+        
+        await client.end();
+        return true;
+        
+    } catch (error) {
+        console.error('Database error:', error);
+        throw error;
+    }
 }
