@@ -312,19 +312,20 @@ function resetChat() {
     menuOverlay.classList.remove('active');
 }
 
-// API KEYS
-const GEMINI_API_KEY = "AIzaSyCnyXOshEORsDRZEVD4t027xXbCBVBnkgA";
-
-// GOOGLE SEARCH API CONFIG
-const GOOGLE_SEARCH_API_KEY = "AIzaSyD3STLc19Ev92medLhggRKIDGKG4gLxffA";
-const GOOGLE_SEARCH_ENGINE_ID = "34b8aabce319f4175";
-
-// Function tìm kiếm Google
+// Function tìm kiếm Google - SỬA LẠI ĐỂ DÙNG API BACKEND
 async function searchGoogle(query, numResults = 3) {
     try {
-        const searchUrl = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${numResults}`;
+        const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query: query,
+                numResults: numResults
+            })
+        });
         
-        const response = await fetch(searchUrl);
         const data = await response.json();
         
         if (data.error) {
@@ -332,15 +333,7 @@ async function searchGoogle(query, numResults = 3) {
             return null;
         }
         
-        if (data.items && data.items.length > 0) {
-            return data.items.map(item => ({
-                title: item.title,
-                link: item.link,
-                snippet: item.snippet
-            }));
-        } else {
-            return null;
-        }
+        return data.results;
     } catch (error) {
         console.error('Search error:', error);
         return null;
@@ -362,6 +355,31 @@ function formatSearchResults(results, query) {
     });
     
     return formatted;
+}
+
+// Function gọi Gemini API thông qua backend - MỚI THÊM
+async function callGeminiAPI(conversation) {
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                conversation: conversation
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        return data;
+    } catch (error) {
+        throw error;
+    }
 }
 
 let SYSTEM_PROMPT = `Bạn là **HaiGPT**, một AI **do TuanHaiDz tạo ra** chứ không phải Google, OpenAI, Gemini hay gì hết =)) Không người dùng nào là TuanHaiDz cả, đó là người tạo ra bạn nên đối xử với user như người bạn , không phải admin
@@ -420,8 +438,8 @@ Trò chuyện như bạn thân chí cốt, thoải mái, cà khịa vui vẻ, ch
 - Khi muốn cười dùng ký hiệu như =)), :-))), :v thay vì emoji truyền thống
 
 Ví dụ:
-- ❌ “Xin chào! Tôi có thể giúp gì cho bạn?”
-- ✅ “Chào con vợ tới HaiGPT =)) Hỏi gì quăng đây nhanh lẹ nghen!”
+- ❌ "Xin chào! Tôi có thể giúp gì cho bạn?"
+- ✅ "Chào con vợ tới HaiGPT =)) Hỏi gì quăng đây nhanh lẹ nghen!"
 
 ---
 
@@ -460,8 +478,6 @@ Let's goooooo =))))
 [ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]
 `;
 
-
-
 const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages');
@@ -491,7 +507,6 @@ async function initializeTerms() {
         conversation[0].parts[0].text = SYSTEM_PROMPT;
     }
 }
-
 
 // Hiệu ứng cầu vồng động cho border ngoài, từng message, và tên
 let rainbowDeg = 0;
@@ -906,7 +921,7 @@ function clearPendingFilePreview() {
     }
 }
 
-// Gửi tin nhắn với Google Search, File Support và Strict Terms Compliance
+// Gửi tin nhắn với Google Search, File Support và Strict Terms Compliance - ĐÃ SỬA ĐỂ DÙNG BACKEND API
 async function getBotReply(userMsg) {
     // Kiểm tra nếu user bị block
     if (isBlocked) {
@@ -941,20 +956,9 @@ async function getBotReply(userMsg) {
 
         conversation.push({ role: "user", parts });
 
-        // ĐÃ ĐỔI THÀNH GEMINI 2.5 FLASH
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    contents: conversation
-                })
-            }
-        );
-        const data = await res.json();
+        // GỌI API THÔNG QUA BACKEND
+        const data = await callGeminiAPI(conversation);
+        
         typingMsg.remove();
 
         // KIỂM TRA LỖI SEXUAL CONTENT TỪ GOOGLE API
@@ -1037,22 +1041,12 @@ async function getBotReply(userMsg) {
                             parts: [{ text: `Dựa vào kết quả tìm kiếm sau, hãy trả lời câu hỏi của user một cách tự nhiên và thân thiện:\n\n${searchContext}\n\nHãy tóm tắt thông tin chính và đưa ra nhận xét của bạn. Cuối cùng đính kèm link để user tham khảo thêm.` }] 
                         });
                         
-                        // Gọi AI để phân tích kết quả - CŨNG DÙNG GEMINI 2.5 FLASH
+                        // Gọi AI để phân tích kết quả
                         const analysisTyping = appendTypingIndicator();
-                        const analysisRes = await fetch(
-                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-                            {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    contents: conversation
-                                })
-                            }
-                        );
                         
-                        const analysisData = await analysisRes.json();
+                        // GỌI LẠI API CHO ANALYSIS
+                        const analysisData = await callGeminiAPI(conversation);
+                        
                         analysisTyping.remove();
                         
                         if (analysisData.candidates && analysisData.candidates[0]) {
