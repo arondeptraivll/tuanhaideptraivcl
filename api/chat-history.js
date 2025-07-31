@@ -50,15 +50,25 @@ export default async function handler(req, res) {
     }
 }
 
-// PostgreSQL Database functions với better error handling
+// PostgreSQL Database functions với SSL FIX
 async function getChatHistoryFromDB(userIP, connectionString) {
     let client = null;
     try {
         // Import pg
         const { Client } = await import('pg');
+        
+        // SSL Config cho hosted databases
+        const sslConfig = connectionString.includes('localhost') 
+            ? false 
+            : {
+                rejectUnauthorized: false,
+                ca: false,
+                checkServerIdentity: false
+            };
+        
         client = new Client({ 
             connectionString,
-            ssl: { rejectUnauthorized: false } // For hosted databases
+            ssl: sslConfig
         });
         
         await client.connect();
@@ -106,9 +116,19 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
     let client = null;
     try {
         const { Client } = await import('pg');
+        
+        // SSL Config
+        const sslConfig = connectionString.includes('localhost') 
+            ? false 
+            : {
+                rejectUnauthorized: false,
+                ca: false,
+                checkServerIdentity: false
+            };
+        
         client = new Client({ 
             connectionString,
-            ssl: { rejectUnauthorized: false }
+            ssl: sslConfig
         });
         
         await client.connect();

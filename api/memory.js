@@ -53,14 +53,24 @@ export default async function handler(req, res) {
     }
 }
 
-// PostgreSQL Database functions
+// PostgreSQL Database functions với SSL FIX
 async function getMemoriesFromDB(userIP, connectionString) {
     let client = null;
     try {
         const { Client } = await import('pg');
+        
+        // SSL Config
+        const sslConfig = connectionString.includes('localhost') 
+            ? false 
+            : {
+                rejectUnauthorized: false,
+                ca: false,
+                checkServerIdentity: false
+            };
+        
         client = new Client({ 
             connectionString,
-            ssl: { rejectUnauthorized: false }
+            ssl: sslConfig
         });
         
         await client.connect();
@@ -107,9 +117,19 @@ async function addMemoryToDB(userIP, memory, connectionString) {
     let client = null;
     try {
         const { Client } = await import('pg');
+        
+        // SSL Config
+        const sslConfig = connectionString.includes('localhost') 
+            ? false 
+            : {
+                rejectUnauthorized: false,
+                ca: false,
+                checkServerIdentity: false
+            };
+        
         client = new Client({ 
             connectionString,
-            ssl: { rejectUnauthorized: false }
+            ssl: sslConfig
         });
         
         await client.connect();
@@ -150,9 +170,19 @@ async function clearMemoriesFromDB(userIP, connectionString) {
     let client = null;
     try {
         const { Client } = await import('pg');
+        
+        // SSL Config
+        const sslConfig = connectionString.includes('localhost') 
+            ? false 
+            : {
+                rejectUnauthorized: false,
+                ca: false,
+                checkServerIdentity: false
+            };
+        
         client = new Client({ 
             connectionString,
-            ssl: { rejectUnauthorized: false }
+            ssl: sslConfig
         });
         
         await client.connect();
