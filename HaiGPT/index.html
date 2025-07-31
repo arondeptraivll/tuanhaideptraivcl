@@ -10,13 +10,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <!-- YouTube Video Background - SẼ CÓ ÂM THANH -->
-    <iframe id="bg-video-chat" 
-            src="https://www.youtube.com/embed/Xk8aDlC2nIM?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1&playlist=Xk8aDlC2nIM&enablejsapi=1&start=0&disablekb=1&fs=0&cc_load_policy=0"
-            frameborder="0" 
-            allow="autoplay; encrypted-media" 
-            allowfullscreen>
-    </iframe>
+    <!-- Video nền động - ẨN KHI CHƯA BẤM OK -->
+    <video id="bg-video-chat" muted loop playsinline
+        style="position:fixed;top:50%;left:50%;min-width:100vw;min-height:100vh;width:auto;height:auto;z-index:0;object-fit:cover;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity 1s ease;">
+        <source src="https://archive.org/download/videoplayback_20250731/videoplayback.mp4" type="video/mp4">
+    </video>
+
+    <!-- Nhạc nền mp3 (ẩn) -->
+    <audio id="bg-audio-chat" src="https://archive.org/download/videoplayback_20250731_0143/videoplayback.mp3" loop></audio>
 
     <!-- NOTIFICATION BOX CHÀO MỪNG -->
     <div id="welcome-notification" class="welcome-notification">
