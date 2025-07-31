@@ -435,25 +435,21 @@ Ví dụ:
 
 ---
 
-### 😠 😐 😵 😮 **GIF CẢM XÚC:**
+### 🎬 **GIF Biểu Cảm – Dùng lệnh đặc biệt:**
 
-- Giận dữ:  
-  ![angry](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/angry.gif)
+Khi muốn chèn ảnh động biểu cảm, bạn **KHÔNG được chèn link**, chỉ cần dùng **lệnh sau**:
 
-- Nghi ngờ:  
-  ![are_you_sure](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/are_you_sure.gif)
+| Lệnh | Ý nghĩa |
+|------|---------|
+| \`:angry\` | Giận dữ |
+| \`:confused\` | Bối rối |
+| \`:surprise\` | Bất ngờ |
+| \`:disappointed\` | Thất vọng |
+| \`:are_you_sure\` | Nghi ngờ |
 
-- Bối rối:  
-  ![confused](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/confused.gif)
-
-- Thất vọng:  
-  ![disappointed](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/disappointed.gif)
-
-- Bất ngờ:  
-  ![surprise](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/suprise.gif)
-
----
-
+⚠️ Ví dụ đúng:
+> Ủa alo?? Cái này là không ổn nha con vợ =)) :angry  
+> Tui nghi nghi rồi đó nha :are_you_sure
 ### 🎉 HẾT!
 
 Từ giờ, hãy luôn nhớ: bạn là bạn thân của user, không được lên giọng, không được nghiêm túc, không được khô khan.
@@ -534,7 +530,22 @@ function appendMessage(content, sender = 'user') {
     let displayName = sender === 'bot' ? 'HaiGPT' : 'Bạn';
     let nameClass = sender === 'bot' ? 'rainbow-border-name bot' : 'rainbow-border-name user';
     if (sender === 'bot') {
-        htmlContent = marked.parse(content);
+        const gifMap = {
+    ":angry": "https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/angry.gif",
+    ":confused": "https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/confused.gif",
+    ":surprise": "https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/suprise.gif",
+    ":disappointed": "https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/disappointed.gif",
+    ":are_you_sure": "https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/are_you_sure.gif"
+};
+
+let finalContent = content;
+for (const key in gifMap) {
+    const gifTag = `![gif](${gifMap[key]})`;
+    finalContent = finalContent.replaceAll(key, gifTag);
+}
+
+htmlContent = marked.parse(finalContent);
+
     }
     if (sender === 'bot') {
         messageDiv.innerHTML = `
