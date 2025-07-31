@@ -1,6 +1,5 @@
 // api/memory.js
 export default async function handler(req, res) {
-    // Cho phép CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -12,13 +11,16 @@ export default async function handler(req, res) {
     const { method } = req;
     const { userIP, memory, action } = req.body || {};
 
-    console.log('Memory API called:', { method, action, userIP: userIP?.substring(0, 10) + '...' });
-
-    // Database connection info - SỬ DỤNG NON_POOLING
-    const POSTGRES_URL = process.env.POSTGRES_URL_NON_POOLING;
+    // TRY MULTIPLE CONNECTION STRINGS
+    const connections = [
+        process.env.POSTGRES_URL_NON_POOLING,
+        process.env.POSTGRES_PRISMA_URL,
+        process.env.POSTGRES_URL
+    ];
     
-    if (!POSTGRES_URL) {
-        console.error('POSTGRES_URL_NON_POOLING not configured');
+    const workingConnection = connections.find(conn => conn);
+    
+    if (!workingConnection) {
         return res.status(500).json({ error: 'Database not configured' });
     }
 
@@ -26,16 +28,13 @@ export default async function handler(req, res) {
         switch (method) {
             case 'POST':
                 if (action === 'get') {
-                    // Lấy memories
-                    const userMemories = await getMemoriesFromDB(userIP, POSTGRES_URL);
+                    const userMemories = await getMemoriesFromDB(userIP, workingConnection);
                     return res.status(200).json({ memories: userMemories });
                 } else if (action === 'add') {
-                    // Thêm memory mới
-                    await addMemoryToDB(userIP, memory, POSTGRES_URL);
+                    await addMemoryToDB(userIP, memory, workingConnection);
                     return res.status(200).json({ success: true });
                 } else if (action === 'clear') {
-                    // Xóa tất cả memories
-                    await clearMemoriesFromDB(userIP, POSTGRES_URL);
+                    await clearMemoriesFromDB(userIP, workingConnection);
                     return res.status(200).json({ success: true });
                 } else {
                     return res.status(400).json({ error: 'Invalid action' });
@@ -53,24 +52,50 @@ export default async function handler(req, res) {
     }
 }
 
-// PostgreSQL Database functions với NON-POOLING
+// AGGRESSIVE SSL BYPASS FOR MEMORY
 async function getMemoriesFromDB(userIP, connectionString) {
     let client = null;
     try {
         const { Client } = await import('pg');
         
-        client = new Client({ 
-            connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: false
+        const sslConfigs = [
+            false,
+            { rejectUnauthorized: false },
+            { rejectUnauthorized: false, ca: false },
+            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
+        ];
+        
+        let connected = false;
+        
+        for (const sslConfig of sslConfigs) {
+            try {
+                let modifiedConnectionString = connectionString;
+                if (sslConfig === false) {
+                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
+                }
+                
+                client = new Client({ 
+                    connectionString: modifiedConnectionString,
+                    ssl: sslConfig
+                });
+                
+                await client.connect();
+                console.log('Memory connected with SSL config:', sslConfig);
+                connected = true;
+                break;
+                
+            } catch (err) {
+                if (client) {
+                    try { await client.end(); } catch {}
+                    client = null;
+                }
             }
-        });
+        }
         
-        await client.connect();
-        console.log('Memory DB connected successfully');
+        if (!connected) {
+            return [];
+        }
         
-        // Tạo table nếu chưa tồn tại
         await client.query(`
             CREATE TABLE IF NOT EXISTS user_memories (
                 id SERIAL PRIMARY KEY,
@@ -80,15 +105,11 @@ async function getMemoriesFromDB(userIP, connectionString) {
             )
         `);
         
-        // Lấy memories của user
         const result = await client.query(
             'SELECT memory_text, created_at FROM user_memories WHERE user_ip = $1 ORDER BY created_at DESC',
             [userIP]
         );
         
-        console.log('Memory query success:', result.rows.length, 'memories');
-        
-        // Format memories
         return result.rows.map(row => ({
             id: Date.now() + Math.random(),
             text: row.memory_text,
@@ -101,11 +122,7 @@ async function getMemoriesFromDB(userIP, connectionString) {
         return [];
     } finally {
         if (client) {
-            try {
-                await client.end();
-            } catch (e) {
-                console.error('Error closing memory connection:', e);
-            }
+            try { await client.end(); } catch {}
         }
     }
 }
@@ -115,18 +132,43 @@ async function addMemoryToDB(userIP, memory, connectionString) {
     try {
         const { Client } = await import('pg');
         
-        client = new Client({ 
-            connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: false
+        const sslConfigs = [
+            false,
+            { rejectUnauthorized: false },
+            { rejectUnauthorized: false, ca: false },
+            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
+        ];
+        
+        let connected = false;
+        
+        for (const sslConfig of sslConfigs) {
+            try {
+                let modifiedConnectionString = connectionString;
+                if (sslConfig === false) {
+                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
+                }
+                
+                client = new Client({ 
+                    connectionString: modifiedConnectionString,
+                    ssl: sslConfig
+                });
+                
+                await client.connect();
+                connected = true;
+                break;
+                
+            } catch (err) {
+                if (client) {
+                    try { await client.end(); } catch {}
+                    client = null;
+                }
             }
-        });
+        }
         
-        await client.connect();
-        console.log('Memory save connected successfully');
+        if (!connected) {
+            throw new Error('All connection attempts failed');
+        }
         
-        // Tạo table nếu chưa tồn tại
         await client.query(`
             CREATE TABLE IF NOT EXISTS user_memories (
                 id SERIAL PRIMARY KEY,
@@ -136,13 +178,11 @@ async function addMemoryToDB(userIP, memory, connectionString) {
             )
         `);
         
-        // Thêm memory mới
         await client.query(
             'INSERT INTO user_memories (user_ip, memory_text) VALUES ($1, $2)',
             [userIP, memory.text || memory]
         );
         
-        console.log('Memory added successfully');
         return true;
         
     } catch (error) {
@@ -150,11 +190,7 @@ async function addMemoryToDB(userIP, memory, connectionString) {
         throw error;
     } finally {
         if (client) {
-            try {
-                await client.end();
-            } catch (e) {
-                console.error('Error closing add memory connection:', e);
-            }
+            try { await client.end(); } catch {}
         }
     }
 }
@@ -164,24 +200,48 @@ async function clearMemoriesFromDB(userIP, connectionString) {
     try {
         const { Client } = await import('pg');
         
-        client = new Client({ 
-            connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: false
+        const sslConfigs = [
+            false,
+            { rejectUnauthorized: false },
+            { rejectUnauthorized: false, ca: false },
+            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
+        ];
+        
+        let connected = false;
+        
+        for (const sslConfig of sslConfigs) {
+            try {
+                let modifiedConnectionString = connectionString;
+                if (sslConfig === false) {
+                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
+                }
+                
+                client = new Client({ 
+                    connectionString: modifiedConnectionString,
+                    ssl: sslConfig
+                });
+                
+                await client.connect();
+                connected = true;
+                break;
+                
+            } catch (err) {
+                if (client) {
+                    try { await client.end(); } catch {}
+                    client = null;
+                }
             }
-        });
+        }
         
-        await client.connect();
-        console.log('Memory clear connected successfully');
+        if (!connected) {
+            throw new Error('All connection attempts failed');
+        }
         
-        // Xóa tất cả memories của user
-        const result = await client.query(
+        await client.query(
             'DELETE FROM user_memories WHERE user_ip = $1',
             [userIP]
         );
         
-        console.log('Cleared memories:', result.rowCount, 'rows');
         return true;
         
     } catch (error) {
@@ -189,11 +249,7 @@ async function clearMemoriesFromDB(userIP, connectionString) {
         throw error;
     } finally {
         if (client) {
-            try {
-                await client.end();
-            } catch (e) {
-                console.error('Error closing clear memory connection:', e);
-            }
+            try { await client.end(); } catch {}
         }
     }
 }

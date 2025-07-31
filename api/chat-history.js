@@ -13,11 +13,17 @@ export default async function handler(req, res) {
 
     console.log('Chat History API called:', { method, action, userIP });
 
-    // Database connection info - SỬ DỤNG NON_POOLING
-    const POSTGRES_URL = process.env.POSTGRES_URL_NON_POOLING;
+    // TRY MULTIPLE CONNECTION STRINGS
+    const connections = [
+        process.env.POSTGRES_URL_NON_POOLING,
+        process.env.POSTGRES_PRISMA_URL,
+        process.env.POSTGRES_URL
+    ];
     
-    if (!POSTGRES_URL) {
-        console.error('POSTGRES_URL_NON_POOLING not configured');
+    const workingConnection = connections.find(conn => conn);
+    
+    if (!workingConnection) {
+        console.error('No PostgreSQL connection string found');
         return res.status(500).json({ error: 'Database not configured' });
     }
 
@@ -25,10 +31,10 @@ export default async function handler(req, res) {
         switch (method) {
             case 'POST':
                 if (action === 'get') {
-                    const chatHistory = await getChatHistoryFromDB(userIP, POSTGRES_URL);
+                    const chatHistory = await getChatHistoryFromDB(userIP, workingConnection);
                     return res.status(200).json({ conversation: chatHistory });
                 } else if (action === 'save') {
-                    await saveChatHistoryToDB(userIP, conversation, POSTGRES_URL);
+                    await saveChatHistoryToDB(userIP, conversation, workingConnection);
                     return res.status(200).json({ success: true });
                 } else {
                     return res.status(400).json({ error: 'Invalid action' });
@@ -46,25 +52,57 @@ export default async function handler(req, res) {
     }
 }
 
-// Supabase NON-POOLING Connection Functions
+// AGGRESSIVE SSL BYPASS
 async function getChatHistoryFromDB(userIP, connectionString) {
     let client = null;
     try {
         const { Client } = await import('pg');
         
-        // Supabase NON-POOLING SSL Config
-        client = new Client({ 
-            connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: false
+        // TRY MULTIPLE SSL CONFIGS
+        const sslConfigs = [
+            false, // No SSL
+            { rejectUnauthorized: false }, // Accept self-signed
+            { rejectUnauthorized: false, ca: false }, // Ignore CA
+            { rejectUnauthorized: false, ca: false, checkServerIdentity: false }, // Ignore everything
+        ];
+        
+        let connected = false;
+        
+        for (const sslConfig of sslConfigs) {
+            try {
+                console.log('Trying SSL config:', sslConfig);
+                
+                // Modify connection string for no SSL
+                let modifiedConnectionString = connectionString;
+                if (sslConfig === false) {
+                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
+                }
+                
+                client = new Client({ 
+                    connectionString: modifiedConnectionString,
+                    ssl: sslConfig
+                });
+                
+                await client.connect();
+                console.log('Connected with SSL config:', sslConfig);
+                connected = true;
+                break;
+                
+            } catch (err) {
+                console.log('SSL config failed:', sslConfig, err.message);
+                if (client) {
+                    try { await client.end(); } catch {}
+                    client = null;
+                }
             }
-        });
+        }
         
-        await client.connect();
-        console.log('Supabase NON-POOLING connected successfully');
+        if (!connected) {
+            console.log('All SSL configs failed, using fallback');
+            return [];
+        }
         
-        // Tạo table nếu chưa tồn tại
+        // Create table
         await client.query(`
             CREATE TABLE IF NOT EXISTS chat_history (
                 id SERIAL PRIMARY KEY,
@@ -74,7 +112,7 @@ async function getChatHistoryFromDB(userIP, connectionString) {
             )
         `);
         
-        // Lấy chat history của user
+        // Get data
         const result = await client.query(
             'SELECT conversation_data FROM chat_history WHERE user_ip = $1 ORDER BY updated_at DESC LIMIT 1',
             [userIP]
@@ -89,15 +127,11 @@ async function getChatHistoryFromDB(userIP, connectionString) {
         return [];
         
     } catch (error) {
-        console.error('Supabase getChatHistory error:', error);
+        console.error('Database getChatHistory error:', error);
         return [];
     } finally {
         if (client) {
-            try {
-                await client.end();
-            } catch (e) {
-                console.error('Error closing connection:', e);
-            }
+            try { await client.end(); } catch {}
         }
     }
 }
@@ -107,19 +141,47 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
     try {
         const { Client } = await import('pg');
         
-        // Supabase NON-POOLING SSL Config
-        client = new Client({ 
-            connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: false
+        // TRY MULTIPLE SSL CONFIGS FOR SAVE
+        const sslConfigs = [
+            false,
+            { rejectUnauthorized: false },
+            { rejectUnauthorized: false, ca: false },
+            { rejectUnauthorized: false, ca: false, checkServerIdentity: false },
+        ];
+        
+        let connected = false;
+        
+        for (const sslConfig of sslConfigs) {
+            try {
+                let modifiedConnectionString = connectionString;
+                if (sslConfig === false) {
+                    modifiedConnectionString = connectionString.replace('?sslmode=require', '?sslmode=disable');
+                }
+                
+                client = new Client({ 
+                    connectionString: modifiedConnectionString,
+                    ssl: sslConfig
+                });
+                
+                await client.connect();
+                console.log('Save connected with SSL config:', sslConfig);
+                connected = true;
+                break;
+                
+            } catch (err) {
+                console.log('Save SSL config failed:', sslConfig, err.message);
+                if (client) {
+                    try { await client.end(); } catch {}
+                    client = null;
+                }
             }
-        });
+        }
         
-        await client.connect();
-        console.log('Supabase save connected successfully');
+        if (!connected) {
+            throw new Error('All save connection attempts failed');
+        }
         
-        // Tạo table nếu chưa tồn tại
+        // Create table
         await client.query(`
             CREATE TABLE IF NOT EXISTS chat_history (
                 id SERIAL PRIMARY KEY,
@@ -129,21 +191,19 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
             )
         `);
         
-        // Kiểm tra existing
+        // Check existing
         const existingResult = await client.query(
             'SELECT id FROM chat_history WHERE user_ip = $1',
             [userIP]
         );
         
         if (existingResult.rows.length > 0) {
-            // Update existing
             await client.query(
                 'UPDATE chat_history SET conversation_data = $1, updated_at = CURRENT_TIMESTAMP WHERE user_ip = $2',
                 [JSON.stringify(conversation), userIP]
             );
             console.log('Updated chat history successfully');
         } else {
-            // Insert new
             await client.query(
                 'INSERT INTO chat_history (user_ip, conversation_data) VALUES ($1, $2)',
                 [userIP, JSON.stringify(conversation)]
@@ -154,15 +214,11 @@ async function saveChatHistoryToDB(userIP, conversation, connectionString) {
         return true;
         
     } catch (error) {
-        console.error('Supabase saveChatHistory error:', error);
+        console.error('Database saveChatHistory error:', error);
         throw error;
     } finally {
         if (client) {
-            try {
-                await client.end();
-            } catch (e) {
-                console.error('Error closing connection:', e);
-            }
+            try { await client.end(); } catch {}
         }
     }
 }
