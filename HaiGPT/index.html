@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <title>HaiGPT Chat</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Thư viện markdown -->
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Font Awesome -->
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <!-- Video nền động - ẨN KHI CHƯA BẤM OK -->
+    
     <video id="bg-video-chat" muted loop playsinline
         style="position:fixed;top:50%;left:50%;min-width:100vw;min-height:100vh;width:auto;height:auto;z-index:0;object-fit:cover;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity 1s ease;">
         <source src="https://archive.org/download/videoplayback_20250731/videoplayback.mp4" type="video/mp4">
     </video>
 
-    <!-- Nhạc nền mp3 (ẩn) -->
+    
     <audio id="bg-audio-chat" src="https://archive.org/download/videoplayback_20250731_0143/videoplayback.mp3" loop></audio>
 
-    <!-- NOTIFICATION BOX CHÀO MỪNG -->
+    
     <div id="welcome-notification" class="welcome-notification">
         <div class="notification-backdrop"></div>
         <div class="notification-box rainbow-border-notification">
@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    <!-- BLOCK NOTIFICATION BOX - CẬP NHẬT -->
+    
     <div id="block-notification" class="block-notification" style="display: none;">
         <div class="notification-backdrop"></div>
         <div class="notification-box rainbow-border-notification">
@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <!-- MEMORY PANEL -->
+    
     <div id="memory-panel" class="memory-panel" style="display: none;">
         <div class="notification-backdrop"></div>
         <div class="notification-box rainbow-border-notification">
@@ -131,7 +131,7 @@
         </div>
     </div>
 
-    <!-- SLIDE MENU -->
+    
     <div class="slide-menu" id="slide-menu">
         <div class="menu-header">
             <h2 class="menu-title rainbow-text">MENU</h2>
@@ -150,7 +150,7 @@
                 <span class="menu-icon">🧠</span>
                 <span>Trí nhớ</span>
             </div>
-            <!-- NÚT CONTROL ÂM THANH TRONG MENU -->
+            
             <div class="menu-item rainbow-border-menu" onclick="toggleSound()">
                 <span class="menu-icon">🔊</span>
                 <span id="sound-menu-text">Tắt nhạc nền</span>
@@ -167,16 +167,16 @@
         </div>
     </div>
     
-    <!-- OVERLAY KHI MỞ MENU -->
+    
     <div class="menu-overlay" id="menu-overlay"></div>
 
-    <!-- MEMORY INFO BUTTON - floating button -->
+    
     <div id="memory-info-btn" class="memory-info-btn" style="display: none;" onclick="showMemoryPreview()">
         <span>🧠</span>
         <span class="memory-count-badge" id="memory-badge">0</span>
     </div>
 
-    <!-- MEMORY PREVIEW POPUP -->
+    
     <div id="memory-preview" class="memory-preview" style="display: none;">
         <div class="memory-preview-header">
             <span>🧠 AI đã nhớ về bạn</span>
@@ -191,7 +191,7 @@
 
     <div class="chat-container rainbow-border-outer">
         <div class="chat-header">
-            <!-- NÚT HAMBURGER -->
+            
             <button class="hamburger-menu" id="hamburger-menu">
                 <span></span>
                 <span></span>
@@ -200,31 +200,31 @@
             <img src="../avatar.jpg" alt="HaiGPT Avatar" class="chat-avatar">
             <span class="chat-title rainbow-text-animated">HaiGPT</span>
             
-            <!-- NÚT CONTROL ÂM THANH TRONG HEADER -->
+            
             <button id="sound-toggle" class="sound-toggle" title="Bật/Tắt nhạc nền">
                 <i class="fas fa-volume-mute" id="sound-icon"></i>
             </button>
         </div>
         <div class="chat-messages" id="chat-messages">
-            <!-- Tin nhắn sẽ được thêm ở đây -->
+            
         </div>
         <form class="chat-input-area" id="chat-form" autocomplete="off">
             <input type="text" id="chat-input" placeholder="Nhập tin nhắn, dán ảnh hoặc chọn file..." autocomplete="off" required>
             
-            <!-- Input ẩn cho ảnh -->
+            
             <input type="file" id="image-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none">
             
-            <!-- Input ẩn cho file text/code -->
+            
             <input type="file" id="file-input" accept=".txt,.js,.html,.css,.py,.java,.cpp,.c,.php,.rb,.go,.rs,.ts,.json,.xml,.md,.sql,.sh,.bat,.yaml,.yml,.ini,.cfg,.log" style="display:none">
             
-            <!-- Button ảnh -->
+            
             <button type="button" id="image-btn" title="Gửi ảnh">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM5 5h14v14H5V5zm2 10l3-4 2 3 3-4 4 5H7z" fill="#00bcd4"/>
                 </svg>
             </button>
             
-            <!-- Button file mới -->
+            
             <button type="button" id="file-btn" title="Gửi file text/code">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#ff9900"/>
@@ -236,5 +236,6 @@
     </div>
     
     <script src="script.js"></script>
+    <script src="security/security.js"></script>
 </body>
 </html>
