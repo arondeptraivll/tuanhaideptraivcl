@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Bạn Đã Bị Chặn</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .box {
+            background: rgba(34, 34, 34, 0.95);
+            border-radius: 18px;
+            box-shadow: 0 6px 32px 0 rgba(0,0,0,0.25), 0 1.5px 4px 0 rgba(255,76,76,0.12);
+            padding: 40px 32px 28px 32px;
+            min-width: 320px;
+            max-width: 90vw;
+            text-align: center;
+            border: 1.5px solid #ff4c4c33;
+        }
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            color: #ff4c4c;
+            letter-spacing: 1px;
+        }
+        p {
+            font-size: 1.15rem;
+            margin-bottom: 1.8rem;
+            color: #fff;
+        }
+        .reason-box {
+            background: rgba(255, 76, 76, 0.1);
+            border-left: 4px solid #ff4c4c;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .reason-title {
+            color: #ff4c4c;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .reason-text {
+            color: #ccc;
+            font-size: 1rem;
+            line-height: 1.4;
+            margin: 0;
+        }
+        .footer {
+            margin-top: 1.5rem;
+            color: #aaa;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Bạn Đã Bị Chặn</h1>
+        <p>Vui lòng không sử dụng Dev tool</p>
+        
+        <div class="reason-box">
+            <div class="reason-title">📋 Lý do bị chặn:</div>
+            <p class="reason-text" id="blockReason">Phát hiện hành vi vi phạm bảo mật</p>
+        </div>
+        
+        <div class="footer">Bio by TuanHai</div>
+    </div>
+
+    <script>
+       
+        const urlParams = new URLSearchParams(window.location.search);
+        const reason = urlParams.get('reason');
+        
+        const reasons = {
+            'devtools': 'Phát hiện Developer Tools đang được mở',
+            'rightclick': 'Phát hiện extension bypass chuột phải',
+            'console': 'Phát hiện sử dụng Console',
+            'timing': 'Phát hiện thao tác timing bất thường',
+            'mobile': 'Phát hiện chế độ responsive/mobile view',
+            'iframe': 'Phát hiện inspection từ iframe',
+            'keyboard': 'Phát hiện sử dụng phím tắt DevTools',
+            'focus': 'Phát hiện thao tác focus/blur bất thường',
+            'default': 'Phát hiện hành vi vi phạm bảo mật'
+        };
+        
+        document.getElementById('blockReason').textContent = 
+            reasons[reason] || reasons['default'];
+    </script>
+</body>
+</html>
