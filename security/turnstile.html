@@ -352,29 +352,40 @@
             // ===========================================
 
             function handleVerificationSuccess() {
-                console.log('🎉 Verification completed successfully');
-                
-                // Hide loading, show success
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('mainIcon').style.display = 'none';
-                document.getElementById('checkmark').style.display = 'block';
-                
-                document.getElementById('title').textContent = '✅ Xác minh thành công!';
-                document.getElementById('subtitle').textContent = 'Đang chuyển hướng...';
-                document.getElementById('status').textContent = 'Hoàn tất! Đang quay lại trang chính...';
-                
-                // Redirect after 2 seconds
-                setTimeout(() => {
-                    if (state.redirecting) return;
-                    state.redirecting = true;
-                    
-                    const separator = originalUrl.includes('?') ? '&' : '?';
-                    const returnUrl = originalUrl + separator + 'verified=true';
-                    console.log('🚀 Redirecting to:', returnUrl);
-                    window.location.href = returnUrl;
-                }, 2000);
-            }
-
+    console.log('🎉 Verification completed successfully');
+    
+    // Hide loading, show success
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('mainIcon').style.display = 'none';
+    document.getElementById('checkmark').style.display = 'block';
+    
+    document.getElementById('title').textContent = '✅ Xác minh thành công!';
+    document.getElementById('subtitle').textContent = 'Đang chuyển hướng...';
+    document.getElementById('status').textContent = 'Hoàn tất! Đang quay lại trang chính...';
+    
+    // Redirect after 2 seconds with proper URL cleaning
+    setTimeout(() => {
+        if (state.redirecting) return;
+        state.redirecting = true;
+        
+        // Clean the original URL of any existing verification parameters
+        let cleanUrl = originalUrl;
+        try {
+            const url = new URL(originalUrl);
+            url.searchParams.delete('verified');
+            cleanUrl = url.toString();
+        } catch (e) {
+            // If URL parsing fails, just use the original
+            cleanUrl = originalUrl.split('?')[0];
+        }
+        
+        const separator = cleanUrl.includes('?') ? '&' : '?';
+        const returnUrl = cleanUrl + separator + 'verified=true';
+        
+        console.log('🚀 Redirecting to:', returnUrl);
+        window.location.href = returnUrl;
+    }, 2000);
+}
             function handleVerificationFailure(errorCodes) {
                 console.error('❌ Verification failed:', errorCodes);
                 
