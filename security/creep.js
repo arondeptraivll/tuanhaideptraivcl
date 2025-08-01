@@ -2,7 +2,7 @@
   'use strict';
 
   // ===========================================
-  // 🛡️ CREEP.JS IN SECURITY FOLDER
+  // 🛡️ CREEP.JS - FIX REDIRECT PATH
   // ===========================================
   
   const CONFIG = {
@@ -41,12 +41,28 @@
   };
 
   // ===========================================
-  // 🗂️ PATH UTILITIES
+  // 🗂️ PATH UTILITIES (FIXED)
   // ===========================================
 
   function getSecurityUrl(page) {
-    // creep.js is already in security folder, so relative path
-    return page;
+    // Detect current path to determine correct relative path
+    const currentPath = window.location.pathname;
+    
+    console.log('🗂️ Current path:', currentPath);
+    
+    // If we're in a subfolder (like /HaiGPT/), need to go up then to security
+    if (currentPath.includes('/')) {
+      const pathParts = currentPath.split('/');
+      if (pathParts.length > 2) { // More than just / and filename
+        // We're in a subfolder, need ../security/
+        console.log('📁 In subfolder, using ../security/' + page);
+        return `../security/${page}`;
+      }
+    }
+    
+    // We're at root level, just security/
+    console.log('📁 At root level, using security/' + page);
+    return `security/${page}`;
   }
 
   // ===========================================
@@ -152,7 +168,7 @@
   }
 
   // ===========================================
-  // 🔄 REDIRECT FUNCTIONS
+  // 🔄 REDIRECT FUNCTIONS (FIXED PATH)
   // ===========================================
 
   function redirectToSecurityCheck(reason) {
@@ -168,17 +184,19 @@
     
     state.redirecting = true;
     console.log(`🚨 Redirecting for security check: ${reason}`);
+    console.log('📍 Current location:', window.location.href);
     
     const currentUrl = window.location.origin + window.location.pathname;
     const returnUrl = encodeURIComponent(currentUrl);
     
     sessionStorage.removeItem(CONFIG.VERIFIED_KEY);
     
-    // From any folder to security/turnstile.html
+    // Get correct security URL
     const securityUrl = getSecurityUrl('turnstile.html');
     const fullSecurityUrl = `${securityUrl}?return=${returnUrl}&reason=bot&score=${state.score}`;
     
     console.log('🚀 Redirecting to:', fullSecurityUrl);
+    console.log('🔙 Return URL will be:', currentUrl);
     
     setTimeout(() => {
       window.location.href = fullSecurityUrl;
@@ -186,7 +204,7 @@
   }
 
   // ===========================================
-  // 📊 MONITORING (Simplified)
+  // 📊 MONITORING (Simplified & More Lenient)
   // ===========================================
 
   function setupEventListeners() {
@@ -201,7 +219,7 @@
         Math.pow(e.clientY - state.lastMouseY, 2)
       );
       
-      if (speed > 500) state.impossibleSpeed++;
+      if (speed > 1000) state.impossibleSpeed++; // More lenient
       
       state.lastMouseX = e.clientX;
       state.lastMouseY = e.clientY;
@@ -232,9 +250,10 @@
     const now = Date.now();
     const timeSinceLastActivity = now - state.lastActivity;
     
-    if (timeSinceLastActivity > 30000) suspiciousPoints += 10;
-    if (state.mouseEvents === 0 && (now - state.sessionStart) > 120000) suspiciousPoints += 15;
-    if (navigator.webdriver) suspiciousPoints += 25;
+    // Very lenient checks
+    if (timeSinceLastActivity > 60000) suspiciousPoints += 5; // 1 minute
+    if (state.mouseEvents === 0 && (now - state.sessionStart) > 300000) suspiciousPoints += 10; // 5 minutes
+    if (navigator.webdriver) suspiciousPoints += 20;
     
     return suspiciousPoints;
   }
@@ -253,15 +272,15 @@
     let cycleScore = analyzeBehavior();
     
     const timeSinceLastActivity = now - state.lastActivity;
-    if (timeSinceLastActivity >= CONFIG.CHECK_INTERVAL) {
+    if (timeSinceLastActivity >= CONFIG.CHECK_INTERVAL * 2) { // More lenient
       state.noMovementCycles++;
-      cycleScore += 2; // Reduced penalty
+      cycleScore += 1; // Much reduced penalty
     } else {
       state.noMovementCycles = Math.max(0, state.noMovementCycles - 1);
     }
     
-    if (state.noMovementCycles >= 8) { // More lenient
-      cycleScore += state.noMovementCycles * 1;
+    if (state.noMovementCycles >= 15) { // Much more lenient
+      cycleScore += state.noMovementCycles * 0.5;
     }
     
     state.score += cycleScore;
@@ -269,7 +288,7 @@
     
     localStorage.setItem(CONFIG.STORAGE_KEY, state.score.toString());
     
-    console.log(`🕵️ Check - Score: ${state.score}/${CONFIG.REDIRECT_THRESHOLD}, Cycle: +${cycleScore}`);
+    console.log(`🕵️ Check - Score: ${state.score}/${CONFIG.REDIRECT_THRESHOLD}, Cycle: +${cycleScore}, NoMove: ${state.noMovementCycles}`);
     
     if (state.score >= CONFIG.BLOCK_THRESHOLD) {
       blockUser();
@@ -304,24 +323,20 @@
     
     setTimeout(() => {
       setInterval(performBehaviorCheck, CONFIG.CHECK_INTERVAL);
-    }, 3000); // Longer delay
+    }, 5000); // Longer delay before starting checks
     
     console.log('✅ Monitoring started successfully');
   }
 
   function init() {
-    console.log('🛡️ Creep.js in Security Folder - Initializing...');
+    console.log('🛡️ Creep.js Enhanced - Path Fixed');
     console.log('📍 Current path:', window.location.pathname);
+    console.log('🏠 Current URL:', window.location.href);
     
-    if (window.location.pathname.includes('security/') && 
-        window.location.pathname.includes('turnstile.html')) {
-      console.log('📍 In turnstile page, skipping creep.js');
-      return;
-    }
-    
-    if (window.location.pathname.includes('security/') && 
-        window.location.pathname.includes('blocked.html')) {
-      console.log('📍 In blocked page, skipping creep.js');
+    // Skip if in security pages
+    if (window.location.pathname.includes('security/turnstile.html') || 
+        window.location.pathname.includes('security/blocked.html')) {
+      console.log('📍 In security pages, skipping creep.js');
       return;
     }
     
@@ -345,12 +360,27 @@
   }
 
   // ===========================================
+  // 🛡️ NOSCRIPT FALLBACK
+  // ===========================================
+  
+  function addNoScriptFallback() {
+    const noScript = document.createElement('noscript');
+    const blockedUrl = getSecurityUrl('blocked.html');
+    noScript.innerHTML = `<meta http-equiv="refresh" content="0;url=${blockedUrl}?reason=bot">`;
+    
+    if (document.head) {
+      document.head.appendChild(noScript);
+    }
+  }
+
+  // ===========================================
   // 🎬 START SYSTEM
   // ===========================================
 
   function safeInit() {
     try {
       init();
+      addNoScriptFallback();
     } catch (error) {
       console.error('🚨 Creep.js initialization error:', error);
     }
@@ -358,7 +388,7 @@
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(safeInit, 1000); // Longer delay
+      setTimeout(safeInit, 1000);
     });
   } else {
     setTimeout(safeInit, 1000);
