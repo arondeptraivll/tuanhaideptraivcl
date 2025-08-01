@@ -2,14 +2,14 @@
   'use strict';
 
   // ===========================================
-  // 🛡️ CREEP.JS - 3 SAME LEVEL FOLDERS
+  // 🛡️ CREEP.JS IN SECURITY FOLDER
   // ===========================================
   
   const CONFIG = {
     CHECK_INTERVAL: 5000,        
     REDIRECT_THRESHOLD: 60,      
     BLOCK_THRESHOLD: 100,        
-    SESSION_TIMEOUT: 1800000,    // 30 phút
+    SESSION_TIMEOUT: 1800000,
     STORAGE_KEY: 'creep_score',
     VERIFIED_KEY: 'security_verified',
     LAST_CHECK_KEY: 'last_security_check'
@@ -22,12 +22,10 @@
     sessionStart: Date.now(),
     lastActivity: Date.now(),
     
-    // Control flags
     redirecting: false,
     monitoringActive: false,
     justVerified: false,
     
-    // Tracking
     mouseEvents: 0,
     keyboardEvents: 0,
     scrollEvents: 0,
@@ -36,7 +34,6 @@
     roboticClicks: 0,
     impossibleSpeed: 0,
     
-    // Mouse tracking
     lastMouseX: 0,
     lastMouseY: 0,
     mousePath: [],
@@ -44,12 +41,12 @@
   };
 
   // ===========================================
-  // 🗂️ PATH UTILITIES FOR 3 SAME-LEVEL FOLDERS
+  // 🗂️ PATH UTILITIES
   // ===========================================
 
   function getSecurityUrl(page) {
-    // From /HaiGPT/ to /security/ - go up one level then into security
-    return `../security/${page}`;
+    // creep.js is already in security folder, so relative path
+    return page;
   }
 
   // ===========================================
@@ -91,7 +88,6 @@
     state.verified = true;
     state.lastCheck = now;
     
-    // Reset score after successful verification
     state.score = Math.max(0, state.score - 30);
     localStorage.setItem(CONFIG.STORAGE_KEY, state.score.toString());
     
@@ -116,8 +112,7 @@
     console.log('🔍 Verification status:', {
       session: sessionVerified,
       cookie: cookieVerified,
-      overall: state.verified,
-      justVerified: state.justVerified
+      overall: state.verified
     });
     
     return state.verified;
@@ -157,7 +152,7 @@
   }
 
   // ===========================================
-  // 🔄 REDIRECT FUNCTIONS (FIXED FOR 3 FOLDERS)
+  // 🔄 REDIRECT FUNCTIONS
   // ===========================================
 
   function redirectToSecurityCheck(reason) {
@@ -174,20 +169,16 @@
     state.redirecting = true;
     console.log(`🚨 Redirecting for security check: ${reason}`);
     
-    // Get current URL without parameters
     const currentUrl = window.location.origin + window.location.pathname;
     const returnUrl = encodeURIComponent(currentUrl);
     
-    // Clear verification status
     sessionStorage.removeItem(CONFIG.VERIFIED_KEY);
     
-    // Build security URL (from HaiGPT to security - same level)
+    // From any folder to security/turnstile.html
     const securityUrl = getSecurityUrl('turnstile.html');
     const fullSecurityUrl = `${securityUrl}?return=${returnUrl}&reason=bot&score=${state.score}`;
     
     console.log('🚀 Redirecting to:', fullSecurityUrl);
-    console.log('📍 Current path:', window.location.pathname);
-    console.log('🔙 Return URL:', currentUrl);
     
     setTimeout(() => {
       window.location.href = fullSecurityUrl;
@@ -195,7 +186,7 @@
   }
 
   // ===========================================
-  // 📊 EVENT LISTENERS & MONITORING
+  // 📊 MONITORING (Simplified)
   // ===========================================
 
   function setupEventListeners() {
@@ -219,28 +210,6 @@
     document.addEventListener('click', (e) => {
       state.clickEvents++;
       state.lastActivity = Date.now();
-      
-      state.clickPattern.push({
-        x: e.clientX,
-        y: e.clientY,
-        time: Date.now()
-      });
-      
-      if (state.clickPattern.length > 5) {
-        state.clickPattern.shift();
-      }
-      
-      if (state.clickPattern.length >= 3) {
-        const last3 = state.clickPattern.slice(-3);
-        const samePosition = last3.every(click => 
-          Math.abs(click.x - last3[0].x) < 5 && 
-          Math.abs(click.y - last3[0].y) < 5
-        );
-        
-        if (samePosition) {
-          state.roboticClicks++;
-        }
-      }
     });
 
     document.addEventListener('scroll', () => {
@@ -263,15 +232,8 @@
     const now = Date.now();
     const timeSinceLastActivity = now - state.lastActivity;
     
-    if (timeSinceLastActivity > 20000) suspiciousPoints += 10;
-    
-    if (state.mouseEvents === 0 && (now - state.sessionStart) > 60000) {
-      suspiciousPoints += 15;
-    }
-    
-    if (state.roboticClicks > 3) suspiciousPoints += 15;
-    if (state.impossibleSpeed > 5) suspiciousPoints += 10;
-    
+    if (timeSinceLastActivity > 30000) suspiciousPoints += 10;
+    if (state.mouseEvents === 0 && (now - state.sessionStart) > 120000) suspiciousPoints += 15;
     if (navigator.webdriver) suspiciousPoints += 25;
     
     return suspiciousPoints;
@@ -293,13 +255,13 @@
     const timeSinceLastActivity = now - state.lastActivity;
     if (timeSinceLastActivity >= CONFIG.CHECK_INTERVAL) {
       state.noMovementCycles++;
-      cycleScore += 3;
+      cycleScore += 2; // Reduced penalty
     } else {
       state.noMovementCycles = Math.max(0, state.noMovementCycles - 1);
     }
     
-    if (state.noMovementCycles >= 6) {
-      cycleScore += state.noMovementCycles * 2;
+    if (state.noMovementCycles >= 8) { // More lenient
+      cycleScore += state.noMovementCycles * 1;
     }
     
     state.score += cycleScore;
@@ -307,7 +269,7 @@
     
     localStorage.setItem(CONFIG.STORAGE_KEY, state.score.toString());
     
-    console.log(`🕵️ Check - Score: ${state.score}/${CONFIG.REDIRECT_THRESHOLD}, Cycle: +${cycleScore}, NoMove: ${state.noMovementCycles}`);
+    console.log(`🕵️ Check - Score: ${state.score}/${CONFIG.REDIRECT_THRESHOLD}, Cycle: +${cycleScore}`);
     
     if (state.score >= CONFIG.BLOCK_THRESHOLD) {
       blockUser();
@@ -342,23 +304,27 @@
     
     setTimeout(() => {
       setInterval(performBehaviorCheck, CONFIG.CHECK_INTERVAL);
-    }, 2000);
+    }, 3000); // Longer delay
     
     console.log('✅ Monitoring started successfully');
   }
 
   function init() {
-    console.log('🛡️ Creep.js Enhanced - 3 Same Level Folders');
+    console.log('🛡️ Creep.js in Security Folder - Initializing...');
     console.log('📍 Current path:', window.location.pathname);
-    console.log('🏠 Current URL:', window.location.href);
     
-    // Skip if in security folder
-    if (window.location.pathname.includes('security/')) {
-      console.log('📍 In security folder, skipping initialization');
+    if (window.location.pathname.includes('security/') && 
+        window.location.pathname.includes('turnstile.html')) {
+      console.log('📍 In turnstile page, skipping creep.js');
       return;
     }
     
-    // Check URL parameters FIRST
+    if (window.location.pathname.includes('security/') && 
+        window.location.pathname.includes('blocked.html')) {
+      console.log('📍 In blocked page, skipping creep.js');
+      return;
+    }
+    
     const justVerified = checkUrlParameters();
     
     if (justVerified) {
@@ -367,7 +333,6 @@
       return;
     }
     
-    // Check if verification needed
     console.log('🔍 Checking if verification needed...');
     
     if (!checkInitialVerification()) {
@@ -375,23 +340,8 @@
       return;
     }
     
-    // Start monitoring
     console.log('✅ All checks passed, starting monitoring');
     startMonitoring();
-  }
-
-  // ===========================================
-  // 🛡️ NOSCRIPT FALLBACK
-  // ===========================================
-  
-  function addNoScriptFallback() {
-    const noScript = document.createElement('noscript');
-    const blockedUrl = getSecurityUrl('blocked.html');
-    noScript.innerHTML = `<meta http-equiv="refresh" content="0;url=${blockedUrl}?reason=bot">`;
-    
-    if (document.head) {
-      document.head.appendChild(noScript);
-    }
   }
 
   // ===========================================
@@ -401,25 +351,17 @@
   function safeInit() {
     try {
       init();
-      addNoScriptFallback();
     } catch (error) {
       console.error('🚨 Creep.js initialization error:', error);
-      
-      if (!window.location.pathname.includes('security/')) {
-        const securityUrl = getSecurityUrl('turnstile.html');
-        setTimeout(() => {
-          window.location.href = `${securityUrl}?reason=bot`;
-        }, 1000);
-      }
     }
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(safeInit, 500);
+      setTimeout(safeInit, 1000); // Longer delay
     });
   } else {
-    setTimeout(safeInit, 500);
+    setTimeout(safeInit, 1000);
   }
 
 })();
