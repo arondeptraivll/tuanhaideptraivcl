@@ -2,7 +2,7 @@
   'use strict';
 
   // ===========================================
-  // 🛡️ ENHANCED CREEP.JS - LOOP-FREE VERSION
+  // 🛡️ CREEP.JS - 3 SAME LEVEL FOLDERS
   // ===========================================
   
   const CONFIG = {
@@ -25,7 +25,7 @@
     // Control flags
     redirecting: false,
     monitoringActive: false,
-    justVerified: false, // NEW: Track if just verified
+    justVerified: false,
     
     // Tracking
     mouseEvents: 0,
@@ -44,7 +44,16 @@
   };
 
   // ===========================================
-  // 🎯 URL PARAMETER HANDLING (PRIORITY 1)
+  // 🗂️ PATH UTILITIES FOR 3 SAME-LEVEL FOLDERS
+  // ===========================================
+
+  function getSecurityUrl(page) {
+    // From /HaiGPT/ to /security/ - go up one level then into security
+    return `../security/${page}`;
+  }
+
+  // ===========================================
+  // 🎯 URL PARAMETER HANDLING
   // ===========================================
 
   function checkUrlParameters() {
@@ -55,7 +64,7 @@
       console.log('✅ Just returned from successful verification');
       markAsVerified();
       cleanUrl();
-      state.justVerified = true; // Mark as just verified
+      state.justVerified = true;
       return true;
     }
     
@@ -63,17 +72,20 @@
   }
 
   function cleanUrl() {
-    // Remove verification parameter from URL
-    const url = new URL(window.location);
-    url.searchParams.delete('verified');
-    window.history.replaceState({}, document.title, url.toString());
+    try {
+      const url = new URL(window.location);
+      url.searchParams.delete('verified');
+      window.history.replaceState({}, document.title, url.toString());
+      console.log('🧹 URL cleaned');
+    } catch (e) {
+      console.log('⚠️ Could not clean URL:', e);
+    }
   }
 
   function markAsVerified() {
     console.log('✅ Marking as verified');
     const now = Date.now();
     
-    // Set all verification flags
     sessionStorage.setItem(CONFIG.VERIFIED_KEY, 'true');
     localStorage.setItem(CONFIG.LAST_CHECK_KEY, now.toString());
     state.verified = true;
@@ -91,16 +103,12 @@
   // ===========================================
 
   function checkVerificationStatus() {
-    // If just verified, return true immediately
     if (state.justVerified) {
       console.log('✅ Just verified, skipping additional checks');
       return true;
     }
     
-    // Check sessionStorage
     const sessionVerified = sessionStorage.getItem(CONFIG.VERIFIED_KEY) === 'true';
-    
-    // Check cookie as backup
     const cookieVerified = document.cookie.includes('sec_verified=true');
     
     state.verified = sessionVerified || cookieVerified;
@@ -116,7 +124,6 @@
   }
 
   function checkInitialVerification() {
-    // IMPORTANT: Skip if just verified from URL parameter
     if (state.justVerified) {
       console.log('✅ Just verified, skipping initial verification check');
       return true;
@@ -128,21 +135,18 @@
     console.log('🔍 Checking initial verification...');
     console.log(`Score: ${state.score}, Time since last: ${timeSinceLastCheck}ms`);
     
-    // Check current verification status
     if (!checkVerificationStatus()) {
       console.log('🚨 Not verified - redirecting to security check');
       redirectToSecurityCheck('not_verified');
       return false;
     }
     
-    // Force re-verification if too long since last check (30 min)
     if (timeSinceLastCheck > CONFIG.SESSION_TIMEOUT) {
       console.log('🚨 Session timeout - redirecting to security check');
       redirectToSecurityCheck('session_timeout');
       return false;
     }
     
-    // Force re-verification if score too high
     if (state.score >= CONFIG.REDIRECT_THRESHOLD) {
       console.log('🚨 Score too high - redirecting to security check');
       redirectToSecurityCheck('high_score');
@@ -153,7 +157,7 @@
   }
 
   // ===========================================
-  // 🔄 REDIRECT FUNCTIONS
+  // 🔄 REDIRECT FUNCTIONS (FIXED FOR 3 FOLDERS)
   // ===========================================
 
   function redirectToSecurityCheck(reason) {
@@ -170,28 +174,33 @@
     state.redirecting = true;
     console.log(`🚨 Redirecting for security check: ${reason}`);
     
-    const currentUrl = window.location.href;
-    // Clean URL before encoding (remove any existing verification params)
-    const cleanCurrentUrl = currentUrl.split('?')[0];
-    const returnUrl = encodeURIComponent(cleanCurrentUrl);
+    // Get current URL without parameters
+    const currentUrl = window.location.origin + window.location.pathname;
+    const returnUrl = encodeURIComponent(currentUrl);
     
-    // Clear verification status when redirecting
+    // Clear verification status
     sessionStorage.removeItem(CONFIG.VERIFIED_KEY);
     
-    // Add small delay to prevent race conditions
+    // Build security URL (from HaiGPT to security - same level)
+    const securityUrl = getSecurityUrl('turnstile.html');
+    const fullSecurityUrl = `${securityUrl}?return=${returnUrl}&reason=bot&score=${state.score}`;
+    
+    console.log('🚀 Redirecting to:', fullSecurityUrl);
+    console.log('📍 Current path:', window.location.pathname);
+    console.log('🔙 Return URL:', currentUrl);
+    
     setTimeout(() => {
-      window.location.href = `security/turnstile.html?return=${returnUrl}&reason=bot&score=${state.score}`;
+      window.location.href = fullSecurityUrl;
     }, 100);
   }
 
   // ===========================================
-  // 📊 EVENT LISTENERS (Simplified)
+  // 📊 EVENT LISTENERS & MONITORING
   // ===========================================
 
   function setupEventListeners() {
     console.log('🕵️ Setting up behavior monitoring...');
     
-    // Mouse movement
     document.addEventListener('mousemove', (e) => {
       state.mouseEvents++;
       state.lastActivity = Date.now();
@@ -207,7 +216,6 @@
       state.lastMouseY = e.clientY;
     });
 
-    // Click tracking
     document.addEventListener('click', (e) => {
       state.clickEvents++;
       state.lastActivity = Date.now();
@@ -222,7 +230,6 @@
         state.clickPattern.shift();
       }
       
-      // Simple robotic click detection
       if (state.clickPattern.length >= 3) {
         const last3 = state.clickPattern.slice(-3);
         const samePosition = last3.every(click => 
@@ -236,7 +243,6 @@
       }
     });
 
-    // Other events
     document.addEventListener('scroll', () => {
       state.scrollEvents++;
       state.lastActivity = Date.now();
@@ -252,43 +258,30 @@
     });
   }
 
-  // ===========================================
-  // 🔍 BEHAVIOR ANALYSIS (Simplified)
-  // ===========================================
-
   function analyzeBehavior() {
     let suspiciousPoints = 0;
     const now = Date.now();
     const timeSinceLastActivity = now - state.lastActivity;
     
-    // No activity for extended period
     if (timeSinceLastActivity > 20000) suspiciousPoints += 10;
     
-    // No mouse movement at all
     if (state.mouseEvents === 0 && (now - state.sessionStart) > 60000) {
       suspiciousPoints += 15;
     }
     
-    // Robotic behaviors
     if (state.roboticClicks > 3) suspiciousPoints += 15;
     if (state.impossibleSpeed > 5) suspiciousPoints += 10;
     
-    // Browser checks (only major ones)
     if (navigator.webdriver) suspiciousPoints += 25;
     
     return suspiciousPoints;
   }
-
-  // ===========================================
-  // ⚡ MONITORING LOGIC (Simplified)
-  // ===========================================
 
   function performBehaviorCheck() {
     if (!state.monitoringActive || state.redirecting) return;
     
     const now = Date.now();
     
-    // Check if session expired
     if (now - state.sessionStart > CONFIG.SESSION_TIMEOUT) {
       console.log('🔄 Session expired, forcing re-verification');
       redirectToSecurityCheck('session_expired');
@@ -297,37 +290,31 @@
     
     let cycleScore = analyzeBehavior();
     
-    // Check for no movement
     const timeSinceLastActivity = now - state.lastActivity;
     if (timeSinceLastActivity >= CONFIG.CHECK_INTERVAL) {
       state.noMovementCycles++;
-      cycleScore += 3; // Reduced penalty
+      cycleScore += 3;
     } else {
       state.noMovementCycles = Math.max(0, state.noMovementCycles - 1);
     }
     
-    // Progressive penalty (reduced)
     if (state.noMovementCycles >= 6) {
       cycleScore += state.noMovementCycles * 2;
     }
     
-    // Add to total score
     state.score += cycleScore;
     state.score = Math.max(0, state.score);
     
-    // Save score
     localStorage.setItem(CONFIG.STORAGE_KEY, state.score.toString());
     
     console.log(`🕵️ Check - Score: ${state.score}/${CONFIG.REDIRECT_THRESHOLD}, Cycle: +${cycleScore}, NoMove: ${state.noMovementCycles}`);
     
-    // Check thresholds (more lenient)
     if (state.score >= CONFIG.BLOCK_THRESHOLD) {
       blockUser();
     } else if (state.score >= CONFIG.REDIRECT_THRESHOLD) {
       redirectToSecurityCheck('suspicious_behavior');
     }
     
-    // Reset cycle counters
     state.impossibleSpeed = 0;
   }
 
@@ -339,11 +326,12 @@
     sessionStorage.removeItem(CONFIG.VERIFIED_KEY);
     document.cookie = 'sec_verified=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     
-    window.location.href = `security/blocked.html?reason=bot&score=${state.score}`;
+    const blockedUrl = getSecurityUrl('blocked.html');
+    window.location.href = `${blockedUrl}?reason=bot&score=${state.score}`;
   }
 
   // ===========================================
-  // 🚀 INITIALIZATION (Fixed Order)
+  // 🚀 INITIALIZATION
   // ===========================================
 
   function startMonitoring() {
@@ -352,16 +340,17 @@
     state.monitoringActive = true;
     setupEventListeners();
     
-    // Start periodic checks after a delay
     setTimeout(() => {
       setInterval(performBehaviorCheck, CONFIG.CHECK_INTERVAL);
-    }, 2000); // 2 second delay before starting checks
+    }, 2000);
     
     console.log('✅ Monitoring started successfully');
   }
 
   function init() {
-    console.log('🛡️ Creep.js Enhanced - Initializing...');
+    console.log('🛡️ Creep.js Enhanced - 3 Same Level Folders');
+    console.log('📍 Current path:', window.location.pathname);
+    console.log('🏠 Current URL:', window.location.href);
     
     // Skip if in security folder
     if (window.location.pathname.includes('security/')) {
@@ -369,7 +358,7 @@
       return;
     }
     
-    // STEP 1: Check URL parameters FIRST (highest priority)
+    // Check URL parameters FIRST
     const justVerified = checkUrlParameters();
     
     if (justVerified) {
@@ -378,15 +367,15 @@
       return;
     }
     
-    // STEP 2: Only check initial verification if NOT just verified
+    // Check if verification needed
     console.log('🔍 Checking if verification needed...');
     
     if (!checkInitialVerification()) {
       console.log('❌ Initial verification failed, will redirect');
-      return; // Will redirect
+      return;
     }
     
-    // STEP 3: Start monitoring if all checks passed
+    // Start monitoring
     console.log('✅ All checks passed, starting monitoring');
     startMonitoring();
   }
@@ -395,34 +384,31 @@
   // 🛡️ NOSCRIPT FALLBACK
   // ===========================================
   
-  const noScript = document.createElement('noscript');
-  noScript.innerHTML = `<meta http-equiv="refresh" content="0;url=security/blocked.html?reason=bot">`;
-  
-  // Safe DOM insertion
-  if (document.head) {
-    document.head.appendChild(noScript);
-  } else {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (document.head) {
-        document.head.appendChild(noScript);
-      }
-    });
+  function addNoScriptFallback() {
+    const noScript = document.createElement('noscript');
+    const blockedUrl = getSecurityUrl('blocked.html');
+    noScript.innerHTML = `<meta http-equiv="refresh" content="0;url=${blockedUrl}?reason=bot">`;
+    
+    if (document.head) {
+      document.head.appendChild(noScript);
+    }
   }
 
   // ===========================================
   // 🎬 START SYSTEM
   // ===========================================
 
-  // Add delay to prevent race conditions
   function safeInit() {
     try {
       init();
+      addNoScriptFallback();
     } catch (error) {
       console.error('🚨 Creep.js initialization error:', error);
-      // Fallback: redirect to security if there's an error
+      
       if (!window.location.pathname.includes('security/')) {
+        const securityUrl = getSecurityUrl('turnstile.html');
         setTimeout(() => {
-          window.location.href = 'security/turnstile.html?reason=bot';
+          window.location.href = `${securityUrl}?reason=bot`;
         }, 1000);
       }
     }
@@ -430,10 +416,10 @@
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(safeInit, 500); // 500ms delay
+      setTimeout(safeInit, 500);
     });
   } else {
-    setTimeout(safeInit, 500); // 500ms delay
+    setTimeout(safeInit, 500);
   }
 
 })();
