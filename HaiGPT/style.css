@@ -1329,3 +1329,11 @@ body {
         padding: 10px 15px;
     }
 }
+.memory-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.notification-box {
+    max-height: 90vh;
+    overflow-y: auto;
+}
