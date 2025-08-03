@@ -66,7 +66,7 @@ function playVideo() {
 }
 
 
-// --- PHẦN HIỆU ỨNG VIỀN CẦU VỒNG CHO CÁC NÚT Ở GÓC (Đã cập nhật) ---
+// --- PHẦN HIỆU ỨNG VIỀN CẦU VỒNG CHO CÁC NÚT Ở GÓC ---
 
 const topButtons = document.querySelectorAll('.top-button');
 
