@@ -1,4 +1,3 @@
-
 class TokenManager {
     constructor() {
         this.userIP = null;
@@ -7,7 +6,7 @@ class TokenManager {
         this.API_BASE = '/api/bypass_funlink';
         
         this.initializeElements();
-        this.loadUserIP();
+        this.checkExistingTokenOnLoad();
         this.setupEventListeners();
     }
 
@@ -18,38 +17,50 @@ class TokenManager {
             tokenView: document.getElementById('tokenView'),
             loadingView: document.getElementById('loadingView'),
             createTokenBtn: document.getElementById('createTokenBtn'),
-            // Đã xóa newTokenBtn khỏi đây
             tokenDisplay: document.getElementById('tokenDisplay'),
             timerDisplay: document.getElementById('timerDisplay'),
             copyTokenBtn: document.getElementById('copyTokenBtn')
         };
     }
-
-    async loadUserIP() {
+    
+    async checkExistingTokenOnLoad() {
         try {
             const response = await fetch(this.API_BASE);
+            if (!response.ok) {
+                throw new Error('Lỗi kết nối đến máy chủ.');
+            }
+            
             const data = await response.json();
             
             if (data.ip) {
                 this.userIP = data.ip;
                 this.elements.ipDisplay.textContent = this.userIP;
             } else {
-                throw new Error('Không nhận được IP');
+                this.elements.ipDisplay.textContent = 'Không thể lấy IP';
+                this.elements.ipDisplay.style.color = '#ff4757';
             }
-            
+
+            if (data.has_existing_token && data.token) {
+                this.currentToken = data.token;
+                this.elements.tokenDisplay.value = data.token;
+                this.startTimer(data.time_left_ms);
+                this.showTokenView();
+                this.showNotification('Đã tải lại token của bạn.', 'info');
+            } else {
+                this.showInitialView();
+            }
         } catch (error) {
-            console.error('Error loading IP:', error);
-            this.elements.ipDisplay.textContent = 'Không thể lấy IP';
+            console.error('Error during initial load:', error);
+            this.elements.ipDisplay.textContent = 'Lỗi kết nối';
             this.elements.ipDisplay.style.color = '#ff4757';
+            this.showInitialView();
         }
     }
 
     setupEventListeners() {
         this.elements.createTokenBtn.addEventListener('click', () => {
-            this.createToken();
+            this.createToken(); 
         });
-
-        // Đã xóa EventListener của newTokenBtn khỏi đây
 
         this.elements.copyTokenBtn.addEventListener('click', () => {
             this.copyToken();
@@ -57,15 +68,8 @@ class TokenManager {
     }
 
     showView(viewName) {
-        // Hide all views
         const views = ['initialView', 'tokenView', 'loadingView'];
-        views.forEach(view => {
-            if (this.elements[view]) {
-                this.elements[view].classList.add('hidden');
-            }
-        });
-        
-        // Show target view
+        views.forEach(view => this.elements[view]?.classList.add('hidden'));
         if (this.elements[viewName]) {
             this.elements[viewName].classList.remove('hidden');
         }
@@ -88,20 +92,14 @@ class TokenManager {
         this.showLoadingView();
 
         try {
-            // Lưu ý: Front-end phải được cập nhật để xử lý lỗi 409 từ back-end mới
             const response = await fetch(this.API_BASE, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'create_token'
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'create_token' })
             });
 
             const data = await response.json();
 
-            // Xử lý khi tạo token thành công (status 201)
             if (response.status === 201 && data.success) {
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
@@ -110,40 +108,25 @@ class TokenManager {
                 this.showTokenView();
                 return;
             }
-
-            // Xử lý khi token đã tồn tại (status 409)
-            if (response.status === 409) {
-                 this.currentToken = data.token; // API có thể trả về token cũ
-                 this.elements.tokenDisplay.value = this.currentToken;
-                 this.startTimer(data.time_left_ms);
-                 this.showNotification('Bạn đã có token, không thể tạo lại!', 'warning');
-                 this.showTokenView();
-                 return;
-            }
-
-            // Xử lý các lỗi khác
+            
             throw new Error(data.error || 'Không thể tạo token');
 
         } catch (error) {
             console.error('Error creating token:', error);
-            // Lấy thông điệp lỗi từ error object hoặc dùng thông điệp mặc định
-            const errorMessage = error.message.includes('token') ? error.message : 'Lỗi: Không thể tạo token';
+            const errorMessage = error.message || 'Lỗi: Không thể tạo token';
             this.showNotification(errorMessage, 'error');
             this.showInitialView();
         }
     }
-
+    
     startTimer(timeLeftMs) {
         this.stopTimer();
-        
         let timeLeft = Math.floor(timeLeftMs / 1000);
         
         const updateTimer = () => {
             if (timeLeft <= 0) {
                 this.elements.timerDisplay.textContent = '00:00:00';
                 this.showNotification('Token đã hết hạn!', 'warning');
-                // Không cần tự động chuyển, để người dùng tự làm mới hoặc làm gì đó khác
-                // Người dùng sẽ thấy màn hình tạo token khi tải lại trang.
                 this.stopTimer();
                 setTimeout(() => { this.showInitialView() }, 2000);
                 return;
@@ -156,14 +139,13 @@ class TokenManager {
             this.elements.timerDisplay.textContent = 
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-            if (timeLeft <= 300) {
+            if (timeLeft <= 300) { // 5 minutes
                 this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
                 this.elements.timerDisplay.style.color = '#ff4757';
             }
 
             timeLeft--;
         };
-
         updateTimer();
         this.timerInterval = setInterval(updateTimer, 1000);
     }
@@ -198,10 +180,8 @@ class TokenManager {
             
         } catch (error) {
             console.error('Error copying token:', error);
-            
             this.elements.tokenDisplay.select();
             this.elements.tokenDisplay.setSelectionRange(0, 99999);
-            
             try {
                 document.execCommand('copy');
                 this.showNotification('Token đã được copy!', 'success');
@@ -214,35 +194,19 @@ class TokenManager {
     showNotification(message, type = 'info') {
         const existing = document.querySelectorAll('.notification');
         existing.forEach(notif => notif.remove());
-        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
         
         const colors = {
-            success: '#00ff88',
-            error: '#ff4757',
-            warning: '#ff8800',
-            info: '#3742fa'
+            success: '#00ff88', error: '#ff4757', warning: '#ff8800', info: '#3742fa'
         };
         
         notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${colors[type] || colors.info};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 10000;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            max-width: 300px;
-            word-wrap: break-word;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
+            position: fixed; top: 20px; right: 20px; background: ${colors[type] || colors.info};
+            color: white; padding: 15px 20px; border-radius: 8px; font-weight: 500;
+            z-index: 10000; opacity: 0; transform: translateX(100%); transition: all 0.3s ease;
+            max-width: 300px; word-wrap: break-word; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);`;
         
         document.body.appendChild(notification);
         
@@ -255,9 +219,7 @@ class TokenManager {
             notification.style.opacity = '0';
             notification.style.transform = 'translateX(100%)';
             setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification.parentNode);
-                }
+                if (notification.parentNode) notification.parentNode.removeChild(notification);
             }, 300);
         }, 4000);
     }
