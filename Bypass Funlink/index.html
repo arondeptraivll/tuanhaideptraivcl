@@ -1,1 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Bypass Funlink by Gemlogin Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="background-animation"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-rocket"></i>
+                <span>Gemlogin Tool</span>
+            </div>
+            <nav class="nav">
+                <a href="#home">Trang chủ</a>
+                <a href="#features">Tính năng</a>
+                <a href="#contact">Liên hệ</a>
+            </nav>
+        </div>
+    </header>
 
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section" id="home">
+            <div class="hero-content">
+                <h1 class="main-title">
+                    <span class="gradient-text">Tool Bypass Funlink</span>
+                    <span class="by-text">by Gemlogin Tool</span>
+                </h1>
+                
+                <div class="description">
+                    <h2 class="subtitle">TOOL BYPASS FUNLINK SIÊU BÁ</h2>
+                    <p class="desc-text">
+                        CHỈ CẦN NHẬP LINK FUNLINK NÓ SẼ TỰ ĐỘNG BYPASS<br>
+                        TRẢ LẠI URL ĐÍCH CHO AE<br>
+                        <span class="highlight">KO CẦN EXTENSION CHỈ PYTHON</span>
+                    </p>
+                </div>
+
+                <!-- IP Section -->
+                <div class="ip-section">
+                    <div class="ip-card">
+                        <div class="ip-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="ip-info">
+                            <div class="ip-label">Địa chỉ IP của bạn</div>
+                            <div class="ip-display" id="ipDisplay">Đang tải...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Token Section -->
+                <div class="token-section">
+                    <!-- Initial View -->
+                    <div id="initialView" class="view">
+                        <div class="action-card">
+                            <h3>Tạo Token Truy Cập</h3>
+                            <p>Để sử dụng API bypass, bạn cần tạo token truy cập</p>
+                            <button class="main-button" id="createTokenBtn">
+                                <i class="fas fa-key"></i>
+                                <span>Tạo Token Ngay</span>
+                                <div class="button-glow"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading View -->
+                    <div id="loadingView" class="view hidden">
+                        <div class="loading-card">
+                            <div class="loading-spinner"></div>
+                            <h3>Đang tạo token...</h3>
+                            <p>Vui lòng chờ trong giây lát</p>
+                        </div>
+                    </div>
+
+                    <!-- Token View -->
+                    <div id="tokenView" class="view hidden">
+                        <div class="token-card">
+                            <div class="token-header">
+                                <i class="fas fa-check-circle"></i>
+                                <h3>Token đã được tạo thành công!</h3>
+                            </div>
+                            
+                            <div class="token-display-section">
+                                <label>Token của bạn:</label>
+                                <div class="token-input-group">
+                                    <input type="text" id="tokenDisplay" readonly>
+                                    <button class="copy-button" id="copyTokenBtn">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="timer-section">
+                                <div class="timer-header">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Thời gian còn lại</span>
+                                </div>
+                                <div class="timer-display" id="timerDisplay">03:00:00</div>
+                            </div>
+
+                            <div class="token-actions">
+                                <button class="secondary-button" id="newTokenBtn">
+                                    <i class="fas fa-redo"></i>
+                                    <span>Tạo Token Mới</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features-section" id="features">
+            <div class="container">
+                <h2 class="section-title">Tính Năng Nổi Bật</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3>Tốc Độ Cao</h3>
+                        <p>Bypass nhanh chóng, tiết kiệm thời gian</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>An Toàn</h3>
+                        <p>Không cần extension, hoàn toàn an toàn</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3>Python Script</h3>
+                        <p>Chỉ cần Python, không cần gì thêm</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <h3>URL Trực Tiếp</h3>
+                        <p>Trả về URL đích ngay lập tức</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Gemlogin Tool</h3>
+                <p>Tool bypass funlink chất lượng cao</p>
+            </div>
+            <div class="footer-section">
+                <h3>Liên Hệ</h3>
+                <p><i class="fab fa-discord"></i> Discord: discord.com/invite/SfFayNKxUE</p>
+                <p><i class="fab fa-youtube"></i> YouTube: @GemloginTool1</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Gemlogin Tool. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
