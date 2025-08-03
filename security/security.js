@@ -1,1 +1,139 @@
-function _0x6553(_0x2faa28,_0x589a10){const _0x5d3c38=_0x5d3c();return _0x6553=function(_0x6553e9,_0x5c90ee){_0x6553e9=_0x6553e9-0x1b8;let _0x46a4c0=_0x5d3c38[_0x6553e9];return _0x46a4c0;},_0x6553(_0x2faa28,_0x589a10);}function _0x5d3c(){const _0x18eb2e=['4425954wXetaZ','userAgent','href','69592dzSsGH','ctrlKey','shiftKey','1041895xgcPUP','log','contextmenu','defineProperty','self','dragstart','key','keydown','width','default','stopPropagation','oncontextmenu','4326189pzWrjC','devtools','innerWidth','blur','addEventListener','F12','location','random','../security/blocked.html?reason=','keyCode','timing','innerHeight','screen','496732nGBZqG','onselectstart','outerWidth','top','1357514TrquTk','includes','<noscript><meta\x20http-equiv=\x22refresh\x22\x20content=\x220;url=../security/blocked.html?reason=default\x22></noscript>','outerHeight','preventDefault','3IlhIcJ','mobile','selectstart','6646936LorvDX','focus','dir','console','write'];_0x5d3c=function(){return _0x18eb2e;};return _0x5d3c();}const _0xafc887=_0x6553;(function(_0x53f4ec,_0x28eade){const _0x52ea65=_0x6553,_0x5a7cf7=_0x53f4ec();while(!![]){try{const _0x2c6fd9=-parseInt(_0x52ea65(0x1bd))/0x1+-parseInt(_0x52ea65(0x1dd))/0x2*(-parseInt(_0x52ea65(0x1e2))/0x3)+parseInt(_0x52ea65(0x1d9))/0x4+parseInt(_0x52ea65(0x1c0))/0x5+-parseInt(_0x52ea65(0x1ba))/0x6+-parseInt(_0x52ea65(0x1cc))/0x7+parseInt(_0x52ea65(0x1e5))/0x8;if(_0x2c6fd9===_0x28eade)break;else _0x5a7cf7['push'](_0x5a7cf7['shift']());}catch(_0x28a28c){_0x5a7cf7['push'](_0x5a7cf7['shift']());}}}(_0x5d3c,0x65c8c),(function(){'use strict';const _0x264488=_0x6553;function _0x13b2c6(_0x2e8403=_0x264488(0x1c9)){const _0x3519a8=_0x264488;window[_0x3519a8(0x1d2)][_0x3519a8(0x1bc)]=_0x3519a8(0x1d4)+_0x2e8403;}document[_0x264488(0x1d0)](_0x264488(0x1c2),_0x2f4573=>_0x2f4573[_0x264488(0x1e1)](),![]),document['addEventListener'](_0x264488(0x1e4),_0x4c8b1a=>_0x4c8b1a[_0x264488(0x1e1)](),![]),document['addEventListener'](_0x264488(0x1c5),_0xf5980a=>_0xf5980a[_0x264488(0x1e1)](),![]),setInterval(()=>{const _0xd29550=_0x264488;document[_0xd29550(0x1cb)]=()=>![],document[_0xd29550(0x1da)]=()=>![],document['ondragstart']=()=>![];},0x3e8),document[_0x264488(0x1d0)](_0x264488(0x1c7),function(_0x33cfd1){const _0x1c033b=_0x264488;if(_0x33cfd1[_0x1c033b(0x1c6)]===_0x1c033b(0x1d1)||_0x33cfd1[_0x1c033b(0x1d5)]===0x7b||_0x33cfd1[_0x1c033b(0x1be)]&&_0x33cfd1[_0x1c033b(0x1bf)]&&['I','J','C','K'][_0x1c033b(0x1de)](_0x33cfd1[_0x1c033b(0x1c6)])||_0x33cfd1[_0x1c033b(0x1be)]&&_0x33cfd1[_0x1c033b(0x1c6)]==='U')return _0x33cfd1[_0x1c033b(0x1e1)](),_0x33cfd1[_0x1c033b(0x1ca)](),![];},!![]);let _0x43bcf8=![];function _0x3d1ee1(){const _0x24e97a=_0x264488,_0x40bc66=0xc8,_0x4b5fea=window[_0x24e97a(0x1db)]-window[_0x24e97a(0x1ce)],_0x10df0b=window[_0x24e97a(0x1e0)]-window[_0x24e97a(0x1d7)];_0x4b5fea>_0x40bc66&&_0x10df0b>_0x40bc66?!_0x43bcf8&&(_0x43bcf8=!![],_0x13b2c6(_0x24e97a(0x1cd))):_0x43bcf8=![];}let _0x5b7902=new Image(),_0x32fe29=0x0;Object[_0x264488(0x1c3)](_0x5b7902,'id',{'get':function(){const _0x848764=_0x264488;_0x32fe29++,_0x32fe29>0x3&&_0x13b2c6(_0x848764(0x1b8));}});function _0x25c37c(){const _0x45eeec=_0x264488;let _0x18d756=performance['now']();console[_0x45eeec(0x1c1)]('%c','');let _0x3b70fc=performance['now']();if(_0x3b70fc-_0x18d756>0xc8)_0x13b2c6(_0x45eeec(0x1d6));}setInterval(()=>{const _0x358110=_0x264488;_0x3d1ee1(),Math['random']()>0.7&&console[_0x358110(0x1e7)](_0x5b7902),Math['random']()>0.8&&_0x25c37c();},0x3e8);function _0x309594(){const _0x46b8b8=_0x264488;window[_0x46b8b8(0x1d8)][_0x46b8b8(0x1c8)]>0x400&&window[_0x46b8b8(0x1ce)]<0x1f4&&!navigator[_0x46b8b8(0x1bb)]['includes']('Mobile')&&_0x13b2c6(_0x46b8b8(0x1e3));}if(window[_0x264488(0x1c4)]!==window[_0x264488(0x1dc)])_0x13b2c6('iframe');let _0x3d2714=![];window[_0x264488(0x1d0)](_0x264488(0x1cf),()=>{_0x3d2714=!![];}),window[_0x264488(0x1d0)](_0x264488(0x1e6),()=>{_0x3d2714&&setTimeout(_0x3d1ee1,0x7d0),_0x3d2714=![];}),setInterval(()=>{const _0xdc703=_0x264488;Math[_0xdc703(0x1d3)]()>0.9&&_0x309594();},0x1388),setTimeout(()=>{_0x3d1ee1();},0xbb8);}()),document[_0xafc887(0x1b9)](_0xafc887(0x1df)));
+(function() {
+    'use strict';
+    
+    // Function to redirect to blocked page
+    function redirectToBlocked(reason = 'default') {
+        window.location.href = '../security/blocked.html?reason=' + reason;
+    }
+
+    // Disable right-click context menu
+    document.addEventListener('contextmenu', event => event.preventDefault(), false);
+    
+    // Disable drag and drop
+    document.addEventListener('dragstart', event => event.preventDefault(), false);
+
+    // Continuously disable context menu and drag events
+    setInterval(() => {
+        document.oncontextmenu = () => false;
+        document.ondragstart = () => false;
+    }, 1000);
+
+    // Detect developer tools hotkeys and specific shortcuts
+    document.addEventListener('keydown', function(event) {
+        // F12 key
+        if (event.key === 'F12' || 
+            // F12 keyCode
+            event.keyCode === 123 || 
+            // Ctrl+Shift+I/J/C/K (DevTools shortcuts)
+            (event.ctrlKey && event.shiftKey && ['I', 'J', 'C', 'K'].includes(event.key)) ||
+            // Ctrl+U (View Source) - BLOCKED
+            (event.ctrlKey && event.key.toLowerCase() === 'u') ||
+            // Ctrl+S (Save Page) - BLOCKED
+            (event.ctrlKey && event.key.toLowerCase() === 's')) {
+            
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        }
+    }, true);
+
+    // DevTools detection by window size difference
+    let devToolsOpen = false;
+    
+    function checkDevTools() {
+        const threshold = 200; // 0xc8 in hex
+        const widthDiff = window.outerWidth - window.innerWidth;
+        const heightDiff = window.outerHeight - window.innerHeight;
+        
+        if (widthDiff > threshold && heightDiff > threshold) {
+            if (!devToolsOpen) {
+                devToolsOpen = true;
+                redirectToBlocked('devtools');
+            }
+        } else {
+            devToolsOpen = false;
+        }
+    }
+
+    // Console detection using getter trap
+    let consoleAccessCount = 0;
+    let fakeImage = new Image();
+    
+    Object.defineProperty(fakeImage, 'id', {
+        'get': function() {
+            consoleAccessCount++;
+            if (consoleAccessCount > 3) {
+                redirectToBlocked('console');
+            }
+        }
+    });
+
+    // Console timing detection
+    function detectConsoleByTiming() {
+        let startTime = performance.now();
+        console.log('%c', '');
+        let endTime = performance.now();
+        
+        if (endTime - startTime > 200) { // 0xc8 in hex
+            redirectToBlocked('timing');
+        }
+    }
+
+    // Main detection loop
+    setInterval(() => {
+        checkDevTools();
+        
+        // Randomly trigger console detection
+        if (Math.random() > 0.7) {
+            console.dir(fakeImage);
+        }
+        
+        if (Math.random() > 0.8) {
+            detectConsoleByTiming();
+        }
+    }, 1000);
+
+    // Mobile device detection
+    function detectMobileDevTools() {
+        if (window.screen.width > 1024 && // 0x400 in hex
+            window.innerWidth < 500 &&    // 0x1f4 in hex
+            !navigator.userAgent.includes('Mobile')) {
+            redirectToBlocked('mobile');
+        }
+    }
+
+    // Iframe detection
+    if (window.self !== window.top) {
+        redirectToBlocked('iframe');
+    }
+
+    // Window focus/blur detection
+    let windowFocused = false;
+    
+    window.addEventListener('focus', () => {
+        windowFocused = true;
+    });
+    
+    window.addEventListener('blur', () => {
+        if (windowFocused) {
+            setTimeout(checkDevTools, 2000); // 0x7d0 in hex
+        }
+        windowFocused = false;
+    });
+
+    // Periodic mobile detection
+    setInterval(() => {
+        if (Math.random() > 0.9) {
+            detectMobileDevTools();
+        }
+    }, 5000); // 0x1388 in hex
+
+    // Initial check after page load
+    setTimeout(() => {
+        checkDevTools();
+    }, 3000); // 0xbb8 in hex
+
+})();
+
+// Fallback noscript redirect
+document.write('<noscript><meta http-equiv="refresh" content="0;url=../security/blocked.html?reason=default"></noscript>');
