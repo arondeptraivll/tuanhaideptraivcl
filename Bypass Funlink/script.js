@@ -8,7 +8,6 @@ class TokenManager {
         this.initializeElements();
         this.loadUserIP();
         this.setupEventListeners();
-        this.initScrollEffects();
     }
 
     initializeElements() {
@@ -29,19 +28,18 @@ class TokenManager {
         try {
             const response = await fetch(this.API_BASE);
             const data = await response.json();
-            this.userIP = data.ip;
-            this.elements.ipDisplay.textContent = this.userIP;
             
-            // Animate IP display
-            this.elements.ipDisplay.style.opacity = '0';
-            setTimeout(() => {
-                this.elements.ipDisplay.style.transition = 'opacity 0.5s ease';
-                this.elements.ipDisplay.style.opacity = '1';
-            }, 500);
+            if (data.ip) {
+                this.userIP = data.ip;
+                this.elements.ipDisplay.textContent = this.userIP;
+            } else {
+                throw new Error('Không nhận được IP');
+            }
             
         } catch (error) {
             console.error('Error loading IP:', error);
             this.elements.ipDisplay.textContent = 'Không thể lấy IP';
+            this.elements.ipDisplay.style.color = '#ff4757';
         }
     }
 
@@ -57,66 +55,21 @@ class TokenManager {
         this.elements.copyTokenBtn.addEventListener('click', () => {
             this.copyToken();
         });
-
-        // Smooth scroll for navigation
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-    }
-
-    initScrollEffects() {
-        // Parallax effect for background
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const bg = document.querySelector('.background-animation');
-            if (bg) {
-                bg.style.transform = `translateY(${scrolled * 0.5}px)`;
-            }
-        });
-
-        // Header background on scroll
-        window.addEventListener('scroll', () => {
-            const header = document.querySelector('.header');
-            if (window.scrollY > 100) {
-                header.style.background = 'rgba(10, 10, 10, 0.98)';
-            } else {
-                header.style.background = 'rgba(10, 10, 10, 0.95)';
-            }
-        });
     }
 
     showView(viewName) {
-        // Add fade out effect
-        Object.values(this.elements).forEach(el => {
-            if (el && el.classList && el.classList.contains('view')) {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    el.classList.add('hidden');
-                }, 300);
+        // Hide all views
+        const views = ['initialView', 'tokenView', 'loadingView'];
+        views.forEach(view => {
+            if (this.elements[view]) {
+                this.elements[view].classList.add('hidden');
             }
         });
         
-        // Show new view with fade in effect
-        setTimeout(() => {
-            if (this.elements[viewName]) {
-                this.elements[viewName].classList.remove('hidden');
-                setTimeout(() => {
-                    this.elements[viewName].style.transition = 'all 0.5s ease';
-                    this.elements[viewName].style.opacity = '1';
-                    this.elements[viewName].style.transform = 'translateY(0)';
-                }, 50);
-            }
-        }, 300);
+        // Show target view
+        if (this.elements[viewName]) {
+            this.elements[viewName].classList.remove('hidden');
+        }
     }
 
     showInitialView() {
@@ -162,9 +115,7 @@ class TokenManager {
                     this.showNotification('Token đã được tạo thành công!', 'success');
                 }
 
-                setTimeout(() => {
-                    this.showTokenView();
-                }, 1000);
+                this.showTokenView();
                 
             } else {
                 throw new Error(data.error || 'Không thể tạo token');
@@ -198,9 +149,10 @@ class TokenManager {
             this.elements.timerDisplay.textContent = 
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-            // Add pulsing effect when time is low
+            // Add warning effect when time is low
             if (timeLeft <= 300) { // 5 minutes
                 this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
+                this.elements.timerDisplay.style.color = '#ff4757';
             }
 
             timeLeft--;
@@ -215,12 +167,18 @@ class TokenManager {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
+        
+        // Reset timer styles
+        if (this.elements.timerDisplay) {
+            this.elements.timerDisplay.style.animation = '';
+            this.elements.timerDisplay.style.color = '#ff8800';
+        }
     }
 
     async copyToken() {
         try {
             await navigator.clipboard.writeText(this.currentToken);
-            this.showNotification('Token đã được copy!', 'success');
+            this.showNotification('Token đã được copy vào clipboard!', 'success');
             
             // Button animation
             const originalIcon = this.elements.copyTokenBtn.innerHTML;
@@ -232,53 +190,57 @@ class TokenManager {
                 this.elements.copyTokenBtn.innerHTML = originalIcon;
                 this.elements.copyTokenBtn.style.background = '';
                 this.elements.copyTokenBtn.style.transform = '';
-            }, 2000);
+            }, 1500);
             
         } catch (error) {
             console.error('Error copying token:', error);
             
             // Fallback: select text
             this.elements.tokenDisplay.select();
-            document.execCommand('copy');
-            this.showNotification('Token đã được copy!', 'success');
+            this.elements.tokenDisplay.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                this.showNotification('Token đã được copy!', 'success');
+            } catch (e) {
+                this.showNotification('Không thể copy token. Vui lòng copy thủ công.', 'error');
+            }
         }
     }
 
     showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existing = document.querySelectorAll('.notification');
+        existing.forEach(notif => notif.remove());
+        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <div class="notification-content">
-                <i class="fas fa-${this.getNotificationIcon(type)}"></i>
-                <span>${message}</span>
-            </div>
-        `;
+        notification.textContent = message;
+        
+        const colors = {
+            success: '#00ff88',
+            error: '#ff4757',
+            warning: '#ff8800',
+            info: '#3742fa'
+        };
         
         notification.style.cssText = `
             position: fixed;
-            top: 100px;
+            top: 20px;
             right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
+            background: ${colors[type] || colors.info};
             color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
             font-weight: 500;
             z-index: 10000;
             opacity: 0;
             transform: translateX(100%);
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            max-width: 350px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         `;
-
-        const colors = {
-            success: 'linear-gradient(135deg, #00ff88, #00cc66)',
-            error: 'linear-gradient(135deg, #ff4757, #c44569)',
-            warning: 'linear-gradient(135deg, #ffa502, #ff6348)',
-            info: 'linear-gradient(135deg, #3742fa, #2f3542)'
-        };
-        
-        notification.style.background = colors[type] || colors.info;
         
         document.body.appendChild(notification);
         
@@ -296,80 +258,12 @@ class TokenManager {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
-            }, 400);
-        }, 5000);
-    }
-
-    getNotificationIcon(type) {
-        const icons = {
-            success: 'check-circle',
-            error: 'exclamation-circle',
-            warning: 'exclamation-triangle',
-            info: 'info-circle'
-        };
-        return icons[type] || icons.info;
+            }, 300);
+        }, 4000);
     }
 }
-
-// Additional CSS animations
-const additionalCSS = `
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-.notification-content {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.notification-content i {
-    font-size: 1.2rem;
-}
-`;
-
-// Inject additional CSS
-const styleSheet = document.createElement('style');
-styleSheet.textContent = additionalCSS;
-document.head.appendChild(styleSheet);
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new TokenManager();
-});
-
-// Add loading screen
-window.addEventListener('load', () => {
-    const loader = document.createElement('div');
-    loader.id = 'page-loader';
-    loader.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: var(--dark-bg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        transition: opacity 0.5s ease;
-    `;
-    
-    loader.innerHTML = `
-        <div style="text-align: center;">
-            <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
-            <div style="color: white; font-size: 1.2rem;">Đang tải...</div>
-        </div>
-    `;
-    
-    document.body.appendChild(loader);
-    
-    setTimeout(() => {
-        loader.style.opacity = '0';
-        setTimeout(() => {
-            loader.remove();
-        }, 500);
-    }, 1500);
 });
