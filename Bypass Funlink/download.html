@@ -45,7 +45,7 @@
             display: none; 
         }
         
-        .bypass-detected {
+        .blocked {
             display: none;
         }
         
@@ -107,7 +107,7 @@
             margin-bottom: 20px;
         }
         
-        .bypass-icon {
+        .blocked-icon {
             font-size: 60px;
             color: #ff4757;
             margin-bottom: 20px;
@@ -182,20 +182,17 @@
             <p>Vui lòng chờ trong giây lát</p>
         </div>
         
-        <!-- Bypass Detected -->
-        <div class="bypass-detected" id="bypassDetectedState">
-            <div class="bypass-icon">
+        <!-- Blocked State -->
+        <div class="blocked" id="blockedState">
+            <div class="blocked-icon">
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <h2>🚨 Phát hiện bypass!</h2>
+            <h2>🚨 Đã bị chặn!</h2>
             <div class="blocked-message">
                 <h3>Vui lòng không dùng bypass nếu ko muốn bị chặn</h3>
-                <p id="bypassReason">Hệ thống phát hiện vi phạm quy tắc sử dụng.</p>
-                <div class="time-info" id="timeInfo" style="display: none;">
-                    <!-- Thời gian sẽ được điền nếu cần -->
-                </div>
+                <p>Hệ thống phát hiện vi phạm quy tắc sử dụng.</p>
             </div>
-            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="bypassCountdown">5</span> giây...</p>
+            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
         </div>
         
         <!-- Success State -->
@@ -245,7 +242,7 @@
     <script>
         const API_BASE = '/api/bypass_funlink';
         
-        // SIÊU ĐỔN GIẢN - CHỈ GỌI API
+        // SIÊU ĐƠN GIẢN - CHỈ GỌI API
         async function verifyDownload() {
             try {
                 const response = await fetch(API_BASE, {
@@ -259,7 +256,7 @@
                 if (data.valid) {
                     showSuccess(data);
                 } else {
-                    showBypassDetected(data);
+                    showBlocked();
                 }
                 
             } catch (error) {
@@ -268,29 +265,12 @@
             }
         }
         
-        function showBypassDetected(data) {
+        function showBlocked() {
             document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('bypassDetectedState').style.display = 'block';
-            
-            const bypassReason = document.getElementById('bypassReason');
-            const timeInfo = document.getElementById('timeInfo');
-            
-            if (data.error_code === 'NO_SESSION') {
-                bypassReason.textContent = 'IP này không có trong hệ thống hoặc session đã hết hạn.';
-            } else if (data.error_code === 'TOO_FAST') {
-                bypassReason.textContent = 'Bạn hoàn thành quá nhanh. Điều này không thể xảy ra nếu làm bình thường.';
-                timeInfo.style.display = 'block';
-                timeInfo.innerHTML = `
-                    <strong>Thời gian đã trôi qua:</strong> ${data.time_elapsed_minutes || 0} phút<br>
-                    <strong>Thời gian tối thiểu:</strong> ${data.min_required_minutes || 3} phút<br>
-                    <strong>Còn thiếu:</strong> ${data.remaining_minutes || 0} phút
-                `;
-            } else {
-                bypassReason.textContent = data.error || 'Vi phạm quy tắc sử dụng.';
-            }
+            document.getElementById('blockedState').style.display = 'block';
             
             let count = 5;
-            const countdown = document.getElementById('bypassCountdown');
+            const countdown = document.getElementById('blockedCountdown');
             const interval = setInterval(() => {
                 count--;
                 countdown.textContent = count;
