@@ -350,7 +350,8 @@
                 cookieCount: document.cookie.split(';').length,
                 screenResolution: `${screen.width}x${screen.height}`,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                language: navigator.language
+                language: navigator.language,
+                pageLoadTime: performance.now()
             };
             
             // URL Parameters
@@ -381,6 +382,7 @@
                 <strong>URL:</strong> ${debugData.url}<br>
                 <strong>Referrer:</strong> ${debugData.referrer || 'Không có'}<br>
                 <strong>Time:</strong> ${debugData.timestamp}<br>
+                <strong>Page Load:</strong> ${debugData.pageLoadTime?.toFixed(2)}ms<br>
                 <strong>URL Params:</strong> ${Object.keys(debugData.urlParams).length > 0 ? JSON.stringify(debugData.urlParams, null, 2) : 'Không có'}<br>
                 <strong>Session Storage:</strong> ${Object.keys(debugData.sessionStorage).length > 0 ? JSON.stringify(debugData.sessionStorage, null, 2) : 'Không có'}<br>
                 <strong>Local Storage:</strong> ${Object.keys(debugData.localStorage).length > 0 ? JSON.stringify(debugData.localStorage, null, 2) : 'Không có'}<br>
@@ -389,133 +391,83 @@
             `;
         }
         
-        // Kiểm tra truy cập trực tiếp - CẢI THIỆN
+        // KIỂM TRA TRUY CẬP TRỰC TIẾP - NGHIÊM NGẶT TUYỆT ĐỐI
         function checkDirectAccess() {
             const referrer = document.referrer;
             const urlParams = new URLSearchParams(window.location.search);
             
-            console.log('🔍 Checking direct access...');
+            console.log('🔍 Checking direct access - STRICT MODE...');
             console.log('Referrer:', referrer);
             console.log('URL Params:', Object.fromEntries(urlParams));
             
-            let accessLegitimate = false;
+            let validProofs = [];
             let blockReason = [];
             
-            // 1. Kiểm tra referrer từ link4m
+            // 1. KIỂM TRA REFERRER LINK4M - BẮT BUỘC NGHIÊM NGẶT
             const hasValidReferrer = referrer && (
-                referrer.includes('link4m.com') || 
-                referrer.includes('tuanhaideptraivcl.vercel.app') ||
-                referrer.includes('link4m') ||
-                referrer.match(/link4m\.com\/go\/[a-zA-Z0-9]+/)
+                referrer.includes('link4m.com/go/') ||
+                referrer.match(/link4m\.com\/go\/[a-zA-Z0-9]{6}$/) ||
+                referrer.includes('link4m.com') && referrer.includes('/go/')
             );
             
             if (hasValidReferrer) {
-                accessLegitimate = true;
-                console.log('✅ Valid referrer detected:', referrer);
+                validProofs.push('Valid Link4m Referrer');
+                console.log('✅ Valid Link4m referrer:', referrer);
             } else {
-                blockReason.push(`Referrer không hợp lệ: "${referrer}"`);
+                blockReason.push(`Referrer không phải từ Link4m: "${referrer}"`);
+                console.log('❌ Invalid referrer:', referrer);
             }
             
-            // 2. Kiểm tra URL parameters từ link4m
-            const hasValidParams = urlParams.get('ref') || 
-                                 urlParams.get('source') || 
-                                 urlParams.get('utm_source') ||
-                                 urlParams.get('from');
+            // 2. KIỂM TRA SESSION TOKEN - ĐƯỢC SET BỞI BACKEND
+            const backendSessionToken = sessionStorage.getItem('download_session_verified') || 
+                                      localStorage.getItem('backend_verified_session');
             
-            if (hasValidParams) {
-                accessLegitimate = true;
-                console.log('✅ Valid URL params detected');
+            if (backendSessionToken) {
+                validProofs.push('Backend Session Token');
+                console.log('✅ Backend session token found');
             } else {
-                blockReason.push('Không có URL parameters hợp lệ');
+                blockReason.push('Không có session token từ backend');
+                console.log('❌ No backend session token');
             }
             
-            // 3. Kiểm tra session/local storage
-            const hasValidSession = sessionStorage.getItem('link4m_completed') || 
-                                  localStorage.getItem('link4m_session') ||
-                                  sessionStorage.getItem('download_ready') ||
-                                  localStorage.getItem('shortlink_completed');
+            // 3. KIỂM TRA URL PARAMETERS ĐẶC BIỆT
+            const hasSpecialParams = urlParams.get('_l4m') || 
+                                    urlParams.get('verified') ||
+                                    urlParams.get('session_id');
             
-            if (hasValidSession) {
-                accessLegitimate = true;
-                console.log('✅ Valid session detected');
+            if (hasSpecialParams) {
+                validProofs.push('Special URL Parameters');
+                console.log('✅ Special URL params found');
             } else {
-                blockReason.push('Không có session storage hợp lệ');
+                blockReason.push('Không có URL parameters đặc biệt');
+                console.log('❌ No special URL params');
             }
             
-            // 4. Kiểm tra browser behavior (basic)
-            const browserBehaviorScore = calculateBrowserScore();
-            if (browserBehaviorScore > 0.5) {
-                accessLegitimate = true;
-                console.log('✅ Browser behavior seems legitimate');
-            } else {
-                blockReason.push(`Browser behavior score thấp: ${browserBehaviorScore}`);
-            }
+            // 4. KIỂM TRA HEADER ĐẶC BIỆT (nếu có)
+            // Có thể implement thêm custom headers từ link4m
             
-            // 5. Kiểm tra thời gian load trang
-            const loadTime = performance.now();
-            if (loadTime > 500) { // Người thật thường mất thời gian load
-                accessLegitimate = true;
-                console.log('✅ Reasonable page load time');
-            } else {
-                blockReason.push(`Load time quá nhanh: ${loadTime}ms`);
-            }
+            // 5. KIỂM TRA THỜI GIAN VÀO TRANG
+            const pageEntryTime = Date.now();
+            sessionStorage.setItem('page_entry_time', pageEntryTime);
             
-            if (!accessLegitimate) {
-                console.log('❌ Access blocked. Reasons:', blockReason);
+            // QUYẾT ĐỊNH CUỐI CÙNG - CẦN ÍT NHẤT 1 PROOF HỢP LỆ
+            if (validProofs.length === 0) {
+                console.log('❌ BLOCKED: No valid proofs found');
+                console.log('Valid proofs needed:', validProofs);
+                console.log('Block reasons:', blockReason);
                 showBlocked(blockReason);
                 return false;
             }
             
-            console.log('✅ Access appears legitimate');
+            console.log('✅ ALLOWED: Found valid proofs:', validProofs);
             return true;
         }
-        
-        // Tính điểm browser behavior
-        function calculateBrowserScore() {
-            let score = 0;
-            
-            // Có mouse movement
-            if (window.mouseX !== undefined) score += 0.2;
-            
-            // Có resize events
-            if (window.innerWidth !== screen.width) score += 0.1;
-            
-            // Có focus/blur events
-            if (document.hasFocus && document.hasFocus()) score += 0.1;
-            
-            // Browser features
-            if (navigator.cookieEnabled) score += 0.1;
-            if (navigator.doNotTrack !== '1') score += 0.1;
-            
-            // WebGL support (human browsers thường có)
-            try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl');
-                if (gl) score += 0.2;
-            } catch (e) {}
-            
-            // Timezone hợp lý
-            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            if (tz && tz.includes('Asia') || tz.includes('Ho_Chi_Minh')) {
-                score += 0.2;
-            }
-            
-            return Math.min(score, 1);
-        }
-        
-        // Track mouse để detect bot
-        let mouseX, mouseY;
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-            window.mouseX = mouseX;
-        });
         
         async function verifyDownload() {
             // Thu thập debug info trước
             collectDebugInfo();
             
-            // Kiểm tra truy cập trực tiếp trước
+            // KIỂM TRA NGHIÊM NGẶT
             if (!checkDirectAccess()) {
                 return;
             }
@@ -530,6 +482,8 @@
                 const data = await response.json();
                 
                 if (data.valid) {
+                    // SET SESSION TOKEN KHI THÀNH CÔNG
+                    sessionStorage.setItem('download_session_verified', 'true');
                     showSuccess(data);
                 } else {
                     // Kiểm tra các loại lỗi khác nhau
@@ -555,8 +509,13 @@
             // Hiển thị debug info cho blocked
             const blockedDebugContent = document.getElementById('blockedDebugContent');
             blockedDebugContent.innerHTML = `
+                <strong>🚫 TRUY CẬP BỊ CHẶN - STRICT MODE</strong><br><br>
                 <strong>Lý do cụ thể:</strong><br>
                 ${reasons.map(reason => `• ${reason}`).join('<br>')}<br><br>
+                <strong>Yêu cầu:</strong><br>
+                • Phải có referrer từ link4m.com/go/<br>
+                • Hoặc có session token từ backend<br>
+                • Hoặc có URL parameters đặc biệt<br><br>
                 <strong>Debug Info:</strong><br>
                 Referrer: ${debugData.referrer || 'Không có'}<br>
                 URL: ${debugData.url}<br>
@@ -610,18 +569,8 @@
                 <strong>Thời gian hoàn thành:</strong> ${data.time_elapsed_minutes || 0} phút ✅
             `;
             
-            sessionStorage.removeItem('link4m_completed');
-            localStorage.removeItem('link4m_session');
-            
             document.getElementById('downloadBtn').addEventListener('click', function() {
                 console.log('Download started successfully');
-                
-                // Optional: Log successful download
-                fetch(API_BASE, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'log_download' })
-                }).catch(() => {}); // Silent fail
             });
         }
         
