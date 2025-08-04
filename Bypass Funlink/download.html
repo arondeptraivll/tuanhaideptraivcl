@@ -240,18 +240,39 @@
     </div>
 
     <script>
-        const API_BASE = '/api/bypass_funlink';
+        // THAY ĐỔI ĐƯỜNG DẪN API CHO ĐÚNG
+        const API_BASE = '/api/bypass_funlink'; // ← SỬA DÒNG NÀY
+        
+        // Ignore SVG errors
+        window.addEventListener('error', function(e) {
+            if (e.message && (e.message.includes('Expected number') || e.message.includes('SVG'))) {
+                e.preventDefault();
+                return false;
+            }
+        });
         
         // SIÊU ĐƠN GIẢN - CHỈ GỌI API
         async function verifyDownload() {
             try {
+                console.log('🔍 Calling API:', API_BASE);
+                
                 const response = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'verify_download' })
                 });
                 
+                console.log('📡 Response status:', response.status);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('API endpoint không tồn tại. Vui lòng kiểm tra cấu hình.');
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('📦 Response data:', data);
                 
                 if (data.valid) {
                     showSuccess(data);
@@ -260,8 +281,8 @@
                 }
                 
             } catch (error) {
-                console.error('Verification error:', error);
-                showError('Lỗi kết nối. Vui lòng thử lại sau.');
+                console.error('❌ Verification error:', error);
+                showError(`Lỗi kết nối: ${error.message}`);
             }
         }
         
@@ -291,7 +312,7 @@
             `;
             
             document.getElementById('downloadBtn').addEventListener('click', function() {
-                console.log('Download started successfully');
+                console.log('📥 Download started successfully');
             });
         }
         
