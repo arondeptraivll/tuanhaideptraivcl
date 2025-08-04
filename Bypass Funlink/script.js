@@ -1,5 +1,5 @@
 // =====================================
-// TOKEN MANAGER CLASS - PHIÊN BẢN MỚI
+// TOKEN MANAGER CLASS - CẬP NHẬT LINK
 // =====================================
 
 class TokenManager {
@@ -79,8 +79,8 @@ class TokenManager {
             this.copyToken();
         });
 
-        // Nút download - TÂM ĐIỂM CỦA HỆ THỐNG MỚI
-        const downloadBtn = document.querySelector('a[href*="link4m.com"], #downloadTrigger');
+        // Nút download
+        const downloadBtn = document.querySelector('#downloadTrigger');
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -93,31 +93,26 @@ class TokenManager {
     showView(viewName) {
         const views = ['initialView', 'tokenView', 'loadingView'];
         
-        // Ẩn tất cả views
         views.forEach(view => {
             if (this.elements[view]) {
                 this.elements[view].classList.add('hidden');
             }
         });
         
-        // Hiện view được chọn
         if (this.elements[viewName]) {
             this.elements[viewName].classList.remove('hidden');
         }
     }
 
-    // Hiển thị giao diện ban đầu
     showInitialView() {
         this.showView('initialView');
         this.stopTimer();
     }
 
-    // Hiển thị giao diện token
     showTokenView() {
         this.showView('tokenView');
     }
 
-    // Hiển thị giao diện loading
     showLoadingView() {
         this.showView('loadingView');
     }
@@ -158,10 +153,9 @@ class TokenManager {
         }
     }
 
-    // TẠO DOWNLOAD SESSION - TÍNH NĂNG MỚI CHỐNG VPN
+    // TẠO DOWNLOAD SESSION - CẬP NHẬT LINK MỚI
     async createDownloadSession() {
         try {
-            // Tạo download session với IP hiện tại
             const response = await fetch(this.API_BASE, {
                 method: 'POST',
                 headers: {
@@ -176,21 +170,20 @@ class TokenManager {
             
             if (response.status === 201 && data.success) {
                 this.showNotification(
-                    'Đã tạo phiên tải xuống! Bạn có 10 phút để hoàn thành link4m với IP hiện tại.', 
+                    'Đã tạo phiên tải xuống! Vui lòng hoàn thành link rút gọn.', 
                     'success'
                 );
                 
-                // Redirect đến link4m với URL download cố định
-                const downloadPageUrl = 'https://tuanhaideptraivcl.vercel.app/download.html';
-                const link4mUrl = `https://link4m.com/VNW3kb`;
+                // LINK MỚI
+                const link4mUrl = 'https://link4m.com/n902L';
                 
                 // Mở tab mới với link4m
                 window.open(link4mUrl, '_blank');
                 
-                // Hiện thông báo hướng dẫn
+                // Hiện thông báo
                 setTimeout(() => {
                     this.showNotification(
-                        'Sau khi hoàn thành link4m, bạn sẽ được chuyển đến trang tải. KHÔNG được thay đổi IP!', 
+                        'Vui lòng không dùng bypass nếu ko muốn bị chặn!', 
                         'warning'
                     );
                 }, 2000);
@@ -206,7 +199,7 @@ class TokenManager {
         }
     }
 
-    // Bắt đầu timer đếm ngược
+    // Các method khác giữ nguyên...
     startTimer(timeLeftMs) {
         this.stopTimer();
         
@@ -232,7 +225,6 @@ class TokenManager {
                 minutes.toString().padStart(2, '0') + ':' +
                 seconds.toString().padStart(2, '0');
             
-            // Cảnh báo khi còn 5 phút
             if (secondsLeft <= 300) {
                 this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
                 this.elements.timerDisplay.style.color = '#ff4757';
@@ -245,7 +237,6 @@ class TokenManager {
         this.timerInterval = setInterval(updateTimer, 1000);
     }
 
-    // Dừng timer
     stopTimer() {
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
@@ -258,14 +249,11 @@ class TokenManager {
         }
     }
 
-    // Copy token vào clipboard
     async copyToken() {
         try {
-            // Sử dụng Clipboard API mới
             await navigator.clipboard.writeText(this.currentToken);
             this.showNotification('Token đã được copy vào clipboard!', 'success');
             
-            // Hiệu ứng visual cho nút copy
             const originalContent = this.elements.copyTokenBtn.innerHTML;
             this.elements.copyTokenBtn.innerHTML = '<i class="fas fa-check"></i>';
             this.elements.copyTokenBtn.style.background = 'rgba(0, 255, 136, 0.5)';
@@ -280,7 +268,6 @@ class TokenManager {
         } catch (error) {
             console.error('Error copying token:', error);
             
-            // Fallback: select và copy bằng execCommand
             this.elements.tokenDisplay.select();
             this.elements.tokenDisplay.setSelectionRange(0, 99999);
             
@@ -293,18 +280,14 @@ class TokenManager {
         }
     }
 
-    // Hiển thị thông báo
     showNotification(message, type = 'info') {
-        // Xóa thông báo cũ
         const existingNotifications = document.querySelectorAll('.notification');
         existingNotifications.forEach(notification => notification.remove());
         
-        // Tạo thông báo mới
         const notification = document.createElement('div');
         notification.className = 'notification ' + type;
         notification.textContent = message;
         
-        // Màu sắc theo loại thông báo
         const colors = {
             'success': '#00ff88',
             'error': '#ff4757',
@@ -312,7 +295,6 @@ class TokenManager {
             'info': '#3742fa'
         };
         
-        // Style cho thông báo
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -333,13 +315,11 @@ class TokenManager {
         
         document.body.appendChild(notification);
         
-        // Animation xuất hiện
         setTimeout(() => {
             notification.style.opacity = '1';
             notification.style.transform = 'translateX(0)';
         }, 100);
         
-        // Animation biến mất và xóa
         setTimeout(() => {
             notification.style.opacity = '0';
             notification.style.transform = 'translateX(100%)';
@@ -352,38 +332,6 @@ class TokenManager {
     }
 }
 
-// =====================================
-// KHỞI TẠO KHI TRANG LOAD
-// =====================================
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Tạo instance TokenManager khi DOM sẵn sàng
     new TokenManager();
-    
-    console.log('🚀 Token Manager initialized successfully!');
-    console.log('🔒 Anti-VPN Download System activated!');
 });
-
-// =====================================
-// THÊM CÁC SECURITY FUNCTIONS (OPTIONAL)
-// =====================================
-
-// Chống inspect element (tùy chọn)
-document.addEventListener('keydown', (e) => {
-    // Chặn F12, Ctrl+Shift+I, Ctrl+U
-    if (e.key === 'F12' || 
-        (e.ctrlKey && e.shiftKey && e.key === 'I') || 
-        (e.ctrlKey && e.key === 'u')) {
-        e.preventDefault();
-        return false;
-    }
-});
-
-// Chống right-click (tùy chọn)
-document.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    return false;
-});
-
-// Log để debug
-console.log('🛡️ Security measures activated');

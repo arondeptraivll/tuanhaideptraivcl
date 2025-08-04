@@ -45,6 +45,14 @@
             display: none; 
         }
         
+        .blocked {
+            display: none;
+        }
+        
+        .bypass-detected {
+            display: none;
+        }
+        
         .loading-spinner {
             width: 50px;
             height: 50px;
@@ -103,6 +111,25 @@
             margin-bottom: 20px;
         }
         
+        .blocked-icon {
+            font-size: 60px;
+            color: #ff8800;
+            margin-bottom: 20px;
+        }
+        
+        .bypass-icon {
+            font-size: 60px;
+            color: #ff4757;
+            margin-bottom: 20px;
+            animation: shake 0.5s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
         .countdown {
             color: #ff8800;
             font-weight: bold;
@@ -136,6 +163,32 @@
             background: rgba(255, 255, 255, 0.2);
             border-color: #00ff88;
         }
+        
+        .blocked-message {
+            background: rgba(255, 136, 0, 0.1);
+            border: 2px solid #ff8800;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .bypass-message {
+            background: rgba(255, 71, 87, 0.1);
+            border: 2px solid #ff4757;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 6px solid #ff4757;
+        }
+        
+        .time-info {
+            background: rgba(255, 136, 0, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -143,8 +196,37 @@
         <!-- Loading State -->
         <div class="loading" id="loadingState">
             <div class="loading-spinner"></div>
-            <h2><i class="fas fa-shield-alt"></i> Đang xác thực IP...</h2>
-            <p>Vui lòng chờ trong giây lát, chúng tôi đang kiểm tra tính hợp lệ của phiên tải xuống.</p>
+            <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra bạn có dùng bypass không...</h2>
+            <p>Vui lòng chờ trong giây lát</p>
+        </div>
+        
+        <!-- Blocked Direct Access -->
+        <div class="blocked" id="blockedState">
+            <div class="blocked-icon">
+                <i class="fas fa-ban"></i>
+            </div>
+            <h2>🚫 Phát hiện bypass!</h2>
+            <div class="blocked-message">
+                <h3>Vui lòng không bypass link</h3>
+                <p>Bạn cần hoàn thành link rút gọn một cách bình thường để tải tool.</p>
+            </div>
+            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
+        </div>
+        
+        <!-- Bypass Detected - TOO FAST -->
+        <div class="bypass-detected" id="bypassDetectedState">
+            <div class="bypass-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2>🚨 Phát hiện bypass!</h2>
+            <div class="bypass-message">
+                <h3>Vui lòng không dùng bypass nếu ko muốn bị chặn</h3>
+                <p>Hệ thống phát hiện bạn hoàn thành quá nhanh. Điều này không thể xảy ra nếu làm bình thường.</p>
+                <div class="time-info" id="timeInfo">
+                    <!-- Thời gian sẽ được điền bằng JavaScript -->
+                </div>
+            </div>
+            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="bypassCountdown">5</span> giây...</p>
         </div>
         
         <!-- Success State -->
@@ -153,8 +235,10 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <h2>🎉 Xác thực thành công!</h2>
-            <p>IP của bạn đã được xác thực. Bạn có thể tải tool ngay bây giờ.</p>
-            <p><strong>Lưu ý:</strong> Link tải chỉ có hiệu lực trong phiên này.</p>
+            <p>Cảm ơn bạn đã ủng hộ! Bạn có thể tải tool ngay bây giờ.</p>
+            <div class="time-info" id="successTimeInfo">
+                <!-- Thời gian hoàn thành sẽ được hiển thị -->
+            </div>
             
             <div style="margin-top: 20px;">
                 <a href="https://archive.org/download/bypass-funlink-by-gemlogin-tool_202508/Bypass%20Funlink%20by%20Gemlogin%20Tool.exe" 
@@ -177,17 +261,12 @@
             <div class="error-icon">
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <h2>❌ Xác thực thất bại</h2>
+            <h2>❌ Có lỗi xảy ra</h2>
             <div class="error-message" id="errorMessage"></div>
             
-            <div style="background: rgba(255, 136, 0, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff8800; margin: 20px 0;">
+            <div class="blocked-message">
                 <h4>💡 Để tải tool thành công:</h4>
-                <ol style="text-align: left; margin: 10px 0;">
-                    <li>Tắt VPN/Proxy nếu đang sử dụng</li>
-                    <li>Quay lại trang chủ và tạo link tải mới</li>
-                    <li>Hoàn thành link4m mà KHÔNG thay đổi IP</li>
-                    <li>Hoàn thành trong vòng 10 phút</li>
-                </ol>
+                <p>Quay lại trang chủ và thực hiện lại từ đầu. Vui lòng không dùng bypass nếu ko muốn bị chặn!</p>
             </div>
             
             <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="countdown">5</span> giây...</p>
@@ -197,7 +276,34 @@
     <script>
         const API_BASE = '/api/bypass_funlink';
         
+        // Kiểm tra truy cập trực tiếp
+        function checkDirectAccess() {
+            const referrer = document.referrer;
+            const hasReferrer = referrer && (
+                referrer.includes('link4m.com') || 
+                referrer.includes('tuanhaideptraivcl.vercel.app')
+            );
+            
+            const hasValidSession = sessionStorage.getItem('link4m_completed') || 
+                                  localStorage.getItem('link4m_session');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasValidParams = urlParams.get('ref') || urlParams.get('source');
+            
+            if (!hasReferrer && !hasValidSession && !hasValidParams) {
+                showBlocked();
+                return false;
+            }
+            
+            return true;
+        }
+        
         async function verifyDownload() {
+            // Kiểm tra truy cập trực tiếp trước
+            if (!checkDirectAccess()) {
+                return;
+            }
+            
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
@@ -208,25 +314,86 @@
                 const data = await response.json();
                 
                 if (data.valid) {
-                    showSuccess();
+                    showSuccess(data);
                 } else {
-                    showError(data.error || 'Phiên tải xuống không hợp lệ');
+                    // Kiểm tra các loại lỗi khác nhau
+                    if (data.error_code === 'NO_SESSION') {
+                        showError('IP này không có trong hệ thống. Vui lòng tạo phiên tải mới.');
+                    } else if (data.error_code === 'TOO_FAST') {
+                        showBypassDetected(data);
+                    } else {
+                        showError(data.error || 'Phiên tải xuống không hợp lệ');
+                    }
                 }
                 
             } catch (error) {
                 console.error('Verification error:', error);
-                showError('Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.');
+                showError('Lỗi kết nối. Vui lòng thử lại sau.');
             }
         }
         
-        function showSuccess() {
+        function showBlocked() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('blockedState').style.display = 'block';
+            
+            let count = 5;
+            const countdown = document.getElementById('blockedCountdown');
+            const interval = setInterval(() => {
+                count--;
+                countdown.textContent = count;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
+                }
+            }, 1000);
+        }
+        
+        function showBypassDetected(data) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('bypassDetectedState').style.display = 'block';
+            
+            // Hiển thị thông tin thời gian
+            const timeInfo = document.getElementById('timeInfo');
+            timeInfo.innerHTML = `
+                <strong>Thời gian đã trôi qua:</strong> ${data.time_elapsed_minutes || 0} phút<br>
+                <strong>Thời gian tối thiểu:</strong> ${data.min_required_minutes || 4} phút<br>
+                <strong>Còn thiếu:</strong> ${data.remaining_minutes || 0} phút
+            `;
+            
+            let count = 5;
+            const countdown = document.getElementById('bypassCountdown');
+            const interval = setInterval(() => {
+                count--;
+                countdown.textContent = count;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
+                }
+            }, 1000);
+        }
+        
+        function showSuccess(data) {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('successState').style.display = 'block';
             
-            // Track download clicks
+            // Hiển thị thời gian hoàn thành
+            const successTimeInfo = document.getElementById('successTimeInfo');
+            successTimeInfo.innerHTML = `
+                <strong>Thời gian hoàn thành:</strong> ${data.time_elapsed_minutes || 0} phút ✅
+            `;
+            
+            sessionStorage.removeItem('link4m_completed');
+            localStorage.removeItem('link4m_session');
+            
             document.getElementById('downloadBtn').addEventListener('click', function() {
-                // Optional: Send analytics event
                 console.log('Download started successfully');
+                
+                // Optional: Log successful download
+                fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'log_download' })
+                }).catch(() => {}); // Silent fail
             });
         }
         
@@ -234,10 +401,9 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('errorState').style.display = 'block';
             document.getElementById('errorMessage').innerHTML = `
-                <p><strong>Chi tiết lỗi:</strong> ${message}</p>
+                <p><strong>Chi tiết:</strong> ${message}</p>
             `;
             
-            // Countdown redirect
             let count = 5;
             const countdown = document.getElementById('countdown');
             const interval = setInterval(() => {
@@ -252,17 +418,32 @@
         
         // Auto verify when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            // Small delay for better UX
-            setTimeout(verifyDownload, 1000);
+            setTimeout(verifyDownload, 1500);
         });
         
-        // Prevent right-click and dev tools (optional security)
+        // Enhanced protection
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.key === 'u')) {
                 e.preventDefault();
             }
         });
+        
+        // Prevent page refresh/back during verification
+        let isVerifying = true;
+        window.addEventListener('beforeunload', (e) => {
+            if (isVerifying) {
+                e.preventDefault();
+                e.returnValue = 'Đang xác thực, vui lòng không thoát!';
+            }
+        });
+        
+        // Allow navigation after verification
+        setTimeout(() => {
+            isVerifying = false;
+        }, 10000);
     </script>
 </body>
 </html>
