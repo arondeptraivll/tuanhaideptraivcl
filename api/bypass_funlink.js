@@ -1,4 +1,4 @@
-// --- TOÀN BỘ MÃ NGUỒN BACK-END - CẬP NHẬT BẢO MẬT ---
+// --- BACKEND CẬP NHẬT CHỐNG DDOS ---
 
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
 
   // === XỬ LÝ POST REQUEST ===
   if (req.method === 'POST') {
-    const { action, token } = req.body;
+    const { action, token, force_create } = req.body;
 
     // --- ACTION 1: VALIDATE TOKEN ---
     if (action === 'validate_token') {
@@ -158,25 +158,100 @@ export default async function handler(req, res) {
       }
     }
 
-    // --- ACTION 3: CREATE DOWNLOAD SESSION ---
+    // --- ACTION 3: CHECK EXISTING DOWNLOAD SESSION - MỚI ---
+    if (action === 'check_download_session') {
+      try {
+        // Kiểm tra session hiện tại của IP
+        const { data: existingSessions, error } = await supabase
+          .from('download_sessions')
+          .select('*')
+          .eq('ip_address', userIP)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (existingSessions && existingSessions.length > 0) {
+          const latestSession = existingSessions[0];
+          const createdAt = new Date(latestSession.created_at);
+          const now = new Date();
+          const timeElapsed = Math.floor((now - createdAt) / (1000 * 60)); // phút
+          
+          return res.status(200).json({
+            has_existing_session: true,
+            session_count: existingSessions.length,
+            latest_session: {
+              created_at: latestSession.created_at,
+              time_elapsed_minutes: timeElapsed,
+              used: latestSession.used
+            }
+          });
+        }
+        
+        return res.status(200).json({
+          has_existing_session: false,
+          session_count: 0
+        });
+        
+      } catch (error) {
+        console.error('Error checking existing sessions:', error);
+        return res.status(500).json({ error: 'Lỗi kiểm tra session' });
+      }
+    }
+
+    // --- ACTION 4: CREATE DOWNLOAD SESSION - CẬP NHẬT CHỐNG DDOS ---
     if (action === 'create_download_session') {
       try {
-        await supabase
-          .from('download_sessions')
-          .delete()
-          .eq('ip_address', userIP)
-          .lt('expires_at', new Date().toISOString());
-
-        await supabase
-          .from('download_sessions')
-          .delete()
-          .eq('ip_address', userIP);
-
+        // 1. Kiểm tra session hiện tại nếu không force
+        if (!force_create) {
+          const { data: existingSessions, error: checkError } = await supabase
+            .from('download_sessions')
+            .select('*')
+            .eq('ip_address', userIP)
+            .gt('expires_at', new Date().toISOString());
+          
+          if (checkError) throw checkError;
+          
+          if (existingSessions && existingSessions.length > 0) {
+            return res.status(409).json({
+              success: false,
+              error: 'IP này đã có session đang hoạt động',
+              error_code: 'EXISTING_SESSION',
+              existing_sessions: existingSessions.length
+            });
+          }
+        }
+        
+        // 2. XÓA TOÀN BỘ SESSION CŨ CỦA IP NÀY (nếu force_create = true)
+        if (force_create) {
+          console.log(`Force deleting ALL sessions for IP: ${userIP}`);
+          
+          const { error: deleteError } = await supabase
+            .from('download_sessions')
+            .delete()
+            .eq('ip_address', userIP);
+          
+          if (deleteError) {
+            console.error('Error deleting old sessions:', deleteError);
+            throw deleteError;
+          }
+          
+          console.log(`Successfully deleted all sessions for IP: ${userIP}`);
+        } else {
+          // Chỉ xóa session hết hạn
+          await supabase
+            .from('download_sessions')
+            .delete()
+            .eq('ip_address', userIP)
+            .lt('expires_at', new Date().toISOString());
+        }
+        
+        // 3. Tạo session mới
         const sessionId = crypto.randomBytes(16).toString('hex');
         const now = new Date();
         const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 phút
         
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('download_sessions')
           .insert([{
             session_id: sessionId,
@@ -186,13 +261,14 @@ export default async function handler(req, res) {
             used: false
           }]);
         
-        if (error) throw error;
+        if (insertError) throw insertError;
         
         return res.status(201).json({
           success: true,
           message: 'Download session created successfully',
           expires_in_minutes: 10,
-          created_at: now.toISOString() // Trả về thời gian tạo
+          created_at: now.toISOString(),
+          force_created: !!force_create
         });
         
       } catch (error) {
@@ -204,10 +280,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // --- ACTION 4: VERIFY DOWNLOAD - CẬP NHẬT BẢO MẬT ---
+    // --- ACTION 5: VERIFY DOWNLOAD - GIỮ NGUYÊN ---
     if (action === 'verify_download') {
       try {
-        // 1. Tìm session của IP này
         const { data: session, error } = await supabase
           .from('download_sessions')
           .select('*')
@@ -220,7 +295,6 @@ export default async function handler(req, res) {
         
         if (error && error.code !== 'PGRST116') throw error;
         
-        // 2. Kiểm tra session tồn tại
         if (!session) {
           return res.status(404).json({ 
             valid: false, 
@@ -230,13 +304,11 @@ export default async function handler(req, res) {
           });
         }
         
-        // 3. KIỂM TRA THỜI GIAN TỐI THIỂU - TÍNH NĂNG MỚI
         const sessionCreatedAt = new Date(session.created_at);
         const now = new Date();
         const timeElapsedMs = now.getTime() - sessionCreatedAt.getTime();
         const timeElapsedMinutes = timeElapsedMs / (1000 * 60);
         
-        // Chặn nếu chưa đủ 4 phút
         const MIN_WAIT_MINUTES = 4;
         if (timeElapsedMinutes < MIN_WAIT_MINUTES) {
           const remainingTime = MIN_WAIT_MINUTES - timeElapsedMinutes;
@@ -252,7 +324,6 @@ export default async function handler(req, res) {
           });
         }
         
-        // 4. Mark session as used
         await supabase
           .from('download_sessions')
           .update({ 
