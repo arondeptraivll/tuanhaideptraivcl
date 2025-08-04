@@ -1,4 +1,7 @@
-// --- BACKEND CẬP NHẬT CHỐNG DDOS ---
+// =====================================
+// BYPASS FUNLINK API - PHIÊN BẢN HOÀN CHỈNH
+// Anti-DDoS + Session Management + Token System
+// =====================================
 
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
@@ -8,32 +11,47 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// --- Rate Limiting ---
+// =====================================
+// RATE LIMITING SYSTEM
+// =====================================
 const ipRequestMap = new Map();
-const RATE_LIMIT_WINDOW_MS = 60000;
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 phút
 const MAX_REQUESTS_PER_WINDOW = 10;
+
+// Cleanup expired rate limit entries
 setInterval(() => {
   const now = Date.now();
   for (const [ip, data] of ipRequestMap.entries()) {
-    if (now - data.timestamp > RATE_LIMIT_WINDOW_MS) ipRequestMap.delete(ip);
+    if (now - data.timestamp > RATE_LIMIT_WINDOW_MS) {
+      ipRequestMap.delete(ip);
+    }
   }
 }, RATE_LIMIT_WINDOW_MS * 2);
 
+// =====================================
+// DATABASE INITIALIZATION
+// =====================================
 const initTable = async () => {
+  // Tạo bảng bypass_tokens nếu chưa có
   const { error: tokenError } = await supabase.rpc('create_tokens_table', {})
   if (tokenError && !tokenError.message.includes('already exists')) {
     console.error('Error creating tokens table:', tokenError)
   }
   
+  // Tạo bảng download_sessions nếu chưa có
   const { error: sessionError } = await supabase.rpc('create_download_sessions_table', {})
   if (sessionError && !sessionError.message.includes('already exists')) {
     console.error('Error creating download_sessions table:', sessionError)
   }
 }
 
+// =====================================
+// MAIN API HANDLER
+// =====================================
 export default async function handler(req, res) {
   await initTable();
   
+  // Lấy IP của client
   const clientIP = req.headers['x-forwarded-for'] || 
                    req.headers['x-real-ip'] || 
                    req.connection.remoteAddress || 
@@ -42,7 +60,9 @@ export default async function handler(req, res) {
                    '127.0.0.1';
   const userIP = clientIP.split(',')[0].trim();
 
-  // === XỬ LÝ GET REQUEST ===
+  // =====================================
+  // GET REQUEST - Kiểm tra token có sẵn
+  // =====================================
   if (req.method === 'GET') {
     try {
         const { data: existingToken, error } = await supabase
@@ -65,23 +85,37 @@ export default async function handler(req, res) {
               time_left_ms: timeLeft 
             });
         } else {
-            return res.status(200).json({ ip: userIP, has_existing_token: false });
+            return res.status(200).json({ 
+              ip: userIP, 
+              has_existing_token: false 
+            });
         }
     } catch(error) {
         console.error('Error checking existing token:', error);
-        return res.status(500).json({ ip: userIP, error: 'Lỗi máy chủ khi kiểm tra token' });
+        return res.status(500).json({ 
+          ip: userIP, 
+          error: 'Lỗi máy chủ khi kiểm tra token' 
+        });
     }
   }
 
-  // === XỬ LÝ POST REQUEST ===
+  // =====================================
+  // POST REQUEST - Xử lý các actions
+  // =====================================
   if (req.method === 'POST') {
     const { action, token, force_create } = req.body;
 
-    // --- ACTION 1: VALIDATE TOKEN ---
+    // =====================================
+    // ACTION 1: VALIDATE TOKEN
+    // =====================================
     if (action === 'validate_token') {
       if (!token) {
-        return res.status(400).json({ valid: false, error: 'Token is required' });
+        return res.status(400).json({ 
+          valid: false, 
+          error: 'Token is required' 
+        });
       }
+      
       try {
         const { data: tokenData, error } = await supabase
           .from('bypass_tokens')
@@ -91,34 +125,51 @@ export default async function handler(req, res) {
           .single();
 
         if (error && error.code !== 'PGRST116') throw error;
-        return res.status(200).json({ valid: !!tokenData });
+        
+        return res.status(200).json({ 
+          valid: !!tokenData 
+        });
       } catch (error) {
         console.error('Error validating token:', error);
-        return res.status(500).json({ valid: false, error: 'Lỗi máy chủ khi kiểm tra token' });
+        return res.status(500).json({ 
+          valid: false, 
+          error: 'Lỗi máy chủ khi kiểm tra token' 
+        });
       }
     }
     
-    // --- ACTION 2: CREATE TOKEN ---
+    // =====================================
+    // ACTION 2: CREATE TOKEN
+    // =====================================
     if (action === 'create_token') {
+      // Rate limiting check
       const now = Date.now();
       const ipData = ipRequestMap.get(userIP) || { count: 0, timestamp: now };
+      
       if (now - ipData.timestamp > RATE_LIMIT_WINDOW_MS) {
-        ipData.count = 0; ipData.timestamp = now;
+        ipData.count = 0; 
+        ipData.timestamp = now;
       }
+      
       ipData.count += 1;
       ipRequestMap.set(userIP, ipData);
 
       if (ipData.count > MAX_REQUESTS_PER_WINDOW) {
-        return res.status(429).json({ success: false, error: 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.' });
+        return res.status(429).json({ 
+          success: false, 
+          error: 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.' 
+        });
       }
       
       try {
+        // Xóa token hết hạn của IP này
         await supabase
           .from('bypass_tokens')
           .delete()
           .eq('ip_address', userIP)
           .lt('expires_at', new Date().toISOString());
 
+        // Kiểm tra token còn hiệu lực
         const { data: existingValidToken, error: fetchError } = await supabase
           .from('bypass_tokens')
           .select('token, expires_at')
@@ -129,9 +180,13 @@ export default async function handler(req, res) {
         if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
         
         if (existingValidToken) {
-          return res.status(409).json({ success: false, error: 'Token đã tồn tại và vẫn còn hiệu lực.' });
+          return res.status(409).json({ 
+            success: false, 
+            error: 'Token đã tồn tại và vẫn còn hiệu lực.' 
+          });
         }
 
+        // Tạo token mới (3 giờ)
         const newToken = crypto.randomBytes(32).toString('hex');
         const newExpiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
 
@@ -152,13 +207,19 @@ export default async function handler(req, res) {
           expires_at: newExpiresAt.toISOString(),
           time_left_ms: 3 * 60 * 60 * 1000
         });
+        
       } catch (error) {
         console.error('Error during token creation process:', error);
-        return res.status(500).json({ success: false, error: 'Đã xảy ra lỗi phía máy chủ.' });
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Đã xảy ra lỗi phía máy chủ.' 
+        });
       }
     }
 
-    // --- ACTION 3: CHECK EXISTING DOWNLOAD SESSION - MỚI ---
+    // =====================================
+    // ACTION 3: CHECK EXISTING DOWNLOAD SESSION
+    // =====================================
     if (action === 'check_download_session') {
       try {
         // Kiểm tra session hiện tại của IP
@@ -195,14 +256,18 @@ export default async function handler(req, res) {
         
       } catch (error) {
         console.error('Error checking existing sessions:', error);
-        return res.status(500).json({ error: 'Lỗi kiểm tra session' });
+        return res.status(500).json({ 
+          error: 'Lỗi kiểm tra session' 
+        });
       }
     }
 
-    // --- ACTION 4: CREATE DOWNLOAD SESSION - CẬP NHẬT CHỐNG DDOS ---
+    // =====================================
+    // ACTION 4: CREATE DOWNLOAD SESSION
+    // =====================================
     if (action === 'create_download_session') {
       try {
-        // 1. Kiểm tra session hiện tại nếu không force
+        // Kiểm tra session hiện tại nếu không force
         if (!force_create) {
           const { data: existingSessions, error: checkError } = await supabase
             .from('download_sessions')
@@ -222,9 +287,9 @@ export default async function handler(req, res) {
           }
         }
         
-        // 2. XÓA TOÀN BỘ SESSION CŨ CỦA IP NÀY (nếu force_create = true)
+        // XÓA TOÀN BỘ SESSION CŨ CỦA IP NÀY (nếu force_create = true)
         if (force_create) {
-          console.log(`Force deleting ALL sessions for IP: ${userIP}`);
+          console.log(`🗑️ Force deleting ALL sessions for IP: ${userIP}`);
           
           const { error: deleteError } = await supabase
             .from('download_sessions')
@@ -236,7 +301,7 @@ export default async function handler(req, res) {
             throw deleteError;
           }
           
-          console.log(`Successfully deleted all sessions for IP: ${userIP}`);
+          console.log(`✅ Successfully deleted all sessions for IP: ${userIP}`);
         } else {
           // Chỉ xóa session hết hạn
           await supabase
@@ -246,10 +311,10 @@ export default async function handler(req, res) {
             .lt('expires_at', new Date().toISOString());
         }
         
-        // 3. Tạo session mới
+        // Tạo session mới (10 phút)
         const sessionId = crypto.randomBytes(16).toString('hex');
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 phút
+        const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
         
         const { error: insertError } = await supabase
           .from('download_sessions')
@@ -262,6 +327,8 @@ export default async function handler(req, res) {
           }]);
         
         if (insertError) throw insertError;
+        
+        console.log(`✅ Created new session for IP: ${userIP}, Session ID: ${sessionId}`);
         
         return res.status(201).json({
           success: true,
@@ -280,9 +347,12 @@ export default async function handler(req, res) {
       }
     }
 
-    // --- ACTION 5: VERIFY DOWNLOAD - GIỮ NGUYÊN ---
+    // =====================================
+    // ACTION 5: VERIFY DOWNLOAD - SIÊU ĐƠN GIẢN
+    // =====================================
     if (action === 'verify_download') {
       try {
+        // 1. Tìm session của IP này
         const { data: session, error } = await supabase
           .from('download_sessions')
           .select('*')
@@ -295,27 +365,32 @@ export default async function handler(req, res) {
         
         if (error && error.code !== 'PGRST116') throw error;
         
+        // 2. Kiểm tra session tồn tại
         if (!session) {
+          console.log(`❌ No session found for IP: ${userIP}`);
           return res.status(404).json({ 
             valid: false, 
-            error: 'IP này không có phiên tải xuống hợp lệ',
+            error: 'Vui lòng không dùng bypass nếu ko muốn bị chặn',
             error_code: 'NO_SESSION',
             redirect_url: 'https://tuanhaideptraivcl.vercel.app/security/blocked.html'
           });
         }
         
+        // 3. KIỂM TRA THỜI GIAN TỐI THIỂU - 3 PHÚT
         const sessionCreatedAt = new Date(session.created_at);
         const now = new Date();
         const timeElapsedMs = now.getTime() - sessionCreatedAt.getTime();
         const timeElapsedMinutes = timeElapsedMs / (1000 * 60);
         
-        const MIN_WAIT_MINUTES = 4;
+        const MIN_WAIT_MINUTES = 3;
         if (timeElapsedMinutes < MIN_WAIT_MINUTES) {
           const remainingTime = MIN_WAIT_MINUTES - timeElapsedMinutes;
           
+          console.log(`⏱️ Too fast access for IP: ${userIP}, elapsed: ${timeElapsedMinutes.toFixed(2)} minutes`);
+          
           return res.status(403).json({ 
             valid: false, 
-            error: 'Phát hiện bypass! Vui lòng không dùng bypass nếu ko muốn bị chặn.',
+            error: 'Vui lòng không dùng bypass nếu ko muốn bị chặn',
             error_code: 'TOO_FAST',
             time_elapsed_minutes: Math.floor(timeElapsedMinutes),
             min_required_minutes: MIN_WAIT_MINUTES,
@@ -324,6 +399,7 @@ export default async function handler(req, res) {
           });
         }
         
+        // 4. Mark session as used
         await supabase
           .from('download_sessions')
           .update({ 
@@ -331,6 +407,8 @@ export default async function handler(req, res) {
             used_at: new Date().toISOString() 
           })
           .eq('session_id', session.session_id);
+        
+        console.log(`✅ Download verified for IP: ${userIP}, elapsed: ${timeElapsedMinutes.toFixed(2)} minutes`);
         
         return res.status(200).json({ 
           valid: true, 
@@ -349,9 +427,39 @@ export default async function handler(req, res) {
         });
       }
     }
+
+    // =====================================
+    // ACTION 6: LOG DOWNLOAD (OPTIONAL)
+    // =====================================
+    if (action === 'log_download') {
+      try {
+        // Optional: Log successful downloads
+        console.log(`📥 Download started for IP: ${userIP} at ${new Date().toISOString()}`);
+        
+        // Có thể lưu vào DB nếu cần tracking
+        // await supabase.from('download_logs').insert([{...}]);
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Download logged' 
+        });
+      } catch (error) {
+        console.error('Error logging download:', error);
+        return res.status(200).json({ 
+          success: false, 
+          message: 'Failed to log download' 
+        });
+      }
+    }
     
-    return res.status(400).json({ error: 'Invalid action specified' });
+    // Invalid action
+    return res.status(400).json({ 
+      error: 'Invalid action specified' 
+    });
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  // Method not allowed
+  return res.status(405).json({ 
+    error: 'Method not allowed' 
+  });
 }
