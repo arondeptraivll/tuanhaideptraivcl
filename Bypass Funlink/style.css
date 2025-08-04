@@ -13,7 +13,7 @@ body {
     padding: 20px;
 }
 
-/* === STYLE MỚI CHO HEADER VÀ NÚT === */
+
 .app-header {
     width: 100%;
     padding: 10px 0;
@@ -22,7 +22,7 @@ body {
 
 .header-container {
     display: flex;
-    justify-content: flex-end; /* Căn nút sang phải */
+    justify-content: flex-end; 
     align-items: center;
 }
 
@@ -34,7 +34,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #fff;
     padding: 10px 20px;
-    border-radius: 50px; /* Bo tròn để tạo thành viên thuốc */
+    border-radius: 50px; 
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
@@ -48,7 +48,7 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
 }
-/* === KẾT THÚC STYLE MỚI === */
+
 
 .container {
     max-width: 800px;
