@@ -53,6 +53,20 @@
             display: none;
         }
         
+        .debug-info {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #00ff88;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
         .loading-spinner {
             width: 50px;
             height: 50px;
@@ -189,6 +203,21 @@
             font-family: monospace;
             font-size: 0.9em;
         }
+        
+        .debug-toggle {
+            background: #333;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+        
+        .debug-toggle:hover {
+            background: #444;
+        }
     </style>
 </head>
 <body>
@@ -198,6 +227,13 @@
             <div class="loading-spinner"></div>
             <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra bạn có dùng bypass không...</h2>
             <p>Vui lòng chờ trong giây lát</p>
+            
+            <!-- Debug Info -->
+            <button class="debug-toggle" onclick="toggleDebugInfo()">🔍 Hiện thông tin debug</button>
+            <div class="debug-info" id="debugInfo" style="display: none;">
+                <strong>Debug Information:</strong><br>
+                <div id="debugContent">Đang thu thập thông tin...</div>
+            </div>
         </div>
         
         <!-- Blocked Direct Access -->
@@ -210,6 +246,13 @@
                 <h3>Vui lòng không bypass link</h3>
                 <p>Bạn cần hoàn thành link rút gọn một cách bình thường để tải tool.</p>
             </div>
+            
+            <!-- Debug cho blocked -->
+            <div class="debug-info" id="blockedDebugInfo">
+                <strong>Lý do bị chặn:</strong><br>
+                <div id="blockedDebugContent"></div>
+            </div>
+            
             <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
         </div>
         
@@ -275,30 +318,203 @@
 
     <script>
         const API_BASE = '/api/bypass_funlink';
+        let debugData = {};
         
-        // Kiểm tra truy cập trực tiếp
+        // Toggle debug info
+        function toggleDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            const toggle = document.querySelector('.debug-toggle');
+            
+            if (debugInfo.style.display === 'none') {
+                debugInfo.style.display = 'block';
+                toggle.textContent = '🙈 Ẩn thông tin debug';
+            } else {
+                debugInfo.style.display = 'none';
+                toggle.textContent = '🔍 Hiện thông tin debug';
+            }
+        }
+        
+        // Thu thập debug info
+        function collectDebugInfo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const referrer = document.referrer;
+            
+            debugData = {
+                url: window.location.href,
+                referrer: referrer,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString(),
+                urlParams: {},
+                sessionStorage: {},
+                localStorage: {},
+                cookieCount: document.cookie.split(';').length,
+                screenResolution: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language
+            };
+            
+            // URL Parameters
+            for (let [key, value] of urlParams) {
+                debugData.urlParams[key] = value;
+            }
+            
+            // Session Storage
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                debugData.sessionStorage[key] = sessionStorage.getItem(key);
+            }
+            
+            // Local Storage (chỉ key liên quan)
+            const relevantKeys = ['link4m_session', 'link4m_completed', 'download_session'];
+            relevantKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) debugData.localStorage[key] = value;
+            });
+            
+            // Hiển thị debug info
+            updateDebugDisplay();
+        }
+        
+        function updateDebugDisplay() {
+            const debugContent = document.getElementById('debugContent');
+            debugContent.innerHTML = `
+                <strong>URL:</strong> ${debugData.url}<br>
+                <strong>Referrer:</strong> ${debugData.referrer || 'Không có'}<br>
+                <strong>Time:</strong> ${debugData.timestamp}<br>
+                <strong>URL Params:</strong> ${Object.keys(debugData.urlParams).length > 0 ? JSON.stringify(debugData.urlParams, null, 2) : 'Không có'}<br>
+                <strong>Session Storage:</strong> ${Object.keys(debugData.sessionStorage).length > 0 ? JSON.stringify(debugData.sessionStorage, null, 2) : 'Không có'}<br>
+                <strong>Local Storage:</strong> ${Object.keys(debugData.localStorage).length > 0 ? JSON.stringify(debugData.localStorage, null, 2) : 'Không có'}<br>
+                <strong>Cookies:</strong> ${debugData.cookieCount} cookie(s)<br>
+                <strong>User Agent:</strong> ${debugData.userAgent.substring(0, 50)}...
+            `;
+        }
+        
+        // Kiểm tra truy cập trực tiếp - CẢI THIỆN
         function checkDirectAccess() {
             const referrer = document.referrer;
-            const hasReferrer = referrer && (
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            console.log('🔍 Checking direct access...');
+            console.log('Referrer:', referrer);
+            console.log('URL Params:', Object.fromEntries(urlParams));
+            
+            let accessLegitimate = false;
+            let blockReason = [];
+            
+            // 1. Kiểm tra referrer từ link4m
+            const hasValidReferrer = referrer && (
                 referrer.includes('link4m.com') || 
-                referrer.includes('tuanhaideptraivcl.vercel.app')
+                referrer.includes('tuanhaideptraivcl.vercel.app') ||
+                referrer.includes('link4m') ||
+                referrer.match(/link4m\.com\/go\/[a-zA-Z0-9]+/)
             );
             
+            if (hasValidReferrer) {
+                accessLegitimate = true;
+                console.log('✅ Valid referrer detected:', referrer);
+            } else {
+                blockReason.push(`Referrer không hợp lệ: "${referrer}"`);
+            }
+            
+            // 2. Kiểm tra URL parameters từ link4m
+            const hasValidParams = urlParams.get('ref') || 
+                                 urlParams.get('source') || 
+                                 urlParams.get('utm_source') ||
+                                 urlParams.get('from');
+            
+            if (hasValidParams) {
+                accessLegitimate = true;
+                console.log('✅ Valid URL params detected');
+            } else {
+                blockReason.push('Không có URL parameters hợp lệ');
+            }
+            
+            // 3. Kiểm tra session/local storage
             const hasValidSession = sessionStorage.getItem('link4m_completed') || 
-                                  localStorage.getItem('link4m_session');
+                                  localStorage.getItem('link4m_session') ||
+                                  sessionStorage.getItem('download_ready') ||
+                                  localStorage.getItem('shortlink_completed');
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasValidParams = urlParams.get('ref') || urlParams.get('source');
+            if (hasValidSession) {
+                accessLegitimate = true;
+                console.log('✅ Valid session detected');
+            } else {
+                blockReason.push('Không có session storage hợp lệ');
+            }
             
-            if (!hasReferrer && !hasValidSession && !hasValidParams) {
-                showBlocked();
+            // 4. Kiểm tra browser behavior (basic)
+            const browserBehaviorScore = calculateBrowserScore();
+            if (browserBehaviorScore > 0.5) {
+                accessLegitimate = true;
+                console.log('✅ Browser behavior seems legitimate');
+            } else {
+                blockReason.push(`Browser behavior score thấp: ${browserBehaviorScore}`);
+            }
+            
+            // 5. Kiểm tra thời gian load trang
+            const loadTime = performance.now();
+            if (loadTime > 500) { // Người thật thường mất thời gian load
+                accessLegitimate = true;
+                console.log('✅ Reasonable page load time');
+            } else {
+                blockReason.push(`Load time quá nhanh: ${loadTime}ms`);
+            }
+            
+            if (!accessLegitimate) {
+                console.log('❌ Access blocked. Reasons:', blockReason);
+                showBlocked(blockReason);
                 return false;
             }
             
+            console.log('✅ Access appears legitimate');
             return true;
         }
         
+        // Tính điểm browser behavior
+        function calculateBrowserScore() {
+            let score = 0;
+            
+            // Có mouse movement
+            if (window.mouseX !== undefined) score += 0.2;
+            
+            // Có resize events
+            if (window.innerWidth !== screen.width) score += 0.1;
+            
+            // Có focus/blur events
+            if (document.hasFocus && document.hasFocus()) score += 0.1;
+            
+            // Browser features
+            if (navigator.cookieEnabled) score += 0.1;
+            if (navigator.doNotTrack !== '1') score += 0.1;
+            
+            // WebGL support (human browsers thường có)
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl');
+                if (gl) score += 0.2;
+            } catch (e) {}
+            
+            // Timezone hợp lý
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (tz && tz.includes('Asia') || tz.includes('Ho_Chi_Minh')) {
+                score += 0.2;
+            }
+            
+            return Math.min(score, 1);
+        }
+        
+        // Track mouse để detect bot
+        let mouseX, mouseY;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            window.mouseX = mouseX;
+        });
+        
         async function verifyDownload() {
+            // Thu thập debug info trước
+            collectDebugInfo();
+            
             // Kiểm tra truy cập trực tiếp trước
             if (!checkDirectAccess()) {
                 return;
@@ -332,9 +548,21 @@
             }
         }
         
-        function showBlocked() {
+        function showBlocked(reasons = []) {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('blockedState').style.display = 'block';
+            
+            // Hiển thị debug info cho blocked
+            const blockedDebugContent = document.getElementById('blockedDebugContent');
+            blockedDebugContent.innerHTML = `
+                <strong>Lý do cụ thể:</strong><br>
+                ${reasons.map(reason => `• ${reason}`).join('<br>')}<br><br>
+                <strong>Debug Info:</strong><br>
+                Referrer: ${debugData.referrer || 'Không có'}<br>
+                URL: ${debugData.url}<br>
+                Params: ${JSON.stringify(debugData.urlParams)}<br>
+                Session: ${JSON.stringify(debugData.sessionStorage)}<br>
+            `;
             
             let count = 5;
             const countdown = document.getElementById('blockedCountdown');
