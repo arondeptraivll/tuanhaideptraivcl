@@ -1,5 +1,5 @@
 // =====================================
-// TOKEN MANAGER CLASS - CẬP NHẬT LINK
+// TOKEN MANAGER CLASS - VỚI SWEETALERT2
 // =====================================
 
 class TokenManager {
@@ -8,10 +8,45 @@ class TokenManager {
         this.timerInterval = null;
         this.userIP = null;
         this.API_BASE = '/api/bypass_funlink';
+        this.isDownloadProcessing = false; // Prevent double click
         
         this.initializeElements();
         this.checkExistingTokenOnLoad();
         this.setupEventListeners();
+        this.configureSweetAlert();
+    }
+
+    // Cấu hình SweetAlert2 theme
+    configureSweetAlert() {
+        // Custom theme cho SweetAlert2
+        const style = document.createElement('style');
+        style.textContent = `
+            .swal2-popup {
+                background: #111 !important;
+                border: 2px solid #00ff88 !important;
+                border-radius: 15px !important;
+            }
+            .swal2-title {
+                color: #fff !important;
+            }
+            .swal2-content {
+                color: #ccc !important;
+            }
+            .swal2-confirm {
+                background: linear-gradient(45deg, #00ff88, #00ccff) !important;
+                border: none !important;
+                border-radius: 8px !important;
+            }
+            .swal2-cancel {
+                background: #ff4757 !important;
+                border: none !important;
+                border-radius: 8px !important;
+            }
+            .swal2-loader {
+                border-color: #00ff88 transparent #00ff88 transparent !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     // Khởi tạo các elements DOM
@@ -74,17 +109,32 @@ class TokenManager {
             this.createToken();
         });
 
-        // Nút copy token
+        // Nút copy token với SweetAlert
         this.elements.copyTokenBtn.addEventListener('click', () => {
-            this.copyToken();
+            this.copyTokenWithAlert();
         });
 
-        // Nút download
+        // Nút download với SweetAlert SIÊU ĐẸP
         const downloadBtn = document.querySelector('#downloadTrigger');
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                await this.createDownloadSession();
+                
+                // Prevent double click
+                if (this.isDownloadProcessing) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Vui lòng đợi!',
+                        text: 'Đang xử lý yêu cầu trước đó...',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: '#111',
+                        color: '#fff'
+                    });
+                    return;
+                }
+                
+                await this.createDownloadSessionWithAlert();
             });
         }
     }
@@ -117,9 +167,21 @@ class TokenManager {
         this.showView('loadingView');
     }
 
-    // Tạo token mới
+    // Tạo token với SweetAlert
     async createToken() {
-        this.showLoadingView();
+        // Hiện loading popup
+        Swal.fire({
+            title: 'Đang tạo token...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            background: '#111',
+            color: '#fff',
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
         
         try {
             const response = await fetch(this.API_BASE, {
@@ -138,7 +200,18 @@ class TokenManager {
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
                 this.startTimer(data.time_left_ms);
-                this.showNotification('Token đã được tạo thành công!', 'success');
+                
+                // Success popup với tick xanh
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    text: 'Token đã được tạo thành công!',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#111',
+                    color: '#fff'
+                });
+                
                 this.showTokenView();
                 return;
             }
@@ -147,14 +220,47 @@ class TokenManager {
             
         } catch (error) {
             console.error('Error creating token:', error);
-            const errorMessage = error.message || 'Lỗi kết nối đến máy chủ.';
-            this.showNotification(errorMessage, 'error');
+            
+            // Error popup với cross đỏ
+            await Swal.fire({
+                icon: 'error',
+                title: 'Lỗi!',
+                text: error.message || 'Lỗi kết nối đến máy chủ.',
+                background: '#111',
+                color: '#fff'
+            });
+            
             this.showInitialView();
         }
     }
 
-    // TẠO DOWNLOAD SESSION - CẬP NHẬT LINK MỚI
-    async createDownloadSession() {
+    // TẠO DOWNLOAD SESSION VỚI SWEETALERT SIÊU ĐẸP
+    async createDownloadSessionWithAlert() {
+        this.isDownloadProcessing = true;
+        
+        // Hiện loading popup siêu đẹp
+        Swal.fire({
+            title: '🚀 Đang tạo phiên tải xuống...',
+            html: `
+                <div style="margin: 20px 0;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">
+                        ⏳ Vui lòng đợi...
+                    </div>
+                    <div style="color: #ccc; font-size: 0.9em;">
+                        Đang kết nối đến hệ thống bảo mật
+                    </div>
+                </div>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            background: '#111',
+            color: '#fff',
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
         try {
             const response = await fetch(this.API_BASE, {
                 method: 'POST',
@@ -169,25 +275,62 @@ class TokenManager {
             const data = await response.json();
             
             if (response.status === 201 && data.success) {
-                this.showNotification(
-                    'Đã tạo phiên tải xuống! Vui lòng hoàn thành link rút gọn.', 
-                    'success'
-                );
+                // Success popup với animation tick xanh SIÊU ĐẸP
+                await Swal.fire({
+                    icon: 'success',
+                    title: '✅ Phiên tải đã được tạo!',
+                    html: `
+                        <div style="margin: 20px 0;">
+                            <div style="color: #00ff88; font-weight: bold; margin-bottom: 15px;">
+                                🎉 Thành công! Đang chuyển hướng...
+                            </div>
+                            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88;">
+                                <div style="color: #fff; margin-bottom: 8px;">
+                                    ⚠️ <strong>Lưu ý quan trọng:</strong>
+                                </div>
+                                <div style="color: #ccc; font-size: 0.9em;">
+                                    Vui lòng không dùng bypass nếu ko muốn bị chặn!
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    background: '#111',
+                    color: '#fff',
+                    didOpen: () => {
+                        // Custom animation
+                        const popup = Swal.getPopup();
+                        popup.style.animation = 'pulse 0.5s ease-in-out';
+                    }
+                });
                 
                 // LINK MỚI
                 const link4mUrl = 'https://link4m.com/n902L';
                 
-                // Mở tab mới với link4m
+                // Mở tab mới
                 window.open(link4mUrl, '_blank');
                 
-                // Hiện thông báo
+                // Thông báo cuối
                 setTimeout(() => {
-                    this.showNotification(
-                        'Vui lòng không dùng bypass nếu ko muốn bị chặn!', 
-                        'warning'
-                    );
-                }, 2000);
+                    Swal.fire({
+                        icon: 'info',
+                        title: '📋 Hướng dẫn',
+                        html: `
+                            <div style="text-align: left; color: #ccc;">
+                                <p style="margin-bottom: 10px;">✅ Tab mới đã được mở</p>
+                                <p style="margin-bottom: 10px;">⏱️ Hoàn thành link rút gọn trong 10 phút</p>
+                                <p style="color: #ff8800;"><strong>🚫 Không sử dụng bypass!</strong></p>
+                            </div>
+                        `,
+                        confirmButtonText: 'Đã hiểu',
+                        background: '#111',
+                        color: '#fff'
+                    });
+                }, 1000);
                 
+                this.isDownloadProcessing = false;
                 return;
             }
             
@@ -195,7 +338,94 @@ class TokenManager {
             
         } catch (error) {
             console.error('Error creating download session:', error);
-            this.showNotification(error.message, 'error');
+            
+            // Error popup với cross đỏ
+            await Swal.fire({
+                icon: 'error',
+                title: '❌ Có lỗi xảy ra!',
+                html: `
+                    <div style="color: #ff4757; margin: 15px 0;">
+                        <strong>Chi tiết lỗi:</strong><br>
+                        ${error.message}
+                    </div>
+                    <div style="background: rgba(255,71,87,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff4757;">
+                        <div style="color: #ccc; font-size: 0.9em;">
+                            Vui lòng thử lại sau hoặc liên hệ hỗ trợ
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Thử lại',
+                background: '#111',
+                color: '#fff'
+            });
+            
+            this.isDownloadProcessing = false;
+        }
+    }
+
+    // Copy token với SweetAlert
+    async copyTokenWithAlert() {
+        try {
+            await navigator.clipboard.writeText(this.currentToken);
+            
+            // Success animation
+            const originalContent = this.elements.copyTokenBtn.innerHTML;
+            this.elements.copyTokenBtn.innerHTML = '<i class="fas fa-check"></i>';
+            this.elements.copyTokenBtn.style.background = 'rgba(0, 255, 136, 0.5)';
+            this.elements.copyTokenBtn.style.transform = 'scale(1.1)';
+            
+            // SweetAlert toast notification
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Token đã được copy!',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                background: '#111',
+                color: '#fff'
+            });
+            
+            setTimeout(() => {
+                this.elements.copyTokenBtn.innerHTML = originalContent;
+                this.elements.copyTokenBtn.style.background = '';
+                this.elements.copyTokenBtn.style.transform = '';
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Error copying token:', error);
+            
+            // Fallback method
+            this.elements.tokenDisplay.select();
+            this.elements.tokenDisplay.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Token đã được copy!',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: '#111',
+                    color: '#fff'
+                });
+            } catch (fallbackError) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Không thể copy token',
+                    text: 'Vui lòng copy thủ công',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#111',
+                    color: '#fff'
+                });
+            }
         }
     }
 
@@ -208,11 +438,20 @@ class TokenManager {
         const updateTimer = () => {
             if (secondsLeft <= 0) {
                 this.elements.timerDisplay.textContent = '00:00:00';
-                this.showNotification('Token đã hết hạn!', 'warning');
-                this.stopTimer();
-                setTimeout(() => {
+                
+                // Token expired alert
+                Swal.fire({
+                    icon: 'warning',
+                    title: '⏰ Token đã hết hạn!',
+                    text: 'Vui lòng tạo token mới để tiếp tục sử dụng.',
+                    confirmButtonText: 'Tạo mới',
+                    background: '#111',
+                    color: '#fff'
+                }).then(() => {
                     this.showInitialView();
-                }, 2000);
+                });
+                
+                this.stopTimer();
                 return;
             }
             
@@ -249,89 +488,32 @@ class TokenManager {
         }
     }
 
-    async copyToken() {
-        try {
-            await navigator.clipboard.writeText(this.currentToken);
-            this.showNotification('Token đã được copy vào clipboard!', 'success');
-            
-            const originalContent = this.elements.copyTokenBtn.innerHTML;
-            this.elements.copyTokenBtn.innerHTML = '<i class="fas fa-check"></i>';
-            this.elements.copyTokenBtn.style.background = 'rgba(0, 255, 136, 0.5)';
-            this.elements.copyTokenBtn.style.transform = 'scale(1.1)';
-            
-            setTimeout(() => {
-                this.elements.copyTokenBtn.innerHTML = originalContent;
-                this.elements.copyTokenBtn.style.background = '';
-                this.elements.copyTokenBtn.style.transform = '';
-            }, 1500);
-            
-        } catch (error) {
-            console.error('Error copying token:', error);
-            
-            this.elements.tokenDisplay.select();
-            this.elements.tokenDisplay.setSelectionRange(0, 99999);
-            
-            try {
-                document.execCommand('copy');
-                this.showNotification('Token đã được copy!', 'success');
-            } catch (fallbackError) {
-                this.showNotification('Không thể copy token. Vui lòng copy thủ công.', 'error');
-            }
-        }
-    }
-
+    // Fallback notification (backup)
     showNotification(message, type = 'info') {
-        const existingNotifications = document.querySelectorAll('.notification');
-        existingNotifications.forEach(notification => notification.remove());
-        
-        const notification = document.createElement('div');
-        notification.className = 'notification ' + type;
-        notification.textContent = message;
-        
         const colors = {
-            'success': '#00ff88',
-            'error': '#ff4757',
-            'warning': '#ff8800',
-            'info': '#3742fa'
+            'success': 'success',
+            'error': 'error',
+            'warning': 'warning',
+            'info': 'info'
         };
         
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${colors[type] || colors.info};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 10000;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            max-width: 300px;
-            word-wrap: break-word;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.opacity = '1';
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-        
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 4000);
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: colors[type] || 'info',
+            title: message,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: '#111',
+            color: '#fff'
+        });
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     new TokenManager();
+    
+    console.log('🚀 Token Manager với SweetAlert2 đã khởi động!');
+    console.log('🔒 Hệ thống chống bypass đã được kích hoạt!');
 });
