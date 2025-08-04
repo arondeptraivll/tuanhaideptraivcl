@@ -42,6 +42,11 @@
             background: rgba(255, 71, 87, 0.1); border: 2px solid #ff4757;
             border-radius: 10px; padding: 20px; margin: 20px 0;
         }
+        .debug-info {
+            background: rgba(255, 255, 0, 0.1); border: 1px solid #ffff00;
+            padding: 10px; margin: 10px 0; font-size: 0.8em; text-align: left;
+            border-radius: 5px; font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -51,6 +56,15 @@
             <div class="loading-spinner"></div>
             <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra...</h2>
             <p>Vui lòng chờ</p>
+            
+            <!-- Debug info -->
+            <div class="debug-info" id="debugInfo" style="display: none;">
+                <strong>Debug:</strong><br>
+                <div id="debugContent"></div>
+            </div>
+            <button onclick="toggleDebug()" style="margin-top: 10px; padding: 5px 10px; background: #333; color: #fff; border: none; border-radius: 3px; cursor: pointer;">
+                Show Debug Info
+            </button>
         </div>
         
         <!-- Blocked -->
@@ -78,71 +92,173 @@
         <div class="error" id="errorState">
             <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <h2>❌ Lỗi</h2>
-            <p id="errorMessage">Có lỗi xảy ra</p>
+            <div class="debug-info">
+                <strong>Chi tiết lỗi:</strong><br>
+                <div id="errorMessage">Có lỗi xảy ra</div>
+            </div>
             <p>Chuyển hướng sau <span class="countdown" id="countdown">5</span> giây...</p>
         </div>
     </div>
 
     <script>
-        // ✅ SỬA ĐÂY - DÙNG ABSOLUTE URL
-        const API_BASE = 'https://tuanhaideptraivcl.vercel.app/api/bypass_funlink';
+        // Multiple API endpoint attempts
+        const API_ENDPOINTS = [
+            'https://tuanhaideptraivcl.vercel.app/api/bypass_funlink',  // Absolute URL
+            '/api/bypass_funlink',  // Relative URL
+            '../api/bypass_funlink'  // Parent folder
+        ];
         
-        async function verifyDownload() {
+        let debugData = {
+            currentUrl: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString(),
+            attempts: []
+        };
+        
+        function toggleDebug() {
+            const debugInfo = document.getElementById('debugInfo');
+            const button = event.target;
+            
+            if (debugInfo.style.display === 'none') {
+                debugInfo.style.display = 'block';
+                button.textContent = 'Hide Debug Info';
+                updateDebugInfo();
+            } else {
+                debugInfo.style.display = 'none';
+                button.textContent = 'Show Debug Info';
+            }
+        }
+        
+        function updateDebugInfo() {
+            document.getElementById('debugContent').innerHTML = `
+                <strong>Current URL:</strong> ${debugData.currentUrl}<br>
+                <strong>Timestamp:</strong> ${debugData.timestamp}<br>
+                <strong>Attempts:</strong> ${debugData.attempts.length}<br>
+                ${debugData.attempts.map((attempt, i) => 
+                    `<br><strong>Attempt ${i+1}:</strong><br>
+                    URL: ${attempt.url}<br>
+                    Status: ${attempt.status}<br>
+                    Error: ${attempt.error || 'None'}<br>`
+                ).join('')}
+            `;
+        }
+        
+        async function tryApiCall(url) {
             try {
-                console.log('🔍 Calling API:', API_BASE);
+                console.log(`🔍 Attempting API call to: ${url}`);
                 
-                const response = await fetch(API_BASE, {
+                const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'verify_download' })
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'verify_download' }),
+                    mode: 'cors'  // Explicitly set CORS mode
                 });
                 
-                console.log('📡 Response status:', response.status);
+                console.log(`📡 Response from ${url}:`, response.status, response.statusText);
+                
+                const attempt = {
+                    url: url,
+                    status: response.status,
+                    ok: response.ok,
+                    statusText: response.statusText
+                };
                 
                 if (!response.ok) {
+                    attempt.error = `HTTP ${response.status}: ${response.statusText}`;
+                    debugData.attempts.push(attempt);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const data = await response.json();
-                console.log('📦 Response data:', data);
+                console.log(`📦 Data from ${url}:`, data);
                 
-                if (data.valid) {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('successState').style.display = 'block';
-                } else {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('blockedState').style.display = 'block';
-                    
-                    let count = 5;
-                    const countdown = document.getElementById('blockedCountdown');
-                    const interval = setInterval(() => {
-                        count--;
-                        countdown.textContent = count;
-                        if (count <= 0) {
-                            clearInterval(interval);
-                            window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
-                        }
-                    }, 1000);
-                }
+                attempt.success = true;
+                attempt.data = data;
+                debugData.attempts.push(attempt);
+                
+                return data;
                 
             } catch (error) {
-                console.error('❌ Error:', error);
+                console.error(`❌ Error with ${url}:`, error);
                 
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('errorState').style.display = 'block';
-                document.getElementById('errorMessage').textContent = error.message;
+                const attempt = {
+                    url: url,
+                    error: error.message,
+                    success: false
+                };
+                debugData.attempts.push(attempt);
                 
-                let count = 5;
-                const countdown = document.getElementById('countdown');
-                const interval = setInterval(() => {
-                    count--;
-                    countdown.textContent = count;
-                    if (count <= 0) {
-                        clearInterval(interval);
-                        window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
-                    }
-                }, 1000);
+                throw error;
             }
+        }
+        
+        async function verifyDownload() {
+            let lastError = null;
+            
+            // Try each API endpoint
+            for (const endpoint of API_ENDPOINTS) {
+                try {
+                    const data = await tryApiCall(endpoint);
+                    
+                    // Success!
+                    if (data.valid) {
+                        showSuccess();
+                    } else {
+                        showBlocked();
+                    }
+                    return; // Exit if successful
+                    
+                } catch (error) {
+                    lastError = error;
+                    console.log(`Failed with ${endpoint}, trying next...`);
+                    continue; // Try next endpoint
+                }
+            }
+            
+            // All endpoints failed
+            console.error('❌ All API endpoints failed');
+            showError(`Tất cả endpoint đều thất bại. Lỗi cuối: ${lastError?.message || 'Unknown error'}`);
+        }
+        
+        function showBlocked() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('blockedState').style.display = 'block';
+            
+            let count = 5;
+            const countdown = document.getElementById('blockedCountdown');
+            const interval = setInterval(() => {
+                count--;
+                countdown.textContent = count;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
+                }
+            }, 1000);
+        }
+        
+        function showSuccess() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('successState').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorMessage').innerHTML = message;
+            
+            let count = 5;
+            const countdown = document.getElementById('countdown');
+            const interval = setInterval(() => {
+                count--;
+                countdown.textContent = count;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
+                }
+            }, 1000);
         }
         
         window.addEventListener('DOMContentLoaded', () => {
