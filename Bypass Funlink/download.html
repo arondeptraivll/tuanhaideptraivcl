@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tải Tool - Gemlogin Tool</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * { 
             margin: 0; 
@@ -113,12 +115,6 @@
             margin-bottom: 20px;
         }
         
-        .countdown {
-            color: #ff8800;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-        
         h2 {
             margin-bottom: 15px;
         }
@@ -154,6 +150,48 @@
             padding: 20px;
             margin: 20px 0;
         }
+
+        .retry-btn {
+            background: linear-gradient(45deg, #ff8800, #ff4757);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 136, 0, 0.3);
+        }
+
+        /* SweetAlert2 custom styles */
+        .swal2-popup {
+            background: #111 !important;
+            border: 2px solid #00ff88 !important;
+            border-radius: 15px !important;
+            color: #fff !important;
+        }
+        .swal2-title {
+            color: #fff !important;
+        }
+        .swal2-content {
+            color: #ccc !important;
+        }
+        .swal2-confirm {
+            background: linear-gradient(45deg, #00ff88, #00ccff) !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: bold !important;
+        }
     </style>
 </head>
 <body>
@@ -165,7 +203,7 @@
             <p>Vui lòng chờ trong giây lát</p>
         </div>
         
-        <!-- Blocked Direct Access -->
+        <!-- Blocked Direct Access - KHÔNG REDIRECT -->
         <div class="blocked" id="blockedState">
             <div class="blocked-icon">
                 <i class="fas fa-ban"></i>
@@ -175,7 +213,18 @@
                 <h3>Vui lòng không bypass link</h3>
                 <p>Bạn cần hoàn thành link rút gọn một cách bình thường để tải tool.</p>
             </div>
-            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
+            <p>Vui lòng quay lại trang chủ và thực hiện đúng quy trình.</p>
+            
+            <div style="margin-top: 20px;">
+                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
+                    <i class="fas fa-home"></i>
+                    Về trang chủ
+                </a>
+                <button class="retry-btn" onclick="window.location.reload()">
+                    <i class="fas fa-redo"></i>
+                    Thử lại
+                </button>
+            </div>
         </div>
         
         <!-- Success State -->
@@ -202,7 +251,7 @@
             </div>
         </div>
         
-        <!-- Error State -->
+        <!-- Error State - KHÔNG REDIRECT -->
         <div class="error" id="errorState">
             <div class="error-icon">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -215,7 +264,16 @@
                 <p>Quay lại trang chủ và thực hiện lại từ đầu. Vui lòng không dùng bypass nếu ko muốn bị chặn!</p>
             </div>
             
-            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="countdown">5</span> giây...</p>
+            <div style="margin-top: 20px;">
+                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
+                    <i class="fas fa-home"></i>
+                    Về trang chủ
+                </a>
+                <button class="retry-btn" onclick="window.location.reload()">
+                    <i class="fas fa-redo"></i>
+                    Thử lại
+                </button>
+            </div>
         </div>
     </div>
 
@@ -279,17 +337,19 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('blockedState').style.display = 'block';
             
-            // Countdown redirect
-            let count = 5;
-            const countdown = document.getElementById('blockedCountdown');
-            const interval = setInterval(() => {
-                count--;
-                countdown.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
+            // Hiện SweetAlert thay vì countdown
+            Swal.fire({
+                icon: 'warning',
+                title: 'Phát hiện bypass!',
+                text: 'Vui lòng không bypass link. Hãy hoàn thành link rút gọn đúng cách.',
+                confirmButtonText: 'Về trang chủ',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            }).then((result) => {
+                if (result.isConfirmed) {
                     window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
                 }
-            }, 1000);
+            });
         }
         
         function showSuccess() {
@@ -300,8 +360,32 @@
             sessionStorage.removeItem('link4m_completed');
             localStorage.removeItem('link4m_session');
             
+            // Hiện thông báo thành công
+            Swal.fire({
+                icon: 'success',
+                title: 'Xác thực thành công!',
+                text: 'Bạn có thể tải tool ngay bây giờ.',
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+            
             document.getElementById('downloadBtn').addEventListener('click', function() {
                 console.log('Download started successfully');
+                
+                // Toast thông báo khi bắt đầu tải
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Đang tải xuống...'
+                });
             });
         }
         
@@ -312,17 +396,22 @@
                 <p><strong>Chi tiết:</strong> ${message}</p>
             `;
             
-            // Countdown redirect
-            let count = 5;
-            const countdown = document.getElementById('countdown');
-            const interval = setInterval(() => {
-                count--;
-                countdown.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
-                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
+            // Hiện SweetAlert thay vì countdown
+            Swal.fire({
+                icon: 'error',
+                title: 'Có lỗi xảy ra',
+                text: message,
+                confirmButtonText: 'Về trang chủ',
+                showCancelButton: true,
+                cancelButtonText: 'Thử lại',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
+                } else if (result.isDismissed) {
+                    window.location.reload();
                 }
-            }, 1000);
+            });
         }
         
         // Auto verify when page loads

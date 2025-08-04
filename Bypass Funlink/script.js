@@ -1,5 +1,5 @@
 // =====================================
-// TOKEN MANAGER CLASS - CẬP NHẬT LINK
+// TOKEN MANAGER CLASS - CẬP NHẬT SWEETALERT2
 // =====================================
 
 class TokenManager {
@@ -12,6 +12,48 @@ class TokenManager {
         this.initializeElements();
         this.checkExistingTokenOnLoad();
         this.setupEventListeners();
+        this.setupSweetAlert();
+    }
+
+    // Setup SweetAlert2 default config
+    setupSweetAlert() {
+        // Custom SweetAlert2 theme
+        const customCSS = `
+            .swal2-popup {
+                background: #111 !important;
+                border: 2px solid #00ff88 !important;
+                border-radius: 15px !important;
+                color: #fff !important;
+            }
+            .swal2-title {
+                color: #fff !important;
+            }
+            .swal2-content {
+                color: #ccc !important;
+            }
+            .swal2-confirm {
+                background: linear-gradient(45deg, #00ff88, #00ccff) !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+            }
+            .swal2-cancel {
+                background: rgba(255, 71, 87, 0.8) !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+            }
+            .swal2-deny {
+                background: rgba(255, 136, 0, 0.8) !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+            }
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = customCSS;
+        document.head.appendChild(style);
     }
 
     // Khởi tạo các elements DOM
@@ -54,7 +96,15 @@ class TokenManager {
                 this.elements.tokenDisplay.value = data.token;
                 this.startTimer(data.time_left_ms);
                 this.showTokenView();
-                this.showNotification('Đã tải lại token của bạn.', 'info');
+                
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Token đã tồn tại',
+                    text: 'Đã tải lại token hiện tại của bạn.',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
             } else {
                 this.showInitialView();
             }
@@ -64,6 +114,13 @@ class TokenManager {
             this.elements.ipDisplay.textContent = 'Lỗi kết nối';
             this.elements.ipDisplay.style.color = '#ff4757';
             this.showInitialView();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối đến máy chủ.',
+                confirmButtonText: 'Thử lại'
+            });
         }
     }
 
@@ -138,8 +195,16 @@ class TokenManager {
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
                 this.startTimer(data.time_left_ms);
-                this.showNotification('Token đã được tạo thành công!', 'success');
                 this.showTokenView();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Token đã được tạo!',
+                    text: 'Token của bạn đã được tạo thành công và có thời hạn 3 tiếng.',
+                    confirmButtonText: 'Tuyệt vời!',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
                 return;
             }
             
@@ -148,13 +213,31 @@ class TokenManager {
         } catch (error) {
             console.error('Error creating token:', error);
             const errorMessage = error.message || 'Lỗi kết nối đến máy chủ.';
-            this.showNotification(errorMessage, 'error');
             this.showInitialView();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi tạo token',
+                text: errorMessage,
+                confirmButtonText: 'Thử lại'
+            });
         }
     }
 
-    // TẠO DOWNLOAD SESSION - CẬP NHẬT LINK MỚI
+    // TẠO DOWNLOAD SESSION - CẬP NHẬT LOGIC MỚI
     async createDownloadSession() {
+        // Hiện loading trước
+        const loadingSwal = Swal.fire({
+            title: 'Đang tạo session...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         try {
             const response = await fetch(this.API_BASE, {
                 method: 'POST',
@@ -168,11 +251,19 @@ class TokenManager {
             
             const data = await response.json();
             
+            // Đóng loading
+            loadingSwal.close();
+            
             if (response.status === 201 && data.success) {
-                this.showNotification(
-                    'Đã tạo phiên tải xuống! Vui lòng hoàn thành link rút gọn.', 
-                    'success'
-                );
+                // Hiện thông báo thành công và chuyển hướng
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Session đã được tạo!',
+                    text: 'Đang chuyển hướng đến link tải...',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
                 
                 // LINK MỚI
                 const link4mUrl = 'https://link4m.com/n902L';
@@ -180,14 +271,50 @@ class TokenManager {
                 // Mở tab mới với link4m
                 window.open(link4mUrl, '_blank');
                 
-                // Hiện thông báo
+                // Hiện thông báo cảnh báo
                 setTimeout(() => {
-                    this.showNotification(
-                        'Vui lòng không dùng bypass nếu ko muốn bị chặn!', 
-                        'warning'
-                    );
-                }, 2000);
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Lưu ý quan trọng!',
+                        text: 'Vui lòng không dùng bypass nếu ko muốn bị chặn!',
+                        confirmButtonText: 'Đã hiểu',
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                }, 2500);
                 
+                return;
+            }
+            
+            // Nếu đã có session (409 conflict)
+            if (response.status === 409 || data.error?.includes('đã có session')) {
+                const result = await Swal.fire({
+                    icon: 'info',
+                    title: 'Bạn đã có session!',
+                    text: 'Bạn đã có session tải xuống. Bạn muốn xóa session cũ và tạo mới?',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Xóa & Tạo mới',
+                    denyButtonText: 'Hủy',
+                    cancelButtonText: 'Giữ session cũ',
+                    confirmButtonColor: '#00ff88',
+                    denyButtonColor: '#ff8800',
+                    cancelButtonColor: '#ff4757'
+                });
+
+                if (result.isConfirmed) {
+                    // Xóa session cũ và tạo mới
+                    await this.deleteAndCreateSession();
+                } else if (result.isDenied || result.isDismissed) {
+                    // Hủy - không làm gì
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Đã hủy',
+                        text: 'Giữ nguyên session hiện tại.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
                 return;
             }
             
@@ -195,11 +322,74 @@ class TokenManager {
             
         } catch (error) {
             console.error('Error creating download session:', error);
-            this.showNotification(error.message, 'error');
+            loadingSwal.close();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi tạo session',
+                text: error.message,
+                confirmButtonText: 'Thử lại'
+            });
         }
     }
 
-    // Các method khác giữ nguyên...
+    // Xóa session cũ và tạo mới
+    async deleteAndCreateSession() {
+        const loadingSwal = Swal.fire({
+            title: 'Đang xóa session cũ...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            // Gọi API xóa session (cần thêm endpoint này vào backend)
+            const deleteResponse = await fetch(this.API_BASE, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'delete_session'
+                })
+            });
+
+            if (deleteResponse.ok) {
+                loadingSwal.close();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa session cũ!',
+                    text: 'Đang tạo session mới...',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                // Tạo session mới sau 1.5s
+                setTimeout(() => {
+                    this.createDownloadSession();
+                }, 1500);
+            } else {
+                throw new Error('Không thể xóa session cũ');
+            }
+
+        } catch (error) {
+            loadingSwal.close();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi xóa session',
+                text: 'Không thể xóa session cũ. Vui lòng thử lại sau.',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    // Các method khác giữ nguyên nhưng thay đổi thông báo
     startTimer(timeLeftMs) {
         this.stopTimer();
         
@@ -208,11 +398,18 @@ class TokenManager {
         const updateTimer = () => {
             if (secondsLeft <= 0) {
                 this.elements.timerDisplay.textContent = '00:00:00';
-                this.showNotification('Token đã hết hạn!', 'warning');
                 this.stopTimer();
-                setTimeout(() => {
-                    this.showInitialView();
-                }, 2000);
+                
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Token đã hết hạn!',
+                    text: 'Token của bạn đã hết hạn. Vui lòng tạo token mới.',
+                    confirmButtonText: 'Tạo token mới'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.showInitialView();
+                    }
+                });
                 return;
             }
             
@@ -252,7 +449,6 @@ class TokenManager {
     async copyToken() {
         try {
             await navigator.clipboard.writeText(this.currentToken);
-            this.showNotification('Token đã được copy vào clipboard!', 'success');
             
             const originalContent = this.elements.copyTokenBtn.innerHTML;
             this.elements.copyTokenBtn.innerHTML = '<i class="fas fa-check"></i>';
@@ -264,6 +460,24 @@ class TokenManager {
                 this.elements.copyTokenBtn.style.background = '';
                 this.elements.copyTokenBtn.style.transform = '';
             }, 1500);
+
+            // Toast notification thay vì popup
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: 'success',
+                title: 'Token đã được copy!'
+            });
             
         } catch (error) {
             console.error('Error copying token:', error);
@@ -273,62 +487,28 @@ class TokenManager {
             
             try {
                 document.execCommand('copy');
-                this.showNotification('Token đã được copy!', 'success');
+                
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Token đã được copy!'
+                });
             } catch (fallbackError) {
-                this.showNotification('Không thể copy token. Vui lòng copy thủ công.', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Không thể copy',
+                    text: 'Không thể copy token. Vui lòng copy thủ công.',
+                    confirmButtonText: 'OK'
+                });
             }
         }
-    }
-
-    showNotification(message, type = 'info') {
-        const existingNotifications = document.querySelectorAll('.notification');
-        existingNotifications.forEach(notification => notification.remove());
-        
-        const notification = document.createElement('div');
-        notification.className = 'notification ' + type;
-        notification.textContent = message;
-        
-        const colors = {
-            'success': '#00ff88',
-            'error': '#ff4757',
-            'warning': '#ff8800',
-            'info': '#3742fa'
-        };
-        
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${colors[type] || colors.info};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 10000;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            max-width: 300px;
-            word-wrap: break-word;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.opacity = '1';
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-        
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 4000);
     }
 }
 
