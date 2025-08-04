@@ -45,26 +45,8 @@
             display: none; 
         }
         
-        .blocked {
-            display: none;
-        }
-        
         .bypass-detected {
             display: none;
-        }
-        
-        .debug-info {
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid #00ff88;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            text-align: left;
-            font-family: monospace;
-            font-size: 0.8em;
-            color: #00ff88;
-            max-height: 200px;
-            overflow-y: auto;
         }
         
         .loading-spinner {
@@ -125,12 +107,6 @@
             margin-bottom: 20px;
         }
         
-        .blocked-icon {
-            font-size: 60px;
-            color: #ff8800;
-            margin-bottom: 20px;
-        }
-        
         .bypass-icon {
             font-size: 60px;
             color: #ff4757;
@@ -179,14 +155,6 @@
         }
         
         .blocked-message {
-            background: rgba(255, 136, 0, 0.1);
-            border: 2px solid #ff8800;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .bypass-message {
             background: rgba(255, 71, 87, 0.1);
             border: 2px solid #ff4757;
             border-radius: 10px;
@@ -203,21 +171,6 @@
             font-family: monospace;
             font-size: 0.9em;
         }
-        
-        .debug-toggle {
-            background: #333;
-            border: 1px solid #555;
-            color: #ccc;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-            margin-top: 10px;
-        }
-        
-        .debug-toggle:hover {
-            background: #444;
-        }
     </style>
 </head>
 <body>
@@ -227,46 +180,19 @@
             <div class="loading-spinner"></div>
             <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra bạn có dùng bypass không...</h2>
             <p>Vui lòng chờ trong giây lát</p>
-            
-            <!-- Debug Info -->
-            <button class="debug-toggle" onclick="toggleDebugInfo()">🔍 Hiện thông tin debug</button>
-            <div class="debug-info" id="debugInfo" style="display: none;">
-                <strong>Debug Information:</strong><br>
-                <div id="debugContent">Đang thu thập thông tin...</div>
-            </div>
         </div>
         
-        <!-- Blocked Direct Access -->
-        <div class="blocked" id="blockedState">
-            <div class="blocked-icon">
-                <i class="fas fa-ban"></i>
-            </div>
-            <h2>🚫 Phát hiện bypass!</h2>
-            <div class="blocked-message">
-                <h3>Vui lòng không bypass link</h3>
-                <p>Bạn cần hoàn thành link rút gọn một cách bình thường để tải tool.</p>
-            </div>
-            
-            <!-- Debug cho blocked -->
-            <div class="debug-info" id="blockedDebugInfo">
-                <strong>Lý do bị chặn:</strong><br>
-                <div id="blockedDebugContent"></div>
-            </div>
-            
-            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
-        </div>
-        
-        <!-- Bypass Detected - TOO FAST -->
+        <!-- Bypass Detected -->
         <div class="bypass-detected" id="bypassDetectedState">
             <div class="bypass-icon">
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
             <h2>🚨 Phát hiện bypass!</h2>
-            <div class="bypass-message">
+            <div class="blocked-message">
                 <h3>Vui lòng không dùng bypass nếu ko muốn bị chặn</h3>
-                <p>Hệ thống phát hiện bạn hoàn thành quá nhanh. Điều này không thể xảy ra nếu làm bình thường.</p>
-                <div class="time-info" id="timeInfo">
-                    <!-- Thời gian sẽ được điền bằng JavaScript -->
+                <p id="bypassReason">Hệ thống phát hiện vi phạm quy tắc sử dụng.</p>
+                <div class="time-info" id="timeInfo" style="display: none;">
+                    <!-- Thời gian sẽ được điền nếu cần -->
                 </div>
             </div>
             <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="bypassCountdown">5</span> giây...</p>
@@ -318,160 +244,9 @@
 
     <script>
         const API_BASE = '/api/bypass_funlink';
-        let debugData = {};
         
-        // Toggle debug info
-        function toggleDebugInfo() {
-            const debugInfo = document.getElementById('debugInfo');
-            const toggle = document.querySelector('.debug-toggle');
-            
-            if (debugInfo.style.display === 'none') {
-                debugInfo.style.display = 'block';
-                toggle.textContent = '🙈 Ẩn thông tin debug';
-            } else {
-                debugInfo.style.display = 'none';
-                toggle.textContent = '🔍 Hiện thông tin debug';
-            }
-        }
-        
-        // Thu thập debug info
-        function collectDebugInfo() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const referrer = document.referrer;
-            
-            debugData = {
-                url: window.location.href,
-                referrer: referrer,
-                userAgent: navigator.userAgent,
-                timestamp: new Date().toISOString(),
-                urlParams: {},
-                sessionStorage: {},
-                localStorage: {},
-                cookieCount: document.cookie.split(';').length,
-                screenResolution: `${screen.width}x${screen.height}`,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                language: navigator.language,
-                pageLoadTime: performance.now()
-            };
-            
-            // URL Parameters
-            for (let [key, value] of urlParams) {
-                debugData.urlParams[key] = value;
-            }
-            
-            // Session Storage
-            for (let i = 0; i < sessionStorage.length; i++) {
-                const key = sessionStorage.key(i);
-                debugData.sessionStorage[key] = sessionStorage.getItem(key);
-            }
-            
-            // Local Storage (chỉ key liên quan)
-            const relevantKeys = ['link4m_session', 'link4m_completed', 'download_session'];
-            relevantKeys.forEach(key => {
-                const value = localStorage.getItem(key);
-                if (value) debugData.localStorage[key] = value;
-            });
-            
-            // Hiển thị debug info
-            updateDebugDisplay();
-        }
-        
-        function updateDebugDisplay() {
-            const debugContent = document.getElementById('debugContent');
-            debugContent.innerHTML = `
-                <strong>URL:</strong> ${debugData.url}<br>
-                <strong>Referrer:</strong> ${debugData.referrer || 'Không có'}<br>
-                <strong>Time:</strong> ${debugData.timestamp}<br>
-                <strong>Page Load:</strong> ${debugData.pageLoadTime?.toFixed(2)}ms<br>
-                <strong>URL Params:</strong> ${Object.keys(debugData.urlParams).length > 0 ? JSON.stringify(debugData.urlParams, null, 2) : 'Không có'}<br>
-                <strong>Session Storage:</strong> ${Object.keys(debugData.sessionStorage).length > 0 ? JSON.stringify(debugData.sessionStorage, null, 2) : 'Không có'}<br>
-                <strong>Local Storage:</strong> ${Object.keys(debugData.localStorage).length > 0 ? JSON.stringify(debugData.localStorage, null, 2) : 'Không có'}<br>
-                <strong>Cookies:</strong> ${debugData.cookieCount} cookie(s)<br>
-                <strong>User Agent:</strong> ${debugData.userAgent.substring(0, 50)}...
-            `;
-        }
-        
-        // KIỂM TRA TRUY CẬP TRỰC TIẾP - NGHIÊM NGẶT TUYỆT ĐỐI
-        function checkDirectAccess() {
-            const referrer = document.referrer;
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            console.log('🔍 Checking direct access - STRICT MODE...');
-            console.log('Referrer:', referrer);
-            console.log('URL Params:', Object.fromEntries(urlParams));
-            
-            let validProofs = [];
-            let blockReason = [];
-            
-            // 1. KIỂM TRA REFERRER LINK4M - BẮT BUỘC NGHIÊM NGẶT
-            const hasValidReferrer = referrer && (
-                referrer.includes('link4m.com/go/') ||
-                referrer.match(/link4m\.com\/go\/[a-zA-Z0-9]{6}$/) ||
-                referrer.includes('link4m.com') && referrer.includes('/go/')
-            );
-            
-            if (hasValidReferrer) {
-                validProofs.push('Valid Link4m Referrer');
-                console.log('✅ Valid Link4m referrer:', referrer);
-            } else {
-                blockReason.push(`Referrer không phải từ Link4m: "${referrer}"`);
-                console.log('❌ Invalid referrer:', referrer);
-            }
-            
-            // 2. KIỂM TRA SESSION TOKEN - ĐƯỢC SET BỞI BACKEND
-            const backendSessionToken = sessionStorage.getItem('download_session_verified') || 
-                                      localStorage.getItem('backend_verified_session');
-            
-            if (backendSessionToken) {
-                validProofs.push('Backend Session Token');
-                console.log('✅ Backend session token found');
-            } else {
-                blockReason.push('Không có session token từ backend');
-                console.log('❌ No backend session token');
-            }
-            
-            // 3. KIỂM TRA URL PARAMETERS ĐẶC BIỆT
-            const hasSpecialParams = urlParams.get('_l4m') || 
-                                    urlParams.get('verified') ||
-                                    urlParams.get('session_id');
-            
-            if (hasSpecialParams) {
-                validProofs.push('Special URL Parameters');
-                console.log('✅ Special URL params found');
-            } else {
-                blockReason.push('Không có URL parameters đặc biệt');
-                console.log('❌ No special URL params');
-            }
-            
-            // 4. KIỂM TRA HEADER ĐẶC BIỆT (nếu có)
-            // Có thể implement thêm custom headers từ link4m
-            
-            // 5. KIỂM TRA THỜI GIAN VÀO TRANG
-            const pageEntryTime = Date.now();
-            sessionStorage.setItem('page_entry_time', pageEntryTime);
-            
-            // QUYẾT ĐỊNH CUỐI CÙNG - CẦN ÍT NHẤT 1 PROOF HỢP LỆ
-            if (validProofs.length === 0) {
-                console.log('❌ BLOCKED: No valid proofs found');
-                console.log('Valid proofs needed:', validProofs);
-                console.log('Block reasons:', blockReason);
-                showBlocked(blockReason);
-                return false;
-            }
-            
-            console.log('✅ ALLOWED: Found valid proofs:', validProofs);
-            return true;
-        }
-        
+        // SIÊU ĐỔN GIẢN - CHỈ GỌI API
         async function verifyDownload() {
-            // Thu thập debug info trước
-            collectDebugInfo();
-            
-            // KIỂM TRA NGHIÊM NGẶT
-            if (!checkDirectAccess()) {
-                return;
-            }
-            
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
@@ -482,18 +257,9 @@
                 const data = await response.json();
                 
                 if (data.valid) {
-                    // SET SESSION TOKEN KHI THÀNH CÔNG
-                    sessionStorage.setItem('download_session_verified', 'true');
                     showSuccess(data);
                 } else {
-                    // Kiểm tra các loại lỗi khác nhau
-                    if (data.error_code === 'NO_SESSION') {
-                        showError('IP này không có trong hệ thống. Vui lòng tạo phiên tải mới.');
-                    } else if (data.error_code === 'TOO_FAST') {
-                        showBypassDetected(data);
-                    } else {
-                        showError(data.error || 'Phiên tải xuống không hợp lệ');
-                    }
+                    showBypassDetected(data);
                 }
                 
             } catch (error) {
@@ -502,50 +268,26 @@
             }
         }
         
-        function showBlocked(reasons = []) {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('blockedState').style.display = 'block';
-            
-            // Hiển thị debug info cho blocked
-            const blockedDebugContent = document.getElementById('blockedDebugContent');
-            blockedDebugContent.innerHTML = `
-                <strong>🚫 TRUY CẬP BỊ CHẶN - STRICT MODE</strong><br><br>
-                <strong>Lý do cụ thể:</strong><br>
-                ${reasons.map(reason => `• ${reason}`).join('<br>')}<br><br>
-                <strong>Yêu cầu:</strong><br>
-                • Phải có referrer từ link4m.com/go/<br>
-                • Hoặc có session token từ backend<br>
-                • Hoặc có URL parameters đặc biệt<br><br>
-                <strong>Debug Info:</strong><br>
-                Referrer: ${debugData.referrer || 'Không có'}<br>
-                URL: ${debugData.url}<br>
-                Params: ${JSON.stringify(debugData.urlParams)}<br>
-                Session: ${JSON.stringify(debugData.sessionStorage)}<br>
-            `;
-            
-            let count = 5;
-            const countdown = document.getElementById('blockedCountdown');
-            const interval = setInterval(() => {
-                count--;
-                countdown.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
-                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
-                }
-            }, 1000);
-        }
-        
         function showBypassDetected(data) {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('bypassDetectedState').style.display = 'block';
             
-            // Hiển thị thông tin thời gian
+            const bypassReason = document.getElementById('bypassReason');
             const timeInfo = document.getElementById('timeInfo');
-            timeInfo.innerHTML = `
-                <strong>Thời gian đã trôi qua:</strong> ${data.time_elapsed_minutes || 0} phút<br>
-                <strong>Thời gian tối thiểu:</strong> ${data.min_required_minutes || 4} phút<br>
-                <strong>Còn thiếu:</strong> ${data.remaining_minutes || 0} phút
-            `;
+            
+            if (data.error_code === 'NO_SESSION') {
+                bypassReason.textContent = 'IP này không có trong hệ thống hoặc session đã hết hạn.';
+            } else if (data.error_code === 'TOO_FAST') {
+                bypassReason.textContent = 'Bạn hoàn thành quá nhanh. Điều này không thể xảy ra nếu làm bình thường.';
+                timeInfo.style.display = 'block';
+                timeInfo.innerHTML = `
+                    <strong>Thời gian đã trôi qua:</strong> ${data.time_elapsed_minutes || 0} phút<br>
+                    <strong>Thời gian tối thiểu:</strong> ${data.min_required_minutes || 3} phút<br>
+                    <strong>Còn thiếu:</strong> ${data.remaining_minutes || 0} phút
+                `;
+            } else {
+                bypassReason.textContent = data.error || 'Vi phạm quy tắc sử dụng.';
+            }
             
             let count = 5;
             const countdown = document.getElementById('bypassCountdown');
@@ -563,7 +305,6 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('successState').style.display = 'block';
             
-            // Hiển thị thời gian hoàn thành
             const successTimeInfo = document.getElementById('successTimeInfo');
             successTimeInfo.innerHTML = `
                 <strong>Thời gian hoàn thành:</strong> ${data.time_elapsed_minutes || 0} phút ✅
@@ -595,32 +336,16 @@
         
         // Auto verify when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(verifyDownload, 1500);
+            setTimeout(verifyDownload, 1000);
         });
         
-        // Enhanced protection
+        // Basic protection
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
-            if (e.key === 'F12' || 
-                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-                (e.ctrlKey && e.key === 'u')) {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
                 e.preventDefault();
             }
         });
-        
-        // Prevent page refresh/back during verification
-        let isVerifying = true;
-        window.addEventListener('beforeunload', (e) => {
-            if (isVerifying) {
-                e.preventDefault();
-                e.returnValue = 'Đang xác thực, vui lòng không thoát!';
-            }
-        });
-        
-        // Allow navigation after verification
-        setTimeout(() => {
-            isVerifying = false;
-        }, 10000);
     </script>
 </body>
 </html>
