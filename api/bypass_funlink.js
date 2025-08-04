@@ -1,4 +1,4 @@
-// --- TOÀN BỘ MÃ NGUỒN BACK-END (bypass_funlink.js) - PHIÊN BẢN CẬP NHẬT ---
+// --- TOÀN BỘ MÃ NGUỒN BACK-END (bypass_funlink.js) - PHIÊN BẢN HOÀN CHỈNH ---
 
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
@@ -21,21 +21,84 @@ setInterval(() => {
 
 // Khởi tạo bảng nếu chưa có
 const initTable = async () => {
-  // Tạo bảng tokens (giữ nguyên)
-  const { error: tokenError } = await supabase.rpc('create_tokens_table', {})
-  if (tokenError && !tokenError.message.includes('already exists')) {
-    console.error('Error creating tokens table:', tokenError)
-  }
-  
-  // Tạo bảng download_sessions
-  const { error: sessionError } = await supabase.rpc('create_download_sessions_table', {})
-  if (sessionError && !sessionError.message.includes('already exists')) {
-    console.error('Error creating download_sessions table:', sessionError)
+  try {
+    // Tạo bảng tokens nếu chưa có
+    const { error: tokenError } = await supabase.rpc('execute_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS bypass_tokens (
+          id SERIAL PRIMARY KEY,
+          ip_address TEXT NOT NULL,
+          token TEXT NOT NULL UNIQUE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_bypass_tokens_ip ON bypass_tokens(ip_address);
+        CREATE INDEX IF NOT EXISTS idx_bypass_tokens_token ON bypass_tokens(token);
+        CREATE INDEX IF NOT EXISTS idx_bypass_tokens_expires ON bypass_tokens(expires_at);
+      `
+    });
+    
+    if (tokenError && !tokenError.message.includes('already exists')) {
+      console.error('Error creating tokens table:', tokenError);
+    }
+    
+    // Tạo bảng download_sessions nếu chưa có
+    const { error: sessionError } = await supabase.rpc('execute_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS download_sessions (
+          id SERIAL PRIMARY KEY,
+          session_id TEXT NOT NULL UNIQUE,
+          ip_address TEXT NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+          used BOOLEAN DEFAULT FALSE,
+          used_at TIMESTAMP WITH TIME ZONE
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_download_sessions_ip ON download_sessions(ip_address);
+        CREATE INDEX IF NOT EXISTS idx_download_sessions_session_id ON download_sessions(session_id);
+        CREATE INDEX IF NOT EXISTS idx_download_sessions_expires ON download_sessions(expires_at);
+      `
+    });
+    
+    if (sessionError && !sessionError.message.includes('already exists')) {
+      console.error('Error creating download_sessions table:', sessionError);
+    }
+    
+  } catch (error) {
+    console.error('Error in initTable:', error);
   }
 }
 
+// Cleanup expired records periodically
+const cleanupExpiredRecords = async () => {
+  try {
+    const now = new Date().toISOString();
+    
+    // Cleanup expired tokens
+    await supabase
+      .from('bypass_tokens')
+      .delete()
+      .lt('expires_at', now);
+    
+    // Cleanup expired sessions
+    await supabase
+      .from('download_sessions')
+      .delete()
+      .lt('expires_at', now);
+      
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+  }
+};
+
+// Run cleanup every 30 minutes
+setInterval(cleanupExpiredRecords, 30 * 60 * 1000);
+
 export default async function handler(req, res) {
-  await initTable();
+  // Chỉ init table một lần khi server start (nếu có thể)
+  // await initTable();
   
   const clientIP = req.headers['x-forwarded-for'] || 
                    req.headers['x-real-ip'] || 
@@ -44,6 +107,15 @@ export default async function handler(req, res) {
                    (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
                    '127.0.0.1';
   const userIP = clientIP.split(',')[0].trim();
+
+  // === CORS Headers ===
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   // === XỬ LÝ GET REQUEST: Tải lại token có sẵn ===
   if (req.method === 'GET') {
@@ -165,7 +237,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // --- ACTION 3: TẠO DOWNLOAD SESSION (MỚI) ---
+    // --- ACTION 3: TẠO DOWNLOAD SESSION ---
     if (action === 'create_download_session') {
       try {
         // Xóa session cũ hết hạn của IP này
@@ -175,11 +247,25 @@ export default async function handler(req, res) {
           .eq('ip_address', userIP)
           .lt('expires_at', new Date().toISOString());
 
-        // Xóa session cũ chưa hết hạn của IP này (chỉ cho phép 1 session active)
-        await supabase
+        // Kiểm tra xem có session chưa hết hạn không
+        const { data: existingSession, error: checkError } = await supabase
           .from('download_sessions')
-          .delete()
-          .eq('ip_address', userIP);
+          .select('*')
+          .eq('ip_address', userIP)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+        if (existingSession) {
+          return res.status(409).json({
+            success: false,
+            error: 'Bạn đã có session tải xuống chưa hết hạn.',
+            has_existing_session: true,
+            session_id: existingSession.session_id,
+            expires_at: existingSession.expires_at
+          });
+        }
 
         // Tạo session mới
         const sessionId = crypto.randomBytes(16).toString('hex');
@@ -200,6 +286,8 @@ export default async function handler(req, res) {
         return res.status(201).json({
           success: true,
           message: 'Download session created successfully',
+          session_id: sessionId,
+          expires_at: expiresAt.toISOString(),
           expires_in_minutes: 10
         });
         
@@ -212,7 +300,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // --- ACTION 4: VERIFY DOWNLOAD (MỚI) ---
+    // --- ACTION 4: VERIFY DOWNLOAD ---
     if (action === 'verify_download') {
       try {
         // Tìm session active của IP này
@@ -232,7 +320,7 @@ export default async function handler(req, res) {
           return res.status(404).json({ 
             valid: false, 
             error: 'Không tìm thấy phiên tải xuống hợp lệ cho IP này',
-            redirect_url: 'https://tuanhaideptraivcl.vercel.app/security/blocked.html'
+            redirect_url: 'https://tuanhaideptraivcl.vercel.app/'
           });
         }
         
@@ -256,7 +344,154 @@ export default async function handler(req, res) {
         return res.status(500).json({ 
           valid: false, 
           error: 'Lỗi máy chủ khi xác thực tải xuống',
-          redirect_url: 'https://tuanhaideptraivcl.vercel.app/security/blocked.html'
+          redirect_url: 'https://tuanhaideptraivcl.vercel.app/'
+        });
+      }
+    }
+
+    // --- ACTION 5: XÓA SESSION (MỚI) ---
+    if (action === 'delete_session') {
+      try {
+        // Kiểm tra Rate Limiting cho action này
+        const now = Date.now();
+        const ipData = ipRequestMap.get(userIP) || { count: 0, timestamp: now };
+        if (now - ipData.timestamp > RATE_LIMIT_WINDOW_MS) {
+          ipData.count = 0; ipData.timestamp = now;
+        }
+        ipData.count += 1;
+        ipRequestMap.set(userIP, ipData);
+
+        if (ipData.count > MAX_REQUESTS_PER_WINDOW) {
+          return res.status(429).json({ success: false, error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.' });
+        }
+
+        // Xóa tất cả session của IP này
+        const { error } = await supabase
+          .from('download_sessions')
+          .delete()
+          .eq('ip_address', userIP);
+        
+        if (error) throw error;
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Session đã được xóa thành công' 
+        });
+        
+      } catch (error) {
+        console.error('Error deleting session:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Không thể xóa session' 
+        });
+      }
+    }
+
+    // --- ACTION 6: KIỂM TRA TRẠNG THÁI SESSION ---
+    if (action === 'check_session_status') {
+      try {
+        const { data: sessions, error } = await supabase
+          .from('download_sessions')
+          .select('*')
+          .eq('ip_address', userIP)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        return res.status(200).json({
+          success: true,
+          has_active_session: sessions.length > 0,
+          sessions: sessions || [],
+          total_active: sessions.length
+        });
+        
+      } catch (error) {
+        console.error('Error checking session status:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Không thể kiểm tra trạng thái session' 
+        });
+      }
+    }
+
+    // --- ACTION 7: XÓA TOKEN (MỚI) ---
+    if (action === 'delete_token') {
+      try {
+        // Kiểm tra Rate Limiting
+        const now = Date.now();
+        const ipData = ipRequestMap.get(userIP) || { count: 0, timestamp: now };
+        if (now - ipData.timestamp > RATE_LIMIT_WINDOW_MS) {
+          ipData.count = 0; ipData.timestamp = now;
+        }
+        ipData.count += 1;
+        ipRequestMap.set(userIP, ipData);
+
+        if (ipData.count > MAX_REQUESTS_PER_WINDOW) {
+          return res.status(429).json({ success: false, error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.' });
+        }
+
+        // Xóa token của IP này
+        const { error } = await supabase
+          .from('bypass_tokens')
+          .delete()
+          .eq('ip_address', userIP);
+        
+        if (error) throw error;
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Token đã được xóa thành công' 
+        });
+        
+      } catch (error) {
+        console.error('Error deleting token:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Không thể xóa token' 
+        });
+      }
+    }
+
+    // --- ACTION 8: THỐNG KÊ ADMIN (OPTIONAL) ---
+    if (action === 'admin_stats') {
+      // Chỉ cho phép từ IP admin hoặc có auth key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.ADMIN_SECRET_KEY) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+
+      try {
+        // Đếm token active
+        const { data: activeTokens, error: tokenError } = await supabase
+          .from('bypass_tokens')
+          .select('*', { count: 'exact' })
+          .gt('expires_at', new Date().toISOString());
+
+        // Đếm session active
+        const { data: activeSessions, error: sessionError } = await supabase
+          .from('download_sessions')
+          .select('*', { count: 'exact' })
+          .gt('expires_at', new Date().toISOString());
+
+        if (tokenError || sessionError) {
+          throw tokenError || sessionError;
+        }
+
+        return res.status(200).json({
+          success: true,
+          stats: {
+            active_tokens: activeTokens?.length || 0,
+            active_sessions: activeSessions?.length || 0,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+      } catch (error) {
+        console.error('Error getting admin stats:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Không thể lấy thống kê' 
         });
       }
     }
@@ -267,3 +502,6 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
+
+// Export cleanup function for manual use
+export { cleanupExpiredRecords, initTable };
