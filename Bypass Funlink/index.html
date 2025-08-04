@@ -9,6 +9,7 @@
 </head>
 <body>
     
+    <!-- Header với nút quay lại -->
     <header class="app-header">
         <div class="container header-container">
             <a href="https://tuanhaideptraivcl.vercel.app/" class="header-nav-button">
@@ -33,7 +34,7 @@
                 </div>
             </div>
 
-            
+            <!-- IP Display Section -->
             <div class="section-card">
                 <div class="rainbow-border">
                     <div class="card-content">
@@ -50,14 +51,19 @@
                 </div>
             </div>
             
-            
+            <!-- Download Section - CẬP NHẬT MỚI -->
             <div class="section-card">
                 <div class="rainbow-border">
                     <div class="card-content">
                        <div class="token-section">
                             <h3><i class="fas fa-download"></i> Link tải tool</h3>
                             <p>Tải tool bypass siêu bá của a hải dz ở dưới.</p>
-                             <a href="https://link4m.com/VNW3kb" class="main-button" target="_blank">
+                            <div class="download-warning">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Hệ thống chống VPN đã được kích hoạt. Không được thay đổi IP trong quá trình tải!</span>
+                            </div>
+                            <!-- THAY ĐỔI: href="#" và thêm id="downloadTrigger" -->
+                            <a href="#" class="main-button" id="downloadTrigger">
                                 <i class="fas fa-rocket"></i>
                                 <span>Tải tại đây</span>
                             </a>
@@ -66,12 +72,11 @@
                 </div>
             </div>
             
-
-            
+            <!-- Token Management Section -->
             <div class="section-card">
                 <div class="rainbow-border">
                     <div class="card-content">
-                        <!-- Initial View -->
+                        <!-- Initial View - Tạo Token -->
                         <div id="initialView" class="view">
                             <div class="token-section">
                                 <h3><i class="fas fa-key"></i> Tạo Token Truy Cập</h3>
@@ -83,7 +88,7 @@
                             </div>
                         </div>
 
-                        
+                        <!-- Loading View - Đang tạo token -->
                         <div id="loadingView" class="view hidden">
                             <div class="loading-section">
                                 <div class="loading-spinner"></div>
@@ -92,7 +97,7 @@
                             </div>
                         </div>
 
-                        
+                        <!-- Token View - Hiển thị token -->
                         <div id="tokenView" class="view hidden">
                             <div class="token-success-section">
                                 <div class="success-header">
@@ -122,9 +127,86 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Hướng dẫn sử dụng -->
+            <div class="section-card">
+                <div class="rainbow-border">
+                    <div class="card-content">
+                        <div class="guide-section">
+                            <h3><i class="fas fa-info-circle"></i> Hướng dẫn sử dụng</h3>
+                            <div class="guide-steps">
+                                <div class="step">
+                                    <div class="step-number">1</div>
+                                    <div class="step-content">
+                                        <h4>Tạo Token</h4>
+                                        <p>Bấm "Tạo Token Ngay" để tạo token truy cập có thời hạn 3 tiếng</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">2</div>
+                                    <div class="step-content">
+                                        <h4>Tải Tool</h4>
+                                        <p>Bấm "Tải tại đây", hoàn thành link4m <strong>KHÔNG được đổi IP/VPN</strong></p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">3</div>
+                                    <div class="step-content">
+                                        <h4>Sử dụng</h4>
+                                        <p>Chạy tool, nhập token và link Funlink cần bypass</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lưu ý bảo mật -->
+            <div class="section-card">
+                <div class="rainbow-border security-border">
+                    <div class="card-content">
+                        <div class="security-section">
+                            <h3><i class="fas fa-shield-alt"></i> Lưu ý bảo mật</h3>
+                            <div class="security-warnings">
+                                <div class="warning-item">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>KHÔNG được sử dụng VPN/Proxy khi tải tool</span>
+                                </div>
+                                <div class="warning-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Phiên tải có thời hạn 10 phút sau khi bấm nút tải</span>
+                                </div>
+                                <div class="warning-item">
+                                    <i class="fas fa-ban"></i>
+                                    <span>Mỗi IP chỉ được tạo 1 phiên tải cùng lúc</span>
+                                </div>
+                                <div class="warning-item">
+                                    <i class="fas fa-key"></i>
+                                    <span>Token chỉ có hiệu lực 3 tiếng, sau đó cần tạo mới</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2024 Gemlogin Tool by Tuấn Hải. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="https://tuanhaideptraivcl.vercel.app/">Trang chủ</a>
+                    <a href="https://tuanhaideptraivcl.vercel.app/contact">Liên hệ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
     <script src="script.js"></script>
     <script src="../security/security.js"></script>
     <script src="../security/creep.js"></script>

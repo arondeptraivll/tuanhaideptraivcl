@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tải Tool - Gemlogin Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            text-align: center;
+            background: #111;
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #00ff88;
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+        }
+        
+        .loading { 
+            display: block; 
+        }
+        
+        .success { 
+            display: none; 
+        }
+        
+        .error { 
+            display: none; 
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
+        }
+        
+        .error-message {
+            color: #ff4757;
+            margin-bottom: 20px;
+            background: rgba(255, 71, 87, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ff4757;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            color: #00ff88;
+            margin-bottom: 20px;
+        }
+        
+        .error-icon {
+            font-size: 60px;
+            color: #ff4757;
+            margin-bottom: 20px;
+        }
+        
+        .countdown {
+            color: #ff8800;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+        }
+        
+        p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Loading State -->
+        <div class="loading" id="loadingState">
+            <div class="loading-spinner"></div>
+            <h2><i class="fas fa-shield-alt"></i> Đang xác thực IP...</h2>
+            <p>Vui lòng chờ trong giây lát, chúng tôi đang kiểm tra tính hợp lệ của phiên tải xuống.</p>
+        </div>
+        
+        <!-- Success State -->
+        <div class="success" id="successState">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>🎉 Xác thực thành công!</h2>
+            <p>IP của bạn đã được xác thực. Bạn có thể tải tool ngay bây giờ.</p>
+            <p><strong>Lưu ý:</strong> Link tải chỉ có hiệu lực trong phiên này.</p>
+            
+            <div style="margin-top: 20px;">
+                <a href="https://archive.org/download/bypass-funlink-by-gemlogin-tool_202508/Bypass%20Funlink%20by%20Gemlogin%20Tool.exe" 
+                   class="download-btn" 
+                   download="Bypass Funlink by Gemlogin Tool.exe"
+                   id="downloadBtn">
+                    <i class="fas fa-download"></i>
+                    Tải Tool Ngay
+                </a>
+                
+                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
+                    <i class="fas fa-home"></i>
+                    Về trang chủ
+                </a>
+            </div>
+        </div>
+        
+        <!-- Error State -->
+        <div class="error" id="errorState">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2>❌ Xác thực thất bại</h2>
+            <div class="error-message" id="errorMessage"></div>
+            
+            <div style="background: rgba(255, 136, 0, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff8800; margin: 20px 0;">
+                <h4>💡 Để tải tool thành công:</h4>
+                <ol style="text-align: left; margin: 10px 0;">
+                    <li>Tắt VPN/Proxy nếu đang sử dụng</li>
+                    <li>Quay lại trang chủ và tạo link tải mới</li>
+                    <li>Hoàn thành link4m mà KHÔNG thay đổi IP</li>
+                    <li>Hoàn thành trong vòng 10 phút</li>
+                </ol>
+            </div>
+            
+            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="countdown">5</span> giây...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/bypass_funlink';
+        
+        async function verifyDownload() {
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'verify_download' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.valid) {
+                    showSuccess();
+                } else {
+                    showError(data.error || 'Phiên tải xuống không hợp lệ');
+                }
+                
+            } catch (error) {
+                console.error('Verification error:', error);
+                showError('Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.');
+            }
+        }
+        
+        function showSuccess() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('successState').style.display = 'block';
+            
+            // Track download clicks
+            document.getElementById('downloadBtn').addEventListener('click', function() {
+                // Optional: Send analytics event
+                console.log('Download started successfully');
+            });
+        }
+        
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorMessage').innerHTML = `
+                <p><strong>Chi tiết lỗi:</strong> ${message}</p>
+            `;
+            
+            // Countdown redirect
+            let count = 5;
+            const countdown = document.getElementById('countdown');
+            const interval = setInterval(() => {
+                count--;
+                countdown.textContent = count;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
+                }
+            }, 1000);
+        }
+        
+        // Auto verify when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Small delay for better UX
+            setTimeout(verifyDownload, 1000);
+        });
+        
+        // Prevent right-click and dev tools (optional security)
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
