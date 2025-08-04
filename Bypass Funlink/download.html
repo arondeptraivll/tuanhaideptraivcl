@@ -6,346 +6,133 @@
     <title>Tải Tool - Gemlogin Tool</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #000;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            background: #000; color: #fff; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
         }
-        
         .container {
-            max-width: 500px;
-            text-align: center;
-            background: #111;
-            padding: 40px;
-            border-radius: 15px;
-            border: 2px solid #00ff88;
-            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+            max-width: 500px; text-align: center; background: #111; padding: 40px;
+            border-radius: 15px; border: 2px solid #00ff88;
         }
-        
-        .loading { 
-            display: block; 
-        }
-        
-        .success { 
-            display: none; 
-        }
-        
-        .error { 
-            display: none; 
-        }
-        
-        .blocked {
-            display: none;
-        }
-        
+        .loading { display: block; }
+        .success, .blocked, .error { display: none; }
         .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top: 3px solid #00ff88;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #00ff88; border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 0 auto 20px;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .download-btn {
-            background: linear-gradient(45deg, #00ff88, #00ccff);
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 20px;
-            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #00ff88, #00ccff); border: none;
+            padding: 15px 30px; border-radius: 10px; color: white; font-size: 18px;
+            font-weight: bold; text-decoration: none; display: inline-flex;
+            align-items: center; gap: 10px; margin-top: 20px;
         }
-        
-        .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
-        }
-        
-        .error-message {
-            color: #ff4757;
-            margin-bottom: 20px;
-            background: rgba(255, 71, 87, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #ff4757;
-        }
-        
-        .success-icon {
-            font-size: 60px;
-            color: #00ff88;
-            margin-bottom: 20px;
-        }
-        
-        .error-icon {
-            font-size: 60px;
-            color: #ff4757;
-            margin-bottom: 20px;
-        }
-        
-        .blocked-icon {
-            font-size: 60px;
-            color: #ff4757;
-            margin-bottom: 20px;
-            animation: shake 0.5s infinite;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        
-        .countdown {
-            color: #ff8800;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-        
-        h2 {
-            margin-bottom: 15px;
-        }
-        
-        p {
-            margin-bottom: 10px;
-            line-height: 1.6;
-        }
-        
-        .back-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #00ff88;
-        }
-        
+        .success-icon, .error-icon, .blocked-icon { font-size: 60px; margin-bottom: 20px; }
+        .success-icon { color: #00ff88; }
+        .error-icon, .blocked-icon { color: #ff4757; }
+        .blocked-icon { animation: shake 0.5s infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .countdown { color: #ff8800; font-weight: bold; font-size: 1.2em; }
+        h2 { margin-bottom: 15px; }
+        p { margin-bottom: 10px; line-height: 1.6; }
         .blocked-message {
-            background: rgba(255, 71, 87, 0.1);
-            border: 2px solid #ff4757;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 6px solid #ff4757;
-        }
-        
-        .time-info {
-            background: rgba(255, 136, 0, 0.1);
-            padding: 10px;
-            border-radius: 6px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 0.9em;
+            background: rgba(255, 71, 87, 0.1); border: 2px solid #ff4757;
+            border-radius: 10px; padding: 20px; margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Loading State -->
+        <!-- Loading -->
         <div class="loading" id="loadingState">
             <div class="loading-spinner"></div>
-            <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra bạn có dùng bypass không...</h2>
-            <p>Vui lòng chờ trong giây lát</p>
+            <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra...</h2>
+            <p>Vui lòng chờ</p>
         </div>
         
-        <!-- Blocked State -->
+        <!-- Blocked -->
         <div class="blocked" id="blockedState">
-            <div class="blocked-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
+            <div class="blocked-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <h2>🚨 Đã bị chặn!</h2>
             <div class="blocked-message">
                 <h3>Vui lòng không dùng bypass nếu ko muốn bị chặn</h3>
-                <p>Hệ thống phát hiện vi phạm quy tắc sử dụng.</p>
             </div>
-            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
+            <p>Chuyển hướng sau <span class="countdown" id="blockedCountdown">5</span> giây...</p>
         </div>
         
-        <!-- Success State -->
+        <!-- Success -->
         <div class="success" id="successState">
-            <div class="success-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <h2>🎉 Xác thực thành công!</h2>
-            <p>Cảm ơn bạn đã ủng hộ! Bạn có thể tải tool ngay bây giờ.</p>
-            <div class="time-info" id="successTimeInfo">
-                <!-- Thời gian hoàn thành sẽ được hiển thị -->
-            </div>
-            
-            <div style="margin-top: 20px;">
-                <a href="https://archive.org/download/bypass-funlink-by-gemlogin-tool_202508/Bypass%20Funlink%20by%20Gemlogin%20Tool.exe" 
-                   class="download-btn" 
-                   download="Bypass Funlink by Gemlogin Tool.exe"
-                   id="downloadBtn">
-                    <i class="fas fa-download"></i>
-                    Tải Tool Ngay
-                </a>
-                
-                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
-                    <i class="fas fa-home"></i>
-                    Về trang chủ
-                </a>
-            </div>
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <h2>🎉 Thành công!</h2>
+            <p>Bạn có thể tải tool ngay bây giờ.</p>
+            <a href="https://archive.org/download/bypass-funlink-by-gemlogin-tool_202508/Bypass%20Funlink%20by%20Gemlogin%20Tool.exe" 
+               class="download-btn" download>
+                <i class="fas fa-download"></i> Tải Tool
+            </a>
         </div>
         
-        <!-- Error State -->
+        <!-- Error -->
         <div class="error" id="errorState">
-            <div class="error-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <h2>❌ Có lỗi xảy ra</h2>
-            <div class="error-message" id="errorMessage"></div>
-            
-            <div class="blocked-message">
-                <h4>💡 Để tải tool thành công:</h4>
-                <p>Quay lại trang chủ và thực hiện lại từ đầu. Vui lòng không dùng bypass nếu ko muốn bị chặn!</p>
-            </div>
-            
-            <p>Bạn sẽ được chuyển hướng sau <span class="countdown" id="countdown">5</span> giây...</p>
+            <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h2>❌ Lỗi</h2>
+            <p id="errorMessage">Có lỗi xảy ra</p>
+            <p>Chuyển hướng sau <span class="countdown" id="countdown">5</span> giây...</p>
         </div>
     </div>
 
     <script>
-        // THAY ĐỔI ĐƯỜNG DẪN API CHO ĐÚNG
-        const API_BASE = '/api/bypass_funlink'; // ← SỬA DÒNG NÀY
-        
-        // Ignore SVG errors
-        window.addEventListener('error', function(e) {
-            if (e.message && (e.message.includes('Expected number') || e.message.includes('SVG'))) {
-                e.preventDefault();
-                return false;
-            }
-        });
-        
-        // SIÊU ĐƠN GIẢN - CHỈ GỌI API
         async function verifyDownload() {
             try {
-                console.log('🔍 Calling API:', API_BASE);
-                
-                const response = await fetch(API_BASE, {
+                const response = await fetch('/api/bypass_funlink', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'verify_download' })
                 });
                 
-                console.log('📡 Response status:', response.status);
-                
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('API endpoint không tồn tại. Vui lòng kiểm tra cấu hình.');
-                    }
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
                 const data = await response.json();
-                console.log('📦 Response data:', data);
                 
                 if (data.valid) {
-                    showSuccess(data);
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('successState').style.display = 'block';
                 } else {
-                    showBlocked();
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('blockedState').style.display = 'block';
+                    
+                    let count = 5;
+                    const countdown = document.getElementById('blockedCountdown');
+                    const interval = setInterval(() => {
+                        count--;
+                        countdown.textContent = count;
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            window.location.href = '/security/blocked.html';
+                        }
+                    }, 1000);
                 }
                 
             } catch (error) {
-                console.error('❌ Verification error:', error);
-                showError(`Lỗi kết nối: ${error.message}`);
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('errorState').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+                
+                let count = 5;
+                const countdown = document.getElementById('countdown');
+                const interval = setInterval(() => {
+                    count--;
+                    countdown.textContent = count;
+                    if (count <= 0) {
+                        clearInterval(interval);
+                        window.location.href = '/';
+                    }
+                }, 1000);
             }
         }
         
-        function showBlocked() {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('blockedState').style.display = 'block';
-            
-            let count = 5;
-            const countdown = document.getElementById('blockedCountdown');
-            const interval = setInterval(() => {
-                count--;
-                countdown.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
-                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
-                }
-            }, 1000);
-        }
-        
-        function showSuccess(data) {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('successState').style.display = 'block';
-            
-            const successTimeInfo = document.getElementById('successTimeInfo');
-            successTimeInfo.innerHTML = `
-                <strong>Thời gian hoàn thành:</strong> ${data.time_elapsed_minutes || 0} phút ✅
-            `;
-            
-            document.getElementById('downloadBtn').addEventListener('click', function() {
-                console.log('📥 Download started successfully');
-            });
-        }
-        
-        function showError(message) {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('errorState').style.display = 'block';
-            document.getElementById('errorMessage').innerHTML = `
-                <p><strong>Chi tiết:</strong> ${message}</p>
-            `;
-            
-            let count = 5;
-            const countdown = document.getElementById('countdown');
-            const interval = setInterval(() => {
-                count--;
-                countdown.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
-                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/security/blocked.html';
-                }
-            }, 1000);
-        }
-        
-        // Auto verify when page loads
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(verifyDownload, 1000);
-        });
-        
-        // Basic protection
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.addEventListener('keydown', e => {
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-                e.preventDefault();
-            }
         });
     </script>
 </body>
