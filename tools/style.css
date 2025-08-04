@@ -1,11 +1,11 @@
-/* --- Reset và cài đặt cơ bản --- */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* --- Nền đen với particles đẹp --- */
+
 body {
     display: flex;
     justify-content: center;
@@ -18,7 +18,7 @@ body {
     overflow: hidden;
 }
 
-/* Hiệu ứng particles nền tuyệt đẹp */
+
 body::before {
     content: '';
     position: fixed;
@@ -41,7 +41,7 @@ body::before {
     50% { opacity: 0.6; transform: scale(1.1) rotate(180deg); }
 }
 
-/* --- Box chính với VIỀN CẦU VỒNG SIÊU ĐẸP --- */
+
 .card {
     width: 100%;
     max-width: 500px;
@@ -55,11 +55,7 @@ body::before {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Box đen không viền cầu vồng */
 
-/* Bỏ animation rainbow-glow */
-
-/* --- Tiêu đề với gradient cầu vồng đẹp --- */
 .card-title {
     font-size: 2.8rem;
     font-weight: 700;
@@ -93,7 +89,7 @@ body::before {
     50% { background-position: 100% 50%; }
 }
 
-/* --- Tool box với hiệu ứng đẹp --- */
+
 .tool-box {
     background: #111111;
     border-radius: 24px;
@@ -128,7 +124,7 @@ body::before {
     line-height: 1.5;
 }
 
-/* --- Button với viền cầu vồng mini --- */
+
 .access-btn {
     display: inline-flex;
     align-items: center;
@@ -149,7 +145,7 @@ body::before {
     text-transform: uppercase;
 }
 
-/* Button màu đen với viền xám */
+
 .access-btn::before {
     content: '';
     position: absolute;
@@ -180,7 +176,7 @@ body::before {
     transform: translateX(6px);
 }
 
-/* --- Responsive cho mobile --- */
+
 @media (max-width: 500px) {
     body {
         padding: 1rem;
