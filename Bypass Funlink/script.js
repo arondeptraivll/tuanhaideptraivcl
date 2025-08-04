@@ -1,5 +1,5 @@
 // =====================================
-// TOKEN MANAGER CLASS - VỚI SWEETALERT2
+// TOKEN MANAGER CLASS - VỚI ANTI-DDOS
 // =====================================
 
 class TokenManager {
@@ -8,7 +8,7 @@ class TokenManager {
         this.timerInterval = null;
         this.userIP = null;
         this.API_BASE = '/api/bypass_funlink';
-        this.isDownloadProcessing = false; // Prevent double click
+        this.isDownloadProcessing = false;
         
         this.initializeElements();
         this.checkExistingTokenOnLoad();
@@ -18,7 +18,6 @@ class TokenManager {
 
     // Cấu hình SweetAlert2 theme
     configureSweetAlert() {
-        // Custom theme cho SweetAlert2
         const style = document.createElement('style');
         style.textContent = `
             .swal2-popup {
@@ -44,6 +43,15 @@ class TokenManager {
             }
             .swal2-loader {
                 border-color: #00ff88 transparent #00ff88 transparent !important;
+            }
+            .swal2-warning {
+                border-color: #ff8800 !important;
+            }
+            .swal2-warning .swal2-confirm {
+                background: #ff4757 !important;
+            }
+            .swal2-warning .swal2-cancel {
+                background: #666 !important;
             }
         `;
         document.head.appendChild(style);
@@ -74,7 +82,6 @@ class TokenManager {
             
             const data = await response.json();
             
-            // Hiển thị IP
             if (data.ip) {
                 this.userIP = data.ip;
                 this.elements.ipDisplay.textContent = this.userIP;
@@ -83,7 +90,6 @@ class TokenManager {
                 this.elements.ipDisplay.style.color = '#ff4757';
             }
             
-            // Kiểm tra token có sẵn
             if (data.has_existing_token && data.token) {
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
@@ -104,23 +110,20 @@ class TokenManager {
 
     // Setup event listeners
     setupEventListeners() {
-        // Nút tạo token
         this.elements.createTokenBtn.addEventListener('click', () => {
             this.createToken();
         });
 
-        // Nút copy token với SweetAlert
         this.elements.copyTokenBtn.addEventListener('click', () => {
             this.copyTokenWithAlert();
         });
 
-        // Nút download với SweetAlert SIÊU ĐẸP
+        // NÚT DOWNLOAD VỚI ANTI-DDOS
         const downloadBtn = document.querySelector('#downloadTrigger');
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 
-                // Prevent double click
                 if (this.isDownloadProcessing) {
                     Swal.fire({
                         icon: 'warning',
@@ -134,42 +137,216 @@ class TokenManager {
                     return;
                 }
                 
-                await this.createDownloadSessionWithAlert();
+                await this.handleDownloadRequest();
             });
         }
     }
 
-    // Hiển thị view cụ thể
-    showView(viewName) {
-        const views = ['initialView', 'tokenView', 'loadingView'];
+    // XỬ LÝ DOWNLOAD REQUEST VỚI KIỂM TRA SESSION
+    async handleDownloadRequest() {
+        this.isDownloadProcessing = true;
         
-        views.forEach(view => {
-            if (this.elements[view]) {
-                this.elements[view].classList.add('hidden');
+        try {
+            // 1. Kiểm tra session hiện tại
+            const checkResponse = await fetch(this.API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'check_download_session' })
+            });
+            
+            const checkData = await checkResponse.json();
+            
+            if (checkData.has_existing_session) {
+                // Hiện dialog xác nhận XÓA SESSION CŨ
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: '⚠️ Phát hiện session cũ!',
+                    html: `
+                        <div style="margin: 20px 0; text-align: left;">
+                            <div style="background: rgba(255,136,0,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff8800; margin-bottom: 15px;">
+                                <strong style="color: #ff8800;">Thông tin session hiện tại:</strong><br>
+                                <span style="color: #ccc; font-size: 0.9em;">
+                                    • Số session: ${checkData.session_count}<br>
+                                    • Thời gian: ${checkData.latest_session?.time_elapsed_minutes || 0} phút trước<br>
+                                    • Trạng thái: ${checkData.latest_session?.used ? 'Đã sử dụng' : 'Chưa sử dụng'}
+                                </span>
+                            </div>
+                            <div style="background: rgba(255,71,87,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff4757;">
+                                <strong style="color: #ff4757; font-size: 1.1em;">
+                                    Khi tạo lại session cũ sẽ bị xóa? bạn chắc chứ
+                                </strong>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: '✅ OK - Xóa & Tạo mới',
+                    cancelButtonText: '❌ Hủy bỏ',
+                    confirmButtonColor: '#ff4757',
+                    cancelButtonColor: '#666',
+                    background: '#111',
+                    color: '#fff',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+                
+                if (result.isConfirmed) {
+                    // User chọn OK - Xóa toàn bộ và tạo mới
+                    await this.createDownloadSessionWithForce(true);
+                } else {
+                    // User chọn Hủy
+                    this.isDownloadProcessing = false;
+                    
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Đã hủy tạo session',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        background: '#111',
+                        color: '#fff'
+                    });
+                }
+            } else {
+                // Không có session cũ - Tạo mới bình thường
+                await this.createDownloadSessionWithForce(false);
             }
-        });
-        
-        if (this.elements[viewName]) {
-            this.elements[viewName].classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error checking existing session:', error);
+            this.isDownloadProcessing = false;
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kiểm tra session',
+                text: 'Vui lòng thử lại sau',
+                background: '#111',
+                color: '#fff'
+            });
         }
     }
 
-    showInitialView() {
-        this.showView('initialView');
-        this.stopTimer();
+    // TẠO DOWNLOAD SESSION VỚI FORCE FLAG
+    async createDownloadSessionWithForce(forceCreate = false) {
+        // Loading popup
+        Swal.fire({
+            title: forceCreate ? '🗑️ Đang xóa session cũ & tạo mới...' : '🚀 Đang tạo phiên tải xuống...',
+            html: `
+                <div style="margin: 20px 0;">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">
+                        ⏳ Vui lòng đợi...
+                    </div>
+                    <div style="color: #ccc; font-size: 0.9em;">
+                        ${forceCreate ? 'Đang xóa toàn bộ session cũ và tạo session mới' : 'Đang kết nối đến hệ thống bảo mật'}
+                    </div>
+                </div>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            background: '#111',
+            color: '#fff',
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        try {
+            const response = await fetch(this.API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'create_download_session',
+                    force_create: forceCreate
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.status === 201 && data.success) {
+                // Success popup
+                await Swal.fire({
+                    icon: 'success',
+                    title: forceCreate ? '✅ Đã xóa & tạo mới thành công!' : '✅ Phiên tải đã được tạo!',
+                    html: `
+                        <div style="margin: 20px 0;">
+                            <div style="color: #00ff88; font-weight: bold; margin-bottom: 15px;">
+                                🎉 ${forceCreate ? 'Session cũ đã bị xóa hoàn toàn!' : 'Thành công!'} Đang chuyển hướng...
+                            </div>
+                            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88;">
+                                <div style="color: #fff; margin-bottom: 8px;">
+                                    ⚠️ <strong>Lưu ý quan trọng:</strong>
+                                </div>
+                                <div style="color: #ccc; font-size: 0.9em;">
+                                    Vui lòng không dùng bypass nếu ko muốn bị chặn!
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    background: '#111',
+                    color: '#fff'
+                });
+                
+                // Redirect
+                const link4mUrl = 'https://link4m.com/n902L';
+                window.open(link4mUrl, '_blank');
+                
+                // Thông báo cuối
+                setTimeout(() => {
+                    Swal.fire({
+                        icon: 'info',
+                        title: '📋 Hướng dẫn',
+                        html: `
+                            <div style="text-align: left; color: #ccc;">
+                                <p style="margin-bottom: 10px;">✅ Tab mới đã được mở</p>
+                                <p style="margin-bottom: 10px;">⏱️ Hoàn thành link rút gọn trong 10 phút</p>
+                                <p style="margin-bottom: 10px;">🗑️ ${forceCreate ? 'Session cũ đã bị xóa hoàn toàn' : 'Session mới đã được tạo'}</p>
+                                <p style="color: #ff8800;"><strong>🚫 Không sử dụng bypass!</strong></p>
+                            </div>
+                        `,
+                        confirmButtonText: 'Đã hiểu',
+                        background: '#111',
+                        color: '#fff'
+                    });
+                }, 1000);
+                
+                this.isDownloadProcessing = false;
+                return;
+            }
+            
+            throw new Error(data.error || 'Không thể tạo phiên tải xuống');
+            
+        } catch (error) {
+            console.error('Error creating download session:', error);
+            
+            await Swal.fire({
+                icon: 'error',
+                title: '❌ Có lỗi xảy ra!',
+                html: `
+                    <div style="color: #ff4757; margin: 15px 0;">
+                        <strong>Chi tiết lỗi:</strong><br>
+                        ${error.message}
+                    </div>
+                    <div style="background: rgba(255,71,87,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff4757;">
+                        <div style="color: #ccc; font-size: 0.9em;">
+                            ${forceCreate ? 'Không thể xóa session cũ hoặc tạo mới' : 'Vui lòng thử lại sau hoặc liên hệ hỗ trợ'}
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Thử lại',
+                background: '#111',
+                color: '#fff'
+            });
+            
+            this.isDownloadProcessing = false;
+        }
     }
 
-    showTokenView() {
-        this.showView('tokenView');
-    }
-
-    showLoadingView() {
-        this.showView('loadingView');
-    }
-
-    // Tạo token với SweetAlert
+    // Các method khác giữ nguyên...
     async createToken() {
-        // Hiện loading popup
         Swal.fire({
             title: 'Đang tạo token...',
             text: 'Vui lòng chờ trong giây lát',
@@ -201,7 +378,6 @@ class TokenManager {
                 this.elements.tokenDisplay.value = data.token;
                 this.startTimer(data.time_left_ms);
                 
-                // Success popup với tick xanh
                 await Swal.fire({
                     icon: 'success',
                     title: 'Thành công!',
@@ -221,7 +397,6 @@ class TokenManager {
         } catch (error) {
             console.error('Error creating token:', error);
             
-            // Error popup với cross đỏ
             await Swal.fire({
                 icon: 'error',
                 title: 'Lỗi!',
@@ -234,147 +409,15 @@ class TokenManager {
         }
     }
 
-    // TẠO DOWNLOAD SESSION VỚI SWEETALERT SIÊU ĐẸP
-    async createDownloadSessionWithAlert() {
-        this.isDownloadProcessing = true;
-        
-        // Hiện loading popup siêu đẹp
-        Swal.fire({
-            title: '🚀 Đang tạo phiên tải xuống...',
-            html: `
-                <div style="margin: 20px 0;">
-                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">
-                        ⏳ Vui lòng đợi...
-                    </div>
-                    <div style="color: #ccc; font-size: 0.9em;">
-                        Đang kết nối đến hệ thống bảo mật
-                    </div>
-                </div>
-            `,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            background: '#111',
-            color: '#fff',
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        
-        try {
-            const response = await fetch(this.API_BASE, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'create_download_session'
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (response.status === 201 && data.success) {
-                // Success popup với animation tick xanh SIÊU ĐẸP
-                await Swal.fire({
-                    icon: 'success',
-                    title: '✅ Phiên tải đã được tạo!',
-                    html: `
-                        <div style="margin: 20px 0;">
-                            <div style="color: #00ff88; font-weight: bold; margin-bottom: 15px;">
-                                🎉 Thành công! Đang chuyển hướng...
-                            </div>
-                            <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #00ff88;">
-                                <div style="color: #fff; margin-bottom: 8px;">
-                                    ⚠️ <strong>Lưu ý quan trọng:</strong>
-                                </div>
-                                <div style="color: #ccc; font-size: 0.9em;">
-                                    Vui lòng không dùng bypass nếu ko muốn bị chặn!
-                                </div>
-                            </div>
-                        </div>
-                    `,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                    background: '#111',
-                    color: '#fff',
-                    didOpen: () => {
-                        // Custom animation
-                        const popup = Swal.getPopup();
-                        popup.style.animation = 'pulse 0.5s ease-in-out';
-                    }
-                });
-                
-                // LINK MỚI
-                const link4mUrl = 'https://link4m.com/n902L';
-                
-                // Mở tab mới
-                window.open(link4mUrl, '_blank');
-                
-                // Thông báo cuối
-                setTimeout(() => {
-                    Swal.fire({
-                        icon: 'info',
-                        title: '📋 Hướng dẫn',
-                        html: `
-                            <div style="text-align: left; color: #ccc;">
-                                <p style="margin-bottom: 10px;">✅ Tab mới đã được mở</p>
-                                <p style="margin-bottom: 10px;">⏱️ Hoàn thành link rút gọn trong 10 phút</p>
-                                <p style="color: #ff8800;"><strong>🚫 Không sử dụng bypass!</strong></p>
-                            </div>
-                        `,
-                        confirmButtonText: 'Đã hiểu',
-                        background: '#111',
-                        color: '#fff'
-                    });
-                }, 1000);
-                
-                this.isDownloadProcessing = false;
-                return;
-            }
-            
-            throw new Error(data.error || 'Không thể tạo phiên tải xuống');
-            
-        } catch (error) {
-            console.error('Error creating download session:', error);
-            
-            // Error popup với cross đỏ
-            await Swal.fire({
-                icon: 'error',
-                title: '❌ Có lỗi xảy ra!',
-                html: `
-                    <div style="color: #ff4757; margin: 15px 0;">
-                        <strong>Chi tiết lỗi:</strong><br>
-                        ${error.message}
-                    </div>
-                    <div style="background: rgba(255,71,87,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff4757;">
-                        <div style="color: #ccc; font-size: 0.9em;">
-                            Vui lòng thử lại sau hoặc liên hệ hỗ trợ
-                        </div>
-                    </div>
-                `,
-                confirmButtonText: 'Thử lại',
-                background: '#111',
-                color: '#fff'
-            });
-            
-            this.isDownloadProcessing = false;
-        }
-    }
-
-    // Copy token với SweetAlert
     async copyTokenWithAlert() {
         try {
             await navigator.clipboard.writeText(this.currentToken);
             
-            // Success animation
             const originalContent = this.elements.copyTokenBtn.innerHTML;
             this.elements.copyTokenBtn.innerHTML = '<i class="fas fa-check"></i>';
             this.elements.copyTokenBtn.style.background = 'rgba(0, 255, 136, 0.5)';
             this.elements.copyTokenBtn.style.transform = 'scale(1.1)';
             
-            // SweetAlert toast notification
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -396,7 +439,6 @@ class TokenManager {
         } catch (error) {
             console.error('Error copying token:', error);
             
-            // Fallback method
             this.elements.tokenDisplay.select();
             this.elements.tokenDisplay.setSelectionRange(0, 99999);
             
@@ -429,7 +471,34 @@ class TokenManager {
         }
     }
 
-    // Các method khác giữ nguyên...
+    // Các method khác giữ nguyên (showView, startTimer, stopTimer, showNotification)...
+    showView(viewName) {
+        const views = ['initialView', 'tokenView', 'loadingView'];
+        
+        views.forEach(view => {
+            if (this.elements[view]) {
+                this.elements[view].classList.add('hidden');
+            }
+        });
+        
+        if (this.elements[viewName]) {
+            this.elements[viewName].classList.remove('hidden');
+        }
+    }
+
+    showInitialView() {
+        this.showView('initialView');
+        this.stopTimer();
+    }
+
+    showTokenView() {
+        this.showView('tokenView');
+    }
+
+    showLoadingView() {
+        this.showView('loadingView');
+    }
+
     startTimer(timeLeftMs) {
         this.stopTimer();
         
@@ -439,7 +508,6 @@ class TokenManager {
             if (secondsLeft <= 0) {
                 this.elements.timerDisplay.textContent = '00:00:00';
                 
-                // Token expired alert
                 Swal.fire({
                     icon: 'warning',
                     title: '⏰ Token đã hết hạn!',
@@ -488,7 +556,6 @@ class TokenManager {
         }
     }
 
-    // Fallback notification (backup)
     showNotification(message, type = 'info') {
         const colors = {
             'success': 'success',
@@ -514,6 +581,6 @@ class TokenManager {
 document.addEventListener('DOMContentLoaded', () => {
     new TokenManager();
     
-    console.log('🚀 Token Manager với SweetAlert2 đã khởi động!');
-    console.log('🔒 Hệ thống chống bypass đã được kích hoạt!');
+    console.log('🚀 Token Manager với Anti-DDoS đã khởi động!');
+    console.log('🔒 Hệ thống chống spam session đã được kích hoạt!');
 });
