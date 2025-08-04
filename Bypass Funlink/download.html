@@ -124,33 +124,6 @@
             line-height: 1.6;
         }
         
-        .back-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #00ff88;
-        }
-        
-        .blocked-message {
-            background: rgba(255, 136, 0, 0.1);
-            border: 2px solid #ff8800;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
         .retry-btn {
             background: linear-gradient(45deg, #ff8800, #ff4757);
             border: none;
@@ -171,6 +144,14 @@
         .retry-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(255, 136, 0, 0.3);
+        }
+
+        .blocked-message {
+            background: rgba(255, 136, 0, 0.1);
+            border: 2px solid #ff8800;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
         }
 
         /* SweetAlert2 custom styles */
@@ -199,32 +180,25 @@
         <!-- Loading State -->
         <div class="loading" id="loadingState">
             <div class="loading-spinner"></div>
-            <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra bạn có dùng bypass không...</h2>
+            <h2><i class="fas fa-shield-alt"></i> Đang kiểm tra session tải xuống...</h2>
             <p>Vui lòng chờ trong giây lát</p>
         </div>
         
-        <!-- Blocked Direct Access - KHÔNG REDIRECT -->
+        <!-- Blocked - No Session -->
         <div class="blocked" id="blockedState">
             <div class="blocked-icon">
                 <i class="fas fa-ban"></i>
             </div>
-            <h2>🚫 Phát hiện bypass!</h2>
+            <h2>🚫 Không có session tải xuống!</h2>
             <div class="blocked-message">
-                <h3>Vui lòng không bypass link</h3>
-                <p>Bạn cần hoàn thành link rút gọn một cách bình thường để tải tool.</p>
+                <h3>Bạn chưa tạo session tải xuống</h3>
+                <p>Vui lòng tạo session tải xuống từ trang chính trước khi truy cập link này.</p>
             </div>
-            <p>Vui lòng quay lại trang chủ và thực hiện đúng quy trình.</p>
             
-            <div style="margin-top: 20px;">
-                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
-                    <i class="fas fa-home"></i>
-                    Về trang chủ
-                </a>
-                <button class="retry-btn" onclick="window.location.reload()">
-                    <i class="fas fa-redo"></i>
-                    Thử lại
-                </button>
-            </div>
+            <button class="retry-btn" onclick="window.location.reload()">
+                <i class="fas fa-redo"></i>
+                Kiểm tra lại
+            </button>
         </div>
         
         <!-- Success State -->
@@ -233,7 +207,7 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <h2>🎉 Xác thực thành công!</h2>
-            <p>Cảm ơn bạn đã ủng hộ! Bạn có thể tải tool ngay bây giờ.</p>
+            <p>Session của bạn hợp lệ! Bạn có thể tải tool ngay bây giờ.</p>
             
             <div style="margin-top: 20px;">
                 <a href="https://archive.org/download/bypass-funlink-by-gemlogin-tool_202508/Bypass%20Funlink%20by%20Gemlogin%20Tool.exe" 
@@ -243,15 +217,10 @@
                     <i class="fas fa-download"></i>
                     Tải Tool Ngay
                 </a>
-                
-                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
-                    <i class="fas fa-home"></i>
-                    Về trang chủ
-                </a>
             </div>
         </div>
         
-        <!-- Error State - KHÔNG REDIRECT -->
+        <!-- Error State -->
         <div class="error" id="errorState">
             <div class="error-icon">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -261,57 +230,21 @@
             
             <div class="blocked-message">
                 <h4>💡 Để tải tool thành công:</h4>
-                <p>Quay lại trang chủ và thực hiện lại từ đầu. Vui lòng không dùng bypass nếu ko muốn bị chặn!</p>
+                <p>Hãy tạo session tải xuống từ trang chính trước.</p>
             </div>
             
-            <div style="margin-top: 20px;">
-                <a href="https://tuanhaideptraivcl.vercel.app/" class="back-btn">
-                    <i class="fas fa-home"></i>
-                    Về trang chủ
-                </a>
-                <button class="retry-btn" onclick="window.location.reload()">
-                    <i class="fas fa-redo"></i>
-                    Thử lại
-                </button>
-            </div>
+            <button class="retry-btn" onclick="window.location.reload()">
+                <i class="fas fa-redo"></i>
+                Thử lại
+            </button>
         </div>
     </div>
 
     <script>
         const API_BASE = '/api/bypass_funlink';
         
-        // Kiểm tra truy cập trực tiếp
-        function checkDirectAccess() {
-            // Kiểm tra referrer
-            const referrer = document.referrer;
-            const hasReferrer = referrer && (
-                referrer.includes('link4m.com') || 
-                referrer.includes('tuanhaideptraivcl.vercel.app')
-            );
-            
-            // Kiểm tra session storage (set bởi link4m)
-            const hasValidSession = sessionStorage.getItem('link4m_completed') || 
-                                  localStorage.getItem('link4m_session');
-            
-            // Kiểm tra URL parameters từ link4m
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasValidParams = urlParams.get('ref') || urlParams.get('source');
-            
-            // Nếu không có bất kỳ dấu hiệu nào từ link4m
-            if (!hasReferrer && !hasValidSession && !hasValidParams) {
-                showBlocked();
-                return false;
-            }
-            
-            return true;
-        }
-        
+        // ĐƠN GIẢN HÓA: CHỈ KIỂM TRA SESSION TRONG DATABASE
         async function verifyDownload() {
-            // Kiểm tra truy cập trực tiếp trước
-            if (!checkDirectAccess()) {
-                return;
-            }
-            
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
@@ -324,7 +257,7 @@
                 if (data.valid) {
                     showSuccess();
                 } else {
-                    showError(data.error || 'Phiên tải xuống không hợp lệ');
+                    showBlocked(data.error || 'Không tìm thấy session tải xuống hợp lệ');
                 }
                 
             } catch (error) {
@@ -333,22 +266,18 @@
             }
         }
         
-        function showBlocked() {
+        function showBlocked(message = 'Không có session tải xuống') {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('blockedState').style.display = 'block';
             
-            // Hiện SweetAlert thay vì countdown
+            // Hiện SweetAlert
             Swal.fire({
                 icon: 'warning',
-                title: 'Phát hiện bypass!',
-                text: 'Vui lòng không bypass link. Hãy hoàn thành link rút gọn đúng cách.',
-                confirmButtonText: 'Về trang chủ',
-                allowOutsideClick: false,
-                allowEscapeKey: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
-                }
+                title: 'Không có session!',
+                text: message,
+                confirmButtonText: 'Đã hiểu',
+                timer: 5000,
+                timerProgressBar: true
             });
         }
         
@@ -356,14 +285,10 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('successState').style.display = 'block';
             
-            // Clear any bypass detection flags
-            sessionStorage.removeItem('link4m_completed');
-            localStorage.removeItem('link4m_session');
-            
             // Hiện thông báo thành công
             Swal.fire({
                 icon: 'success',
-                title: 'Xác thực thành công!',
+                title: 'Session hợp lệ!',
                 text: 'Bạn có thể tải tool ngay bây giờ.',
                 timer: 3000,
                 timerProgressBar: true,
@@ -396,21 +321,14 @@
                 <p><strong>Chi tiết:</strong> ${message}</p>
             `;
             
-            // Hiện SweetAlert thay vì countdown
+            // Hiện SweetAlert
             Swal.fire({
                 icon: 'error',
                 title: 'Có lỗi xảy ra',
                 text: message,
-                confirmButtonText: 'Về trang chủ',
-                showCancelButton: true,
-                cancelButtonText: 'Thử lại',
-                allowOutsideClick: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'https://tuanhaideptraivcl.vercel.app/';
-                } else if (result.isDismissed) {
-                    window.location.reload();
-                }
+                confirmButtonText: 'Đã hiểu',
+                timer: 5000,
+                timerProgressBar: true
             });
         }
         
@@ -419,7 +337,7 @@
             setTimeout(verifyDownload, 1500);
         });
         
-        // Basic protection
+        // Basic protection (optional)
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
             if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
