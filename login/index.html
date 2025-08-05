@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Login</title>
+    <title>Gemlogin Tool - Discord Auth</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
         * {
@@ -18,11 +18,13 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0a0a;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
             min-height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
+            position: relative;
         }
 
+        /* Enhanced Background Effects */
         .background {
             position: fixed;
             top: 0;
@@ -30,6 +32,7 @@
             width: 100%;
             height: 100%;
             z-index: -1;
+            overflow: hidden;
         }
 
         .aurora {
@@ -39,67 +42,121 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(45deg, 
-                rgba(255, 0, 150, 0.1) 0%,
-                rgba(0, 255, 255, 0.1) 25%,
-                rgba(255, 255, 0, 0.1) 50%,
-                rgba(255, 0, 255, 0.1) 75%,
-                rgba(0, 255, 150, 0.1) 100%);
+                rgba(0, 255, 255, 0.15) 0%,
+                rgba(255, 0, 150, 0.15) 25%,
+                rgba(147, 51, 234, 0.15) 50%,
+                rgba(59, 130, 246, 0.15) 75%,
+                rgba(16, 185, 129, 0.15) 100%);
             background-size: 400% 400%;
-            animation: aurora 15s ease-in-out infinite;
+            animation: aurora 20s ease-in-out infinite;
         }
 
-        .stars {
+        .particles {
             position: absolute;
             width: 100%;
             height: 100%;
             background-image: 
-                radial-gradient(2px 2px at 20px 30px, #eee, transparent),
-                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
-                radial-gradient(1px 1px at 90px 40px, #fff, transparent),
-                radial-gradient(1px 1px at 130px 80px, #fff, transparent),
-                radial-gradient(2px 2px at 160px 30px, #ddd, transparent);
+                radial-gradient(2px 2px at 20px 30px, rgba(59, 130, 246, 0.8), transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(147, 51, 234, 0.6), transparent),
+                radial-gradient(1px 1px at 90px 40px, rgba(16, 185, 129, 0.8), transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(239, 68, 68, 0.6), transparent),
+                radial-gradient(2px 2px at 160px 30px, rgba(245, 158, 11, 0.8), transparent);
             background-repeat: repeat;
-            background-size: 200px 100px;
-            animation: stars 20s linear infinite;
+            background-size: 300px 200px;
+            animation: particles 25s linear infinite;
+        }
+
+        .glow-orbs {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .orb1 {
+            top: 20%;
+            left: 10%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent);
+            animation-delay: 0s;
+        }
+
+        .orb2 {
+            top: 60%;
+            right: 10%;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.3), transparent);
+            animation-delay: -5s;
+        }
+
+        .orb3 {
+            bottom: 20%;
+            left: 20%;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.3), transparent);
+            animation-delay: -10s;
         }
 
         @keyframes aurora {
-            0%, 100% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
-        @keyframes stars {
-            from {
-                transform: translateY(0);
-            }
-            to {
-                transform: translateY(-100px);
-            }
+        @keyframes particles {
+            from { transform: translateY(0) rotate(0deg); }
+            to { transform: translateY(-100px) rotate(360deg); }
         }
 
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
+        }
+
+        /* Main Container */
         .container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
         }
 
+        /* Enhanced Login/Profile Box */
         .login-box, .profile-box {
-            background: rgba(15, 15, 15, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 48px;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(25px);
+            border-radius: 32px;
+            padding: 40px;
             width: 100%;
-            max-width: 420px;
+            max-width: 450px;
             position: relative;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
             border: 1px solid transparent;
             background-clip: padding-box;
+            transition: all 0.3s ease;
+        }
+
+        .login-box:hover, .profile-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 35px 70px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
 
         .login-box::before, .profile-box::before {
@@ -109,65 +166,89 @@
             left: 0;
             right: 0;
             bottom: 0;
-            border-radius: 24px;
+            border-radius: 32px;
             padding: 2px;
             background: linear-gradient(45deg, 
-                #ff006e,
-                #8338ec,
-                #3a86ff,
-                #06ffa5,
-                #ffbe0b,
-                #fb5607,
-                #ff006e
+                #3b82f6,
+                #8b5cf6,
+                #06b6d4,
+                #10b981,
+                #f59e0b,
+                #ef4444,
+                #3b82f6
             );
             background-size: 400% 400%;
             mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             mask-composite: xor;
             -webkit-mask-composite: xor;
-            animation: rainbow-border 3s ease-in-out infinite;
+            animation: rainbow-border 4s ease-in-out infinite;
             z-index: -1;
         }
 
         @keyframes rainbow-border {
-            0%, 100% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
-        .logo {
+        /* Header Section */
+        .header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 40px;
         }
 
-        .logo svg {
-            opacity: 0.9;
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .title {
-            color: #ffffff;
-            font-size: 28px;
+        .brand-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .brand-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
             font-weight: 700;
-            text-align: center;
-            margin-bottom: 8px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
         }
 
         .subtitle {
-            color: #a1a1aa;
+            color: #94a3b8;
             font-size: 16px;
-            text-align: center;
-            margin-bottom: 40px;
-            font-weight: 400;
+            font-weight: 500;
+            margin-bottom: 8px;
         }
 
-        .discord-btn {
+        .server-info {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 400;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            display: inline-block;
+        }
+
+        /* Enhanced Buttons */
+        .btn {
             width: 100%;
-            background: #5865f2;
-            color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 16px 24px;
             font-size: 16px;
             font-weight: 600;
@@ -179,9 +260,11 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            text-decoration: none;
+            margin-bottom: 16px;
         }
 
-        .discord-btn::before {
+        .btn::before {
             content: '';
             position: absolute;
             top: 0;
@@ -192,35 +275,79 @@
             transition: left 0.5s;
         }
 
-        .discord-btn:hover::before {
+        .btn:hover::before {
             left: 100%;
         }
 
-        .discord-btn:hover {
-            background: #4752c4;
-            transform: translateY(-2px);
+        .discord-btn {
+            background: linear-gradient(135deg, #5865f2, #7289da);
+            color: white;
             box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
         }
 
-        .discord-btn:active {
-            transform: translateY(0);
+        .discord-btn:hover {
+            background: linear-gradient(135deg, #4752c4, #5b6eae);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(88, 101, 242, 0.6);
         }
 
+        .bio-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .bio-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2);
+        }
+
+        .logout-btn:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(239, 68, 68, 0.4);
+        }
+
+        .delete-btn {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(153, 27, 27, 0.15));
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.15);
+            font-size: 14px;
+            padding: 12px 20px;
+        }
+
+        .delete-btn:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(153, 27, 27, 0.25));
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Loading Animation */
         .loading {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
             margin-top: 24px;
         }
 
         .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #5865f2;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top: 3px solid #3b82f6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
 
         @keyframes spin {
@@ -229,31 +356,12 @@
         }
 
         .loading p {
-            color: #a1a1aa;
+            color: #94a3b8;
             font-size: 14px;
+            font-weight: 500;
         }
 
-        .footer {
-            margin-top: 32px;
-            text-align: center;
-        }
-
-        .footer p {
-            color: #71717a;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .footer a {
-            color: #5865f2;
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        /* Profile Box Styles */
+        /* Enhanced Profile Section */
         .profile-header {
             text-align: center;
             margin-bottom: 32px;
@@ -262,34 +370,53 @@
         .avatar-container {
             position: relative;
             display: inline-block;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .user-avatar {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
-            border: 3px solid #5865f2;
+            border: 4px solid transparent;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6) padding-box,
+                        linear-gradient(135deg, #3b82f6, #8b5cf6) border-box;
             object-fit: cover;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5);
         }
 
         .status-indicator {
             position: absolute;
-            bottom: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            background: #23a559;
-            border: 3px solid #0a0a0a;
+            bottom: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 4px solid #0f1629;
             border-radius: 50%;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
         }
 
         .profile-title {
             color: #ffffff;
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
+        .profile-subtitle {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Enhanced Info Cards */
         .profile-info {
             margin-bottom: 32px;
         }
@@ -297,42 +424,80 @@
         .info-card {
             display: flex;
             align-items: center;
-            padding: 16px;
-            margin-bottom: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .info-card:hover::before {
+            opacity: 1;
         }
 
         .info-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
         }
 
         .info-icon {
-            color: #5865f2;
-            margin-right: 16px;
+            margin-right: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: rgba(88, 101, 242, 0.2);
-            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .info-icon.user-icon {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .info-icon.calendar-icon {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .info-icon.time-icon {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
         }
 
         .info-content {
             flex: 1;
+            z-index: 1;
         }
 
         .info-label {
-            color: #a1a1aa;
+            color: #94a3b8;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
         }
 
         .info-value {
@@ -341,83 +506,122 @@
             font-weight: 600;
         }
 
+        /* Action Buttons Container */
         .profile-actions {
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .logout-btn {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 12px;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
+        .action-row {
+            display: flex;
+            gap: 12px;
         }
 
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.3);
-            transform: translateY(-2px);
+        .action-row .btn {
+            margin-bottom: 0;
         }
 
+        /* Enhanced Icons */
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Responsive Design */
         @media (max-width: 480px) {
             .login-box, .profile-box {
                 padding: 32px 24px;
                 margin: 16px;
+                max-width: 380px;
             }
             
-            .title, .profile-title {
+            .brand-text {
+                font-size: 20px;
+            }
+            
+            .profile-title {
                 font-size: 24px;
             }
             
-            .subtitle {
-                font-size: 14px;
+            .user-avatar {
+                width: 80px;
+                height: 80px;
+            }
+
+            .action-row {
+                flex-direction: column;
             }
             
-            .user-avatar {
-                width: 60px;
-                height: 60px;
+            .info-card {
+                padding: 16px;
             }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 15, 25, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
         }
     </style>
 </head>
 <body>
     <div class="background">
         <div class="aurora"></div>
-        <div class="stars"></div>
+        <div class="particles"></div>
+        <div class="glow-orbs">
+            <div class="orb orb1"></div>
+            <div class="orb orb2"></div>
+            <div class="orb orb3"></div>
+        </div>
     </div>
     
     <div class="container">
         <!-- Login Box -->
         <div class="login-box" id="loginBox">
-            <div class="logo">
-                <svg width="60" height="60" viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19a77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" fill="#5865f2"/>
-                </svg>
+            <div class="header">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L13.09 8.26L19 7L14.74 12L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12L5 7L10.91 8.26L12 2Z"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">GEMLOGIN</div>
+                </div>
+                <p class="subtitle">Chào mừng đến với Gemlogin Tool</p>
+                <div class="server-info">Giao diện Gemlogin Tool server của tôi!</div>
             </div>
             
-            <h1 class="title">Chào mừng trở lại!</h1>
-            <p class="subtitle">Đăng nhập với Discord để tiếp tục</p>
-            
-            <button class="discord-btn" id="loginBtn">
-                <svg width="24" height="24" viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19a77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" fill="white"/>
+            <button class="btn discord-btn" id="loginBtn">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0190 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9460 2.4189-2.1568 2.4189Z"/>
                 </svg>
                 Đăng nhập với Discord
             </button>
             
+            <a href="#" class="btn bio-btn" onclick="goToBio()">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L18.5 9.5C18.1 9.9 17.6 10 17 10H7C6.4 10 5.9 9.9 5.5 9.5L3 7V9H1V11H3L6 14L6.5 15.5L6 16.5V19H8V16.5L7.5 15.5L8 14L10.5 11H13.5L16 14L16.5 15.5L16 16.5V19H18V16.5L17.5 15.5L18 14L21 11H23V9H21Z"/>
+                </svg>
+                Quay về Bio
+            </a>
+            
             <div class="loading" id="loading" style="display: none;">
                 <div class="spinner"></div>
-                <p>Đang xử lý...</p>
-            </div>
-            
-            <div class="footer">
-                <p>Bằng việc đăng nhập, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> của chúng tôi</p>
+                <p>Đang kết nối với Discord...</p>
             </div>
         </div>
 
@@ -428,14 +632,15 @@
                     <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
                     <div class="status-indicator"></div>
                 </div>
-                <h2 class="profile-title">Đăng nhập thành công!</h2>
+                <h2 class="profile-title">Kết nối thành công!</h2>
+                <p class="profile-subtitle">Chào mừng đến với Gemlogin Tool</p>
             </div>
 
             <div class="profile-info">
                 <div class="info-card">
-                    <div class="info-icon">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                    <div class="info-icon user-icon">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                         </svg>
                     </div>
                     <div class="info-content">
@@ -445,9 +650,9 @@
                 </div>
 
                 <div class="info-card">
-                    <div class="info-icon">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                    <div class="info-icon calendar-icon">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
                         </svg>
                     </div>
                     <div class="info-content">
@@ -457,9 +662,10 @@
                 </div>
 
                 <div class="info-card">
-                    <div class="info-icon">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    <div class="info-icon time-icon">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+                            <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
                         </svg>
                     </div>
                     <div class="info-content">
@@ -470,12 +676,28 @@
             </div>
 
             <div class="profile-actions">
-                <button class="logout-btn" id="logoutBtn">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 001-1h10.586l-2.293 2.293a1 1 0 001.414 1.414l4-4a1 1 0 000-1.414l-4-4a1 1 0 10-1.414 1.414L15.586 3H3z" clip-rule="evenodd"/>
+                <a href="#" class="btn bio-btn" onclick="goToBio()">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L18.5 9.5C18.1 9.9 17.6 10 17 10H7C6.4 10 5.9 9.9 5.5 9.5L3 7V9H1V11H3L6 14L6.5 15.5L6 16.5V19H8V16.5L7.5 15.5L8 14L10.5 11H13.5L16 14L16.5 15.5L16 16.5V19H18V16.5L17.5 15.5L18 14L21 11H23V9H21Z"/>
                     </svg>
-                    Đăng xuất
-                </button>
+                    Quay về Bio
+                </a>
+                
+                <div class="action-row">
+                    <button class="btn logout-btn" id="logoutBtn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                        </svg>
+                        Đăng xuất
+                    </button>
+                    
+                    <button class="btn delete-btn" id="deleteBtn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                        Xóa tài khoản
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -487,6 +709,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginBox = document.getElementById('loginBox');
     const profileBox = document.getElementById('profileBox');
     const logoutBtn = document.getElementById('logoutBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
 
     // Kiểm tra URL có thông tin đăng nhập không
     const params = new URLSearchParams(window.location.search);
@@ -498,18 +721,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('discord_user', JSON.stringify(userData));
                 localStorage.setItem('auth_token', token);
                 showProfile(userData);
+                
+                // Enhanced success notification
                 Swal.fire({
                     icon: 'success',
-                    title: 'Đăng nhập thành công!',
-                    text: `Chào mừng ${userData.globalName || userData.username}!`,
-                    background: '#1a1a1a',
+                    title: '🎉 Kết nối thành công!',
+                    text: `Chào mừng ${userData.globalName || userData.username} đến với Gemlogin Tool!`,
+                    background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
                     color: '#ffffff',
-                    confirmButtonColor: '#5865f2',
-                    timer: 2000,
-                    showConfirmButton: false
+                    confirmButtonColor: '#3b82f6',
+                    confirmButtonText: 'Tuyệt vời!',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showClass: {
+                        popup: 'animate__animated animate__bounceIn'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__bounceOut'
+                    }
                 });
             } catch (e) {
                 console.error('Token error:', e);
+                showErrorAlert('Có lỗi khi xử lý thông tin đăng nhập!');
             }
         }
         window.history.replaceState({}, '', window.location.pathname);
@@ -537,27 +770,107 @@ document.addEventListener('DOMContentLoaded', function() {
         loginBtn.addEventListener('click', function() {
             loginBtn.style.display = 'none';
             loading.style.display = 'flex';
-            window.location.href = '/api/auth?action=login';
+            
+            // Add loading effect
+            loading.innerHTML = `
+                <div class="spinner"></div>
+                <p>Đang kết nối với Discord...</p>
+                <p style="font-size: 12px; color: #64748b; margin-top: 8px;">Vui lòng đợi...</p>
+            `;
+            
+            setTimeout(() => {
+                window.location.href = '/api/auth?action=login';
+            }, 1000);
         });
     }
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
             Swal.fire({
-                title: 'Đăng xuất?',
-                text: "Bạn có chắc muốn đăng xuất không?",
+                title: '🚪 Đăng xuất?',
+                text: "Bạn có chắc muốn đăng xuất khỏi Gemlogin Tool không?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Đăng xuất',
-                cancelButtonText: 'Hủy',
-                background: '#1a1a1a',
-                color: '#ffffff'
+                confirmButtonText: '✅ Đăng xuất',
+                cancelButtonText: '❌ Hủy',
+                background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'custom-swal-popup'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     localStorage.clear();
-                    window.location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã đăng xuất!',
+                        text: 'Hẹn gặp lại bạn!',
+                        background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                        color: '#ffffff',
+                        confirmButtonColor: '#3b82f6',
+                        timer: 2000
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        });
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: '⚠️ Xóa tài khoản?',
+                html: `
+                    <p>Hành động này sẽ:</p>
+                    <ul style="text-align: left; margin: 16px 0; color: #ef4444;">
+                        <li>🗑️ Xóa hoàn toàn dữ liệu của bạn</li>
+                        <li>💾 Làm sạch database</li>
+                        <li>🚫 Không thể khôi phục</li>
+                    </ul>
+                    <p><strong>Bạn có chắc chắn muốn tiếp tục?</strong></p>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '🗑️ Xóa vĩnh viễn',
+                cancelButtonText: '❌ Hủy bỏ',
+                background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'custom-swal-popup'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Simulate account deletion
+                    Swal.fire({
+                        title: '🔄 Đang xóa...',
+                        text: 'Vui lòng đợi trong giây lát',
+                        background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                        color: '#ffffff',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    setTimeout(() => {
+                        localStorage.clear();
+                        Swal.fire({
+                            icon: 'success',
+                            title: '✅ Đã xóa thành công!',
+                            text: 'Tài khoản của bạn đã được xóa khỏi database',
+                            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                            color: '#ffffff',
+                            confirmButtonColor: '#10b981',
+                            timer: 3000
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    }, 2000);
                 }
             });
         });
@@ -588,9 +901,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update days in server
         const days = document.getElementById('daysInServer');
         if (days) {
-            days.textContent = userData.daysInServer !== undefined 
-                ? `${userData.daysInServer} ngày` 
-                : 'Không xác định';
+            if (userData.daysInServer !== undefined) {
+                days.textContent = `${userData.daysInServer} ngày`;
+                days.style.color = userData.daysInServer > 30 ? '#10b981' : 
+                                   userData.daysInServer > 7 ? '#f59e0b' : '#ef4444';
+            } else {
+                days.textContent = 'Không xác định';
+                days.style.color = '#6b7280';
+            }
         }
 
         // Update join date
@@ -612,7 +930,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    function showErrorAlert(message) {
+        Swal.fire({
+            icon: 'error',
+            title: '❌ Có lỗi xảy ra!',
+            text: message,
+            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+            color: '#ffffff',
+            confirmButtonColor: '#ef4444',
+        });
+    }
 });
+
+// Global function for bio button
+function goToBio() {
+    Swal.fire({
+        icon: 'info',
+        title: '🔗 Chuyển hướng',
+        text: 'Đang chuyển đến trang Bio...',
+        background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+        color: '#ffffff',
+        confirmButtonColor: '#3b82f6',
+        timer: 1500,
+        timerProgressBar: true
+    }).then(() => {
+        // Change this URL to your bio page
+        window.location.href = '/bio'; // hoặc URL trang bio của bạn
+    });
+}
     </script>
 </body>
 </html>
