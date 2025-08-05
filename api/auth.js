@@ -230,7 +230,7 @@ export default async function handler(req, res) {
         });
 
         // Chuyển hướng về trang chủ với thông tin session
-        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&user_id=${sessionData.id}&username=${encodeURIComponent(sessionData.globalName || sessionData.username)}`;
+        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&user_id=${sessionData.id}&username=${encodeURIComponent(sessionData.globalName || sessionData.username)}&avatar=${sessionData.avatar || ''}`;
         console.log('Redirecting to:', redirectUrl);
         
         return res.redirect(redirectUrl);
