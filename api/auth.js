@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // HARD-CODE Production URL để tránh lỗi preview deployment
+  // HARD-CODE Production URL
   const PRODUCTION_URL = 'https://tuanhaideptraivcl.vercel.app';
 
   if (method === 'GET') {
@@ -26,7 +26,6 @@ export default async function handler(req, res) {
 
       const redirectUri = encodeURIComponent(`${PRODUCTION_URL}/api/auth?action=callback`);
       
-      // Debug logs
       console.log('=== LOGIN REQUEST ===');
       console.log('Production URL:', PRODUCTION_URL);
       console.log('Redirect URI:', redirectUri);
@@ -50,12 +49,12 @@ export default async function handler(req, res) {
       // Kiểm tra Discord error
       if (discordError) {
         console.error('Discord OAuth Error:', discordError);
-        return res.redirect(`/Auth?error=discord_${discordError}`);
+        return res.redirect(`/login?error=discord_${discordError}`); // ✅ ĐỔI THÀNH /login
       }
       
       if (!code) {
         console.error('No authorization code received');
-        return res.redirect('/Auth?error=no_code');
+        return res.redirect('/login?error=no_code'); // ✅ ĐỔI THÀNH /login
       }
 
       try {
@@ -87,7 +86,7 @@ export default async function handler(req, res) {
 
         if (!tokenResponse.ok || !tokenData.access_token) {
           console.error('Token exchange failed:', tokenData);
-          return res.redirect('/Auth?error=token_error');
+          return res.redirect('/login?error=token_error'); // ✅ ĐỔI THÀNH /login
         }
 
         // Step 2: Lấy thông tin user từ Discord
@@ -101,7 +100,7 @@ export default async function handler(req, res) {
 
         if (!userResponse.ok) {
           console.error('Failed to fetch user data:', userResponse.status);
-          return res.redirect('/Auth?error=user_fetch_failed');
+          return res.redirect('/login?error=user_fetch_failed'); // ✅ ĐỔI THÀNH /login
         }
 
         const userData = await userResponse.json();
@@ -116,28 +115,27 @@ export default async function handler(req, res) {
           },
         });
 
-        let isInServer = true; // Default true nếu không có SERVER_ID
+        let isInServer = true;
         let guilds = [];
         
         if (guildsResponse.ok) {
           guilds = await guildsResponse.json();
           console.log('User guilds count:', guilds.length);
           
-          // Kiểm tra user có trong server yêu cầu không
           if (process.env.SERVER_ID) {
             isInServer = guilds.some(guild => guild.id === process.env.SERVER_ID);
             console.log('Is in required server:', isInServer);
             
             if (!isInServer) {
               console.log('User not in required server:', process.env.SERVER_ID);
-              return res.redirect('/Auth?error=not_in_server');
+              return res.redirect('/login?error=not_in_server'); // ✅ ĐỔI THÀNH /login
             }
           }
         } else {
           console.warn('Failed to fetch guilds:', guildsResponse.status);
         }
 
-        // Step 4: Lấy thông tin chi tiết member từ server (join date)
+        // Step 4: Lấy thông tin chi tiết member từ server
         let memberData = null;
         let daysInServer = 0;
         
@@ -172,7 +170,7 @@ export default async function handler(req, res) {
           }
         }
 
-        // Step 5: Tạo session token với thông tin đầy đủ
+        // Step 5: Tạo session token
         console.log('=== CREATING SESSION TOKEN ===');
         
         const sessionData = {
@@ -184,17 +182,17 @@ export default async function handler(req, res) {
           joinedAt: memberData?.joined_at || null,
           daysInServer: daysInServer,
           timestamp: Date.now(),
-          guilds: guilds.length // Số lượng server user tham gia
+          guilds: guilds.length
         };
 
         console.log('Session data:', { ...sessionData, id: '[PRESENT]' });
 
         const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
-        // Step 6: Redirect về trang Auth với success
-        const redirectUrl = `/Auth?success=true&token=${encodeURIComponent(sessionToken)}`;
+        // Step 6: Redirect về trang login với success
+        const redirectUrl = `/login?success=true&token=${encodeURIComponent(sessionToken)}`; // ✅ ĐỔI THÀNH /login
         console.log('=== REDIRECTING TO SUCCESS ===');
-        console.log('Redirect URL length:', redirectUrl.length);
+        console.log('Redirect URL:', redirectUrl);
         
         return res.redirect(redirectUrl);
 
@@ -202,16 +200,14 @@ export default async function handler(req, res) {
         console.error('=== OAUTH ERROR ===');
         console.error('Error details:', error);
         console.error('Error stack:', error.stack);
-        return res.redirect('/Auth?error=auth_failed');
+        return res.redirect('/login?error=auth_failed'); // ✅ ĐỔI THÀNH /login
       }
     }
 
-    // Action không hợp lệ
     console.log('Invalid action:', query.action);
     return res.status(400).json({ error: 'Invalid action parameter' });
   }
 
-  // Method không hợp lệ
   console.log('Invalid method:', method);
   return res.status(405).json({ error: 'Method not allowed' });
 }
