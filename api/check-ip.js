@@ -13,6 +13,8 @@ export default async function handler(req, res) {
     try {
         const { ip } = req.body;
         
+        console.log('Checking IP:', ip);
+        
         if (!ip) {
             return res.status(400).json({ success: false, message: 'Missing IP address' });
         }
@@ -25,13 +27,17 @@ export default async function handler(req, res) {
             .single();
 
         if (error || !user) {
+            console.log('No user found for IP:', ip);
             return res.status(200).json({ success: false, message: 'No user found for this IP' });
         }
+
+        console.log('Found user for IP:', user.username);
 
         // Verify user vẫn còn trong server
         const memberInfo = await checkServerMembership(user.discord_id);
         
         if (!memberInfo) {
+            console.log('User no longer in server, deleting from DB:', user.username);
             // User không còn trong server, xóa khỏi DB
             await supabase
                 .from('discord_users')
@@ -49,6 +55,8 @@ export default async function handler(req, res) {
                 days_in_server: memberInfo.daysInServer 
             })
             .eq('id', user.id);
+
+        console.log('IP check successful for:', user.username);
 
         return res.status(200).json({
             success: true,
@@ -75,6 +83,7 @@ async function checkServerMembership(userId) {
         });
 
         if (!response.ok) {
+            console.log('User not found in server:', userId);
             return null;
         }
 
