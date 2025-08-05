@@ -8,6 +8,8 @@ class TokenManager {
         this.isCreatingSession = false;
         this.loginChecked = false;
         this.userData = null;
+        
+        // API endpoints
         this.API_BASE = '/api/bypass_funlink';
         this.LOGIN_API = '/api/auth';
         
@@ -21,13 +23,13 @@ class TokenManager {
         this.setupSweetAlert();
         this.setupUserMenu();
         
-        // Check URL parameters first (có thể có token từ login redirect)
+        // Check URL parameters first
         this.checkURLParameters();
         
         // Load giao diện trước
         this.loadInterface();
         
-        // Check login sau 500ms để đảm bảo DOM ready
+        // Check login sau 500ms
         setTimeout(() => {
             this.checkLoginStatusSilently();
         }, 500);
@@ -116,38 +118,53 @@ class TokenManager {
         }
     }
 
-    // Thêm method để check URL parameters (có thể có token từ login)
+    // Check URL parameters với xử lý captcha verification
     checkURLParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         const success = urlParams.get('success');
         const token = urlParams.get('token');
+        const verified = urlParams.get('verified');
         
         console.log('=== Checking URL Parameters ===');
         console.log('Success param:', success);
         console.log('Token param:', token ? 'Present' : 'Not found');
+        console.log('Verified param:', verified);
         
+        // Check for login success with token
         if (success === 'true' && token) {
-            console.log('Login success detected in URL, saving token');
+            console.log('✅ Login success detected in URL, saving token');
             localStorage.setItem('sessionToken', decodeURIComponent(token));
             
             // Clear URL parameters
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
             
-            // Set flag để recheck login
             this.shouldRecheckLogin = true;
+            return;
+        }
+        
+        // Check for verified parameter (từ captcha - không phải login)
+        if (verified === 'true') {
+            console.log('⚠️ Captcha verified parameter found but no login token');
+            console.log('This is captcha verification, not login verification');
+            
+            // Clear the verified parameter
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+            // Không cần show login prompt vì đây là captcha verification
         }
     }
 
     // Load giao diện bình thường để bot thấy
     async loadInterface() {
         try {
-            // Hiện IP giả hoặc thật (không quan trọng)
+            // Hiện IP giả để bot thấy
             this.elements.ipDisplay.textContent = 'Đang tải...';
             
             // Giả lập load IP
             setTimeout(() => {
-                this.elements.ipDisplay.textContent = '103.90.227.117'; // IP giả để bot thấy
+                this.elements.ipDisplay.textContent = '103.90.227.117'; // IP giả
             }, 1000);
 
             // Luôn hiện initial view
@@ -159,23 +176,23 @@ class TokenManager {
         }
     }
 
-    // Kiểm tra login âm thầm với debug
+    // Kiểm tra login với better error handling
     async checkLoginStatusSilently() {
         console.log('=== Checking Login Status ===');
         
         try {
             const sessionToken = localStorage.getItem('sessionToken');
             console.log('SessionToken found:', sessionToken ? 'YES' : 'NO');
-            console.log('Token preview:', sessionToken ? sessionToken.substring(0, 50) + '...' : 'null');
             
             if (!sessionToken) {
-                console.log('No session token - user not logged in');
+                console.log('❌ No session token - user not logged in');
                 this.isLoggedIn = false;
                 this.loginChecked = true;
                 this.updateUserInterface();
                 return;
             }
 
+            console.log('Token preview:', sessionToken.substring(0, 50) + '...');
             console.log('Making verify request to:', `${this.LOGIN_API}?action=verify`);
             
             const response = await fetch(`${this.LOGIN_API}?action=verify`, {
@@ -194,40 +211,48 @@ class TokenManager {
                 console.log('Verify response data:', data);
                 
                 if (data.valid && data.user) {
-                    console.log('✅ User logged in successfully:', data.user.username);
+                    console.log('✅ User logged in successfully:', data.user.username || data.user.globalName);
                     this.isLoggedIn = true;
                     this.userData = data.user;
                     this.updateUserInterface();
-                    // Load dữ liệu thật
                     this.loadRealData();
                 } else {
                     console.log('❌ Invalid token or user data');
                     console.log('Data.valid:', data.valid);
                     console.log('Data.user:', data.user);
-                    this.isLoggedIn = false;
-                    this.userData = null;
-                    localStorage.removeItem('sessionToken');
-                    this.updateUserInterface();
+                    this.handleInvalidLogin();
                 }
             } else {
-                console.log('❌ Verify request failed');
-                const errorText = await response.text();
-                console.log('Error response:', errorText);
-                this.isLoggedIn = false;
-                this.userData = null;
-                localStorage.removeItem('sessionToken');
-                this.updateUserInterface();
+                console.log('❌ Verify request failed with status:', response.status);
+                
+                try {
+                    const errorData = await response.json();
+                    console.log('Error response data:', errorData);
+                } catch (e) {
+                    const errorText = await response.text();
+                    console.log('Error response text:', errorText);
+                }
+                
+                this.handleInvalidLogin();
             }
         } catch (error) {
             console.error('❌ Error checking login status:', error);
-            this.isLoggedIn = false;
-            this.userData = null;
-            this.updateUserInterface();
+            console.error('Error details:', error.message);
+            this.handleInvalidLogin();
         }
         
         this.loginChecked = true;
         console.log('=== Login Check Complete ===');
         console.log('Final login status:', this.isLoggedIn);
+    }
+
+    // Handle invalid login
+    handleInvalidLogin() {
+        console.log('🧹 Handling invalid login - clearing data');
+        this.isLoggedIn = false;
+        this.userData = null;
+        localStorage.removeItem('sessionToken');
+        this.updateUserInterface();
     }
 
     // Cập nhật giao diện với debug
@@ -282,7 +307,7 @@ class TokenManager {
         console.log('=== Interface Update Complete ===');
     }
 
-    // Load dữ liệu thật với debug
+    // Load dữ liệu thật cho user đã đăng nhập
     async loadRealData() {
         console.log('=== Loading Real Data ===');
         
@@ -339,18 +364,29 @@ class TokenManager {
         console.log('=== Real Data Load Complete ===');
     }
 
-    // Thông báo yêu cầu đăng nhập (cho bot và user chưa login)
+    // Show login required alert
     showLoginRequiredAlert() {
         return Swal.fire({
             icon: 'warning',
             title: 'Vui lòng đăng nhập',
-            text: 'Hãy đăng nhập để xem nội dung sau',
-            confirmButtonText: 'OK',
+            html: `
+                <p>Hãy đăng nhập để xem nội dung sau</p>
+                <p style="font-size: 0.9em; color: #ccc; margin-top: 10px;">
+                    Bấm nút "Đăng nhập" ở góc phải để tiếp tục
+                </p>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Đăng nhập ngay',
+            cancelButtonText: 'Để sau',
+            confirmButtonColor: '#00ff88',
+            cancelButtonColor: '#6c757d',
             showCloseButton: true,
             allowOutsideClick: true,
             allowEscapeKey: true
         }).then((result) => {
-            // Không redirect để bot không biết bị chặn
+            if (result.isConfirmed) {
+                window.location.href = '/login';
+            }
             console.log('Login required - blocked request');
         });
     }
@@ -443,6 +479,7 @@ class TokenManager {
     async createToken() {
         // Đợi check login xong
         if (!this.loginChecked) {
+            console.log('⏳ Waiting for login check to complete...');
             await new Promise(resolve => {
                 const checkInterval = setInterval(() => {
                     if (this.loginChecked) {
@@ -450,17 +487,27 @@ class TokenManager {
                         resolve();
                     }
                 }, 100);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 10000);
             });
         }
 
-        // Chặn nếu chưa đăng nhập - hiện thông báo cho bot
+        console.log('🎯 Create token - Login status:', this.isLoggedIn);
+
+        // Chặn nếu chưa đăng nhập
         if (!this.isLoggedIn) {
+            console.log('❌ User not logged in - blocking request');
             await this.showLoginRequiredAlert();
             return;
         }
 
         // Prevent spam clicking
         if (this.isCreatingToken) {
+            console.log('⚠️ Already creating token - preventing spam');
             Swal.fire({
                 icon: 'warning',
                 title: 'Đang xử lý',
@@ -476,6 +523,8 @@ class TokenManager {
         
         try {
             const sessionToken = localStorage.getItem('sessionToken');
+            console.log('🚀 Making create token request...');
+            
             const response = await fetch(this.API_BASE, {
                 'method': 'POST',
                 'headers': {
@@ -487,9 +536,12 @@ class TokenManager {
                 })
             });
 
+            console.log('📨 Create token response status:', response.status);
             const data = await response.json();
+            console.log('📨 Create token response data:', data);
 
             if (response.status === 201 && data.success) {
+                console.log('✅ Token created successfully');
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
                 this.startTimer(data.time_left_ms);
@@ -506,9 +558,9 @@ class TokenManager {
                 return;
             }
 
-            throw new Error(data.message || 'Không thể tạo token');
+            throw new Error(data.message || data.error || 'Không thể tạo token');
         } catch (error) {
-            console.error('Error creating token:', error);
+            console.error('❌ Error creating token:', error);
             const errorMessage = error.message || 'Lỗi kết nối đến máy chủ.';
             this.showInitialView();
             
@@ -533,10 +585,15 @@ class TokenManager {
                         resolve();
                     }
                 }, 100);
+                
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 10000);
             });
         }
 
-        // Chặn nếu chưa đăng nhập - hiện thông báo cho bot
+        // Chặn nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
@@ -781,6 +838,11 @@ class TokenManager {
                         resolve();
                     }
                 }, 100);
+                
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 10000);
             });
         }
 
