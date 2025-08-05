@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Bypass Funlink by Gemlogin Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    
+    <!-- Header với user info -->
+    <header class="app-header">
+        <div class="container header-container">
+            <!-- User Info Box -->
+            <div class="user-info-box" id="userInfoBox">
+                <!-- Khi chưa đăng nhập -->
+                <div class="login-prompt" id="loginPrompt">
+                    <a href="/login" class="login-button">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Đăng nhập</span>
+                    </a>
+                </div>
+                
+                <!-- Khi đã đăng nhập -->
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <div class="user-avatar">
+                        <img id="userAvatar" src="" alt="Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0Nzc0ODEiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxMiIgcj0iNSIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNiAyNmMwLTUuNTIzIDQuNDc3LTEwIDEwLTEwczEwIDQuNDc3IDEwIDEwdjJINnoiIGZpbGw9IiNGRkYiLz4KPC9zdmc+'">
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Loading...</div>
+                        <div class="user-status">
+                            <i class="fas fa-circle online"></i>
+                            <span>Online</span>
+                        </div>
+                    </div>
+                    <div class="user-menu">
+                        <button class="menu-button" id="userMenuBtn">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <a href="https://tuanhaideptraivcl.vercel.app/" class="dropdown-item">
+                                <i class="fas fa-home"></i>
+                                <span>Trang chủ</span>
+                            </a>
+                            <a href="https://tuanhaideptraivcl.vercel.app/contact" class="dropdown-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>Liên hệ</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item logout-btn" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Đăng xuất</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <!-- Title Section -->
+            <div class="title-section">
+                <h1 class="main-title">Tool Bypass Funlink by Gemlogin Tool</h1>
+                <div class="description">
+                    <h2 class="subtitle">TOOL BYPASS FUNLINK SIÊU BÁ</h2>
+                    <p class="desc-text">
+                        CHỈ CẦN NHẬP LINK FUNLINK NÓ SẼ TỰ ĐỘNG BYPASS<br>
+                        TRẢ LẠI URL ĐÍCH CHO AE<br>
+                        <span class="highlight">KO CẦN EXTENSION CHỈ PYTHON</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- IP Display Section -->
+            <div class="section-card">
+                <div class="rainbow-border">
+                    <div class="card-content">
+                        <div class="ip-section">
+                            <div class="ip-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div class="ip-info">
+                                <div class="ip-label">Địa chỉ IP của bạn:</div>
+                                <div class="ip-display" id="ipDisplay">Đang tải...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Download Section -->
+            <div class="section-card">
+                <div class="rainbow-border">
+                    <div class="card-content">
+                       <div class="token-section">
+                            <h3><i class="fas fa-download"></i> Link tải tool</h3>
+                            <p>Tải tool bypass siêu bá của a hải dz ở dưới.</p>
+                            <div class="download-warning">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Vui lòng không dùng bypass nếu ko muốn bị chặn!</span>
+                            </div>
+                            <a href="#" class="main-button" id="downloadTrigger">
+                                <i class="fas fa-rocket"></i>
+                                <span>Tải tại đây</span>
+                            </a>
+                       </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Token Management Section -->
+            <div class="section-card">
+                <div class="rainbow-border">
+                    <div class="card-content">
+                        <!-- Initial View -->
+                        <div id="initialView" class="view">
+                            <div class="token-section">
+                                <h3><i class="fas fa-key"></i> Tạo Token Truy Cập</h3>
+                                <p>Để sử dụng tool, bạn cần tạo token truy cập có thời hạn 3 tiếng</p>
+                                <button class="main-button" id="createTokenBtn">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Tạo Token Ngay</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading View -->
+                        <div id="loadingView" class="view hidden">
+                            <div class="loading-section">
+                                <div class="loading-spinner"></div>
+                                <h3>Đang tạo token...</h3>
+                                <p>Vui lòng chờ trong giây lát</p>
+                            </div>
+                        </div>
+
+                        <!-- Token View -->
+                        <div id="tokenView" class="view hidden">
+                            <div class="token-success-section">
+                                <div class="success-header">
+                                    <i class="fas fa-check-circle"></i>
+                                    <h3>Token đã được tạo thành công!</h3>
+                                </div>
+                                
+                                <div class="token-display-section">
+                                    <label>Token của bạn:</label>
+                                    <div class="token-input-group">
+                                        <input type="text" id="tokenDisplay" readonly>
+                                        <button class="copy-button" id="copyTokenBtn">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="timer-section">
+                                    <div class="timer-header">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Thời gian còn lại:</span>
+                                    </div>
+                                    <div class="timer-display" id="timerDisplay">03:00:00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hướng dẫn sử dụng -->
+            <div class="section-card">
+                <div class="rainbow-border">
+                    <div class="card-content">
+                        <div class="guide-section">
+                            <h3><i class="fas fa-info-circle"></i> Hướng dẫn sử dụng</h3>
+                            <div class="guide-steps">
+                                <div class="step">
+                                    <div class="step-number">1</div>
+                                    <div class="step-content">
+                                        <h4>Tạo Token</h4>
+                                        <p>Bấm "Tạo Token Ngay" để tạo token truy cập có thời hạn 3 tiếng</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">2</div>
+                                    <div class="step-content">
+                                        <h4>Tải Tool</h4>
+                                        <p>Bấm "Tải tại đây", hoàn thành link rút gọn để tải tool</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">3</div>
+                                    <div class="step-content">
+                                        <h4>Sử dụng</h4>
+                                        <p>Chạy tool, nhập token và link Funlink cần bypass</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lưu ý -->
+            <div class="section-card">
+                <div class="rainbow-border security-border">
+                    <div class="card-content">
+                        <div class="security-section">
+                            <h3><i class="fas fa-info-circle"></i> Lưu ý quan trọng</h3>
+                            <div class="security-warnings">
+                                <div class="warning-item">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>Vui lòng không dùng bypass nếu ko muốn bị chặn</span>
+                                </div>
+                                <div class="warning-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Hoàn thành link rút gọn trong thời gian quy định</span>
+                                </div>
+                                <div class="warning-item">
+                                    <i class="fas fa-key"></i>
+                                    <span>Token có thời hạn 3 tiếng, sau đó cần tạo mới</span>
+                                </div>
+                                <div class="warning-item">
+                                    <i class="fas fa-heart"></i>
+                                    <span>Tool hoàn toàn miễn phí, chỉ cần xem quảng cáo ủng hộ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2024 Gemlogin Tool by Tuấn Hải. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="https://tuanhaideptraivcl.vercel.app/">Trang chủ</a>
+                    <a href="https://tuanhaideptraivcl.vercel.app/contact">Liên hệ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="../security/security.js"></script>
+</body>
+</html>
