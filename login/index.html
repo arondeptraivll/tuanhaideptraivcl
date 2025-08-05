@@ -17,11 +17,11 @@
     </div>
     
     <div class="container">
-        <!-- Login Box (hiển thị khi chưa đăng nhập) -->
+        <!-- Login Box -->
         <div class="login-box" id="loginBox">
             <div class="logo">
                 <svg width="60" height="60" viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" fill="#5865f2"/>
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19a77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" fill="#5865f2"/>
                 </svg>
             </div>
             
@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        <!-- User Profile Box (hiển thị khi đã đăng nhập) -->
+        <!-- Profile Box -->
         <div class="profile-box" id="profileBox" style="display: none;">
             <div class="profile-header">
                 <div class="avatar-container">
@@ -104,6 +104,141 @@
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Lấy các element
+    const loginBtn = document.getElementById('loginBtn');
+    const loading = document.getElementById('loading');
+    const loginBox = document.getElementById('loginBox');
+    const profileBox = document.getElementById('profileBox');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Kiểm tra URL có thông tin đăng nhập không
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+        const token = params.get('token');
+        if (token) {
+            try {
+                const userData = JSON.parse(atob(token));
+                localStorage.setItem('discord_user', JSON.stringify(userData));
+                localStorage.setItem('auth_token', token);
+                showProfile(userData);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đăng nhập thành công!',
+                    text: `Chào mừng ${userData.globalName || userData.username}!`,
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    confirmButtonColor: '#5865f2',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (e) {
+                console.error('Token error:', e);
+            }
+        }
+        // Xóa URL params
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    // Kiểm tra đã đăng nhập chưa
+    const existingUser = localStorage.getItem('discord_user');
+    const existingToken = localStorage.getItem('auth_token');
+    if (existingUser && existingToken) {
+        try {
+            const userData = JSON.parse(existingUser);
+            const age = Date.now() - userData.timestamp;
+            if (age < 24 * 60 * 60 * 1000) {
+                showProfile(userData);
+            } else {
+                localStorage.clear();
+            }
+        } catch (e) {
+            localStorage.clear();
+        }
+    }
+
+    // Event listeners
+    if (loginBtn) {
+        loginBtn.addEventListener('click', function() {
+            loginBtn.style.display = 'none';
+            loading.style.display = 'flex';
+            window.location.href = '/api/auth?action=login';
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Đăng xuất?',
+                text: "Bạn có chắc muốn đăng xuất không?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Đăng xuất',
+                cancelButtonText: 'Hủy',
+                background: '#1a1a1a',
+                color: '#ffffff'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.clear();
+                    window.location.reload();
+                }
+            });
+        });
+    }
+
+    function showProfile(userData) {
+        loginBox.style.display = 'none';
+        profileBox.style.display = 'block';
+
+        // Update avatar
+        const avatar = document.getElementById('userAvatar');
+        if (avatar) {
+            avatar.src = userData.avatar 
+                ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=256`
+                : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        }
+
+        // Update name
+        const name = document.getElementById('userName');
+        if (name) {
+            let displayName = userData.globalName || userData.username;
+            if (userData.discriminator && userData.discriminator !== '0') {
+                displayName += `#${userData.discriminator}`;
+            }
+            name.textContent = displayName;
+        }
+
+        // Update days in server
+        const days = document.getElementById('daysInServer');
+        if (days) {
+            days.textContent = userData.daysInServer !== undefined 
+                ? `${userData.daysInServer} ngày` 
+                : 'Không xác định';
+        }
+
+        // Update join date
+        const joinDate = document.getElementById('joinDate');
+        if (joinDate) {
+            if (userData.joinedAt) {
+                try {
+                    const date = new Date(userData.joinedAt);
+                    joinDate.textContent = date.toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } catch (e) {
+                    joinDate.textContent = 'Không xác định';
+                }
+            } else {
+                joinDate.textContent = 'Không xác định';
+            }
+        }
+    }
+});
+    </script>
 </body>
 </html>
