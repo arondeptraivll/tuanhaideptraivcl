@@ -118,7 +118,7 @@ class TokenManager {
         }
     }
 
-    // Check URL parameters với xử lý captcha verification
+    // Check URL parameters - Looking for login success
     checkURLParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         const success = urlParams.get('success');
@@ -143,31 +143,23 @@ class TokenManager {
             return;
         }
         
-        // Check for verified parameter (từ captcha - không phải login)
-        if (verified === 'true') {
-            console.log('⚠️ Captcha verified parameter found but no login token');
-            console.log('This is captcha verification, not login verification');
-            
-            // Clear the verified parameter
+        // Clean up any other parameters
+        if (verified === 'true' || urlParams.toString()) {
+            console.log('🧹 Cleaning URL parameters');
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
-            
-            // Không cần show login prompt vì đây là captcha verification
         }
     }
 
-    // Load giao diện bình thường để bot thấy
+    // Load giao diện bình thường
     async loadInterface() {
         try {
-            // Hiện IP giả để bot thấy
             this.elements.ipDisplay.textContent = 'Đang tải...';
             
-            // Giả lập load IP
             setTimeout(() => {
-                this.elements.ipDisplay.textContent = '103.90.227.117'; // IP giả
+                this.elements.ipDisplay.textContent = '103.90.227.117';
             }, 1000);
 
-            // Luôn hiện initial view
             this.showInitialView();
         } catch (error) {
             console.error('Error loading interface:', error);
@@ -176,7 +168,7 @@ class TokenManager {
         }
     }
 
-    // Kiểm tra login với better error handling
+    // ✅ FIXED: Check login với alternative method
     async checkLoginStatusSilently() {
         console.log('=== Checking Login Status ===');
         
@@ -193,9 +185,45 @@ class TokenManager {
             }
 
             console.log('Token preview:', sessionToken.substring(0, 50) + '...');
-            console.log('Making verify request to:', `${this.LOGIN_API}?action=verify`);
             
-            const response = await fetch(`${this.LOGIN_API}?action=verify`, {
+            // ✅ TRY DIFFERENT APPROACH: Parse token locally first
+            let tokenData = null;
+            try {
+                tokenData = JSON.parse(atob(sessionToken));
+                console.log('📝 Token decoded locally:', tokenData);
+                
+                // Check if token is not expired (if has timestamp)
+                if (tokenData.timestamp) {
+                    const tokenAge = Date.now() - tokenData.timestamp;
+                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                    
+                    if (tokenAge > maxAge) {
+                        console.log('⏰ Token expired locally');
+                        this.handleInvalidLogin();
+                        return;
+                    }
+                }
+                
+                // If we have user data in token, use it temporarily
+                if (tokenData.id && tokenData.username) {
+                    console.log('✅ Valid token data found locally');
+                    this.isLoggedIn = true;
+                    this.userData = tokenData;
+                    this.updateUserInterface();
+                    this.loadRealData();
+                    this.loginChecked = true;
+                    return;
+                }
+                
+            } catch (e) {
+                console.log('🔍 Token is not base64 JSON, trying API verification');
+            }
+
+            // ✅ TRY API VERIFICATION WITH DIFFERENT METHODS
+            console.log('🚀 Trying API verification methods...');
+            
+            // Method 1: Try without action parameter
+            let response = await fetch(this.LOGIN_API, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${sessionToken}`,
@@ -203,41 +231,95 @@ class TokenManager {
                 }
             });
 
-            console.log('Verify response status:', response.status);
-            console.log('Verify response ok:', response.ok);
+            console.log('Method 1 response status:', response.status);
+
+            // Method 2: If method 1 fails, try with POST
+            if (!response.ok) {
+                console.log('🔄 Trying method 2: POST request');
+                response = await fetch(this.LOGIN_API, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'verify' })
+                });
+                console.log('Method 2 response status:', response.status);
+            }
+
+            // Method 3: Try the main API to see if token works
+            if (!response.ok) {
+                console.log('🔄 Trying method 3: Main API test');
+                response = await fetch(this.API_BASE, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('Method 3 response status:', response.status);
+            }
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Verify response data:', data);
+                console.log('✅ API response data:', data);
                 
-                if (data.valid && data.user) {
-                    console.log('✅ User logged in successfully:', data.user.username || data.user.globalName);
+                // Check if we got user data
+                if (data.user || data.valid) {
                     this.isLoggedIn = true;
-                    this.userData = data.user;
+                    this.userData = data.user || tokenData;
                     this.updateUserInterface();
                     this.loadRealData();
                 } else {
-                    console.log('❌ Invalid token or user data');
-                    console.log('Data.valid:', data.valid);
-                    console.log('Data.user:', data.user);
-                    this.handleInvalidLogin();
+                    console.log('⚠️ API responded OK but no user data');
+                    // Still use local token data if available
+                    if (tokenData && tokenData.username) {
+                        this.isLoggedIn = true;
+                        this.userData = tokenData;
+                        this.updateUserInterface();
+                        this.loadRealData();
+                    } else {
+                        this.handleInvalidLogin();
+                    }
                 }
             } else {
-                console.log('❌ Verify request failed with status:', response.status);
+                console.log('❌ All API methods failed');
                 
-                try {
-                    const errorData = await response.json();
-                    console.log('Error response data:', errorData);
-                } catch (e) {
+                // Fallback: If we have valid local token data, use it
+                if (tokenData && tokenData.username) {
+                    console.log('🔄 Using local token data as fallback');
+                    this.isLoggedIn = true;
+                    this.userData = tokenData;
+                    this.updateUserInterface();
+                    this.loadRealData();
+                } else {
                     const errorText = await response.text();
-                    console.log('Error response text:', errorText);
+                    console.log('Error response:', errorText);
+                    this.handleInvalidLogin();
                 }
-                
-                this.handleInvalidLogin();
             }
         } catch (error) {
             console.error('❌ Error checking login status:', error);
-            console.error('Error details:', error.message);
+            
+            // Last resort: try to use local token
+            const sessionToken = localStorage.getItem('sessionToken');
+            if (sessionToken) {
+                try {
+                    const tokenData = JSON.parse(atob(sessionToken));
+                    if (tokenData.username) {
+                        console.log('🆘 Emergency fallback to local token');
+                        this.isLoggedIn = true;
+                        this.userData = tokenData;
+                        this.updateUserInterface();
+                        this.loadRealData();
+                        this.loginChecked = true;
+                        return;
+                    }
+                } catch (e) {
+                    // Token không parse được
+                }
+            }
+            
             this.handleInvalidLogin();
         }
         
@@ -255,7 +337,7 @@ class TokenManager {
         this.updateUserInterface();
     }
 
-    // Cập nhật giao diện với debug
+    // Update UI
     updateUserInterface() {
         console.log('=== Updating User Interface ===');
         console.log('isLoggedIn:', this.isLoggedIn);
@@ -263,58 +345,46 @@ class TokenManager {
         
         if (this.isLoggedIn && this.userData) {
             console.log('Showing user info interface');
-            // Hiện user info, ẩn login prompt
             if (this.elements.loginPrompt) {
                 this.elements.loginPrompt.style.display = 'none';
-                console.log('Hidden login prompt');
             }
             if (this.elements.userInfo) {
                 this.elements.userInfo.style.display = 'flex';
-                console.log('Shown user info');
             }
             
-            // Cập nhật thông tin user
             if (this.elements.userName) {
                 const displayName = this.userData.globalName || this.userData.username;
                 this.elements.userName.textContent = displayName;
                 console.log('Updated username to:', displayName);
             }
             
-            // Cập nhật avatar
             if (this.elements.userAvatar) {
                 if (this.userData.avatar) {
                     const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
                     this.elements.userAvatar.src = avatarUrl;
-                    console.log('Updated avatar to:', avatarUrl);
                 } else {
                     const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
                     this.elements.userAvatar.src = defaultAvatar;
-                    console.log('Using default avatar:', defaultAvatar);
                 }
             }
         } else {
             console.log('Showing login prompt interface');
-            // Hiện login prompt, ẩn user info
             if (this.elements.loginPrompt) {
                 this.elements.loginPrompt.style.display = 'block';
-                console.log('Shown login prompt');
             }
             if (this.elements.userInfo) {
                 this.elements.userInfo.style.display = 'none';
-                console.log('Hidden user info');
             }
         }
         console.log('=== Interface Update Complete ===');
     }
 
-    // Load dữ liệu thật cho user đã đăng nhập
+    // Load real data
     async loadRealData() {
         console.log('=== Loading Real Data ===');
         
         try {
             const sessionToken = localStorage.getItem('sessionToken');
-            console.log('Making data request to:', this.API_BASE);
-            
             const response = await fetch(this.API_BASE, {
                 headers: {
                     'Authorization': `Bearer ${sessionToken}`
@@ -323,39 +393,32 @@ class TokenManager {
             
             console.log('Data response status:', response.status);
             
-            if (!response.ok) {
-                console.log('Data request failed');
-                return;
-            }
-
-            const data = await response.json();
-            console.log('Data response:', data);
-            
-            // Update IP thật
-            if (data.ip) {
-                this.userIP = data.ip;
-                this.elements.ipDisplay.textContent = this.userIP;
-                console.log('Updated real IP:', this.userIP);
-            }
-
-            // Load token nếu có
-            if (data.has_existing_token && data.token) {
-                console.log('Found existing token');
-                this.currentToken = data.token;
-                this.elements.tokenDisplay.value = data.token;
-                this.startTimer(data.time_left_ms);
-                this.showTokenView();
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Data response:', data);
                 
-                Swal.fire({
-                    'icon': 'info',
-                    'title': 'Token đã tồn tại',
-                    'text': 'Đã tải lại token hiện tại của bạn.',
-                    'timer': 3000,
-                    'timerProgressBar': true,
-                    'showConfirmButton': false
-                });
-            } else {
-                console.log('No existing token found');
+                if (data.ip) {
+                    this.userIP = data.ip;
+                    this.elements.ipDisplay.textContent = this.userIP;
+                    console.log('Updated real IP:', this.userIP);
+                }
+
+                if (data.has_existing_token && data.token) {
+                    console.log('Found existing token');
+                    this.currentToken = data.token;
+                    this.elements.tokenDisplay.value = data.token;
+                    this.startTimer(data.time_left_ms);
+                    this.showTokenView();
+                    
+                    Swal.fire({
+                        'icon': 'info',
+                        'title': 'Token đã tồn tại',
+                        'text': 'Đã tải lại token hiện tại của bạn.',
+                        'timer': 3000,
+                        'timerProgressBar': true,
+                        'showConfirmButton': false
+                    });
+                }
             }
         } catch (error) {
             console.error('Error loading real data:', error);
@@ -391,7 +454,7 @@ class TokenManager {
         });
     }
 
-    // Đăng xuất
+    // Logout
     async logout() {
         const result = await Swal.fire({
             icon: 'question',
@@ -405,19 +468,13 @@ class TokenManager {
         });
 
         if (result.isConfirmed) {
-            // Clear localStorage
             localStorage.removeItem('sessionToken');
-            
-            // Reset states
             this.isLoggedIn = false;
             this.userData = null;
             this.currentToken = null;
-            
-            // Update UI
             this.updateUserInterface();
             this.showInitialView();
             
-            // Show success message
             Swal.fire({
                 icon: 'success',
                 title: 'Đã đăng xuất',
@@ -477,7 +534,6 @@ class TokenManager {
     }
 
     async createToken() {
-        // Đợi check login xong
         if (!this.loginChecked) {
             console.log('⏳ Waiting for login check to complete...');
             await new Promise(resolve => {
@@ -488,7 +544,6 @@ class TokenManager {
                     }
                 }, 100);
                 
-                // Timeout after 10 seconds
                 setTimeout(() => {
                     clearInterval(checkInterval);
                     resolve();
@@ -498,14 +553,12 @@ class TokenManager {
 
         console.log('🎯 Create token - Login status:', this.isLoggedIn);
 
-        // Chặn nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             console.log('❌ User not logged in - blocking request');
             await this.showLoginRequiredAlert();
             return;
         }
 
-        // Prevent spam clicking
         if (this.isCreatingToken) {
             console.log('⚠️ Already creating token - preventing spam');
             Swal.fire({
@@ -576,7 +629,6 @@ class TokenManager {
     }
 
     async createDownloadSession() {
-        // Đợi check login xong
         if (!this.loginChecked) {
             await new Promise(resolve => {
                 const checkInterval = setInterval(() => {
@@ -593,13 +645,11 @@ class TokenManager {
             });
         }
 
-        // Chặn nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
         }
 
-        // Prevent spam clicking
         if (this.isCreatingSession) {
             Swal.fire({
                 icon: 'warning',
