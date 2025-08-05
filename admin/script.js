@@ -1,69 +1,39 @@
-// admin/script.js - Ultimate Admin Dashboard with Session Termination
+// admin/script.js - SIMPLE VERSION - NO BLACKLIST
 class GemloginAdmin {
     constructor() {
         this.password = 'TuanHai45191';
         this.users = [];
         this.filteredUsers = [];
         this.currentPage = 'users';
-        this.deletedUsers = new Set(); // 🆕 BLACKLIST
         this.init();
     }
 
     init() {
         console.log('🚀 Gemlogin Admin Panel Loading...');
-        this.loadDeletedUsers(); // 🆕 Load blacklist
         this.bindEvents();
         this.checkAuth();
     }
 
-    // 🆕 BLACKLIST SYSTEM
-    loadDeletedUsers() {
-        try {
-            const deleted = localStorage.getItem('gemlogin_deleted_users');
-            this.deletedUsers = deleted ? new Set(JSON.parse(deleted)) : new Set();
-            console.log('📋 Loaded blacklist:', this.deletedUsers.size, 'users');
-        } catch (error) {
-            this.deletedUsers = new Set();
-        }
-    }
-
-    saveDeletedUsers() {
-        localStorage.setItem('gemlogin_deleted_users', JSON.stringify([...this.deletedUsers]));
-    }
-
-    addToBlacklist(userId) {
-        this.deletedUsers.add(userId);
-        this.saveDeletedUsers();
-        
-        // 🔥 FORCE LOGOUT USER IMMEDIATELY
-        this.forceLogoutUser(userId);
-        console.log('🚫 Added to blacklist:', userId);
-    }
-
-    // 🔥 FORCE LOGOUT SPECIFIC USER
-    forceLogoutUser(userId) {
-        // Clear user session if they're currently logged in
+    // 🔥 SIMPLE KICK USER - NO BAN
+    kickUser(userId) {
         try {
             const currentUser = localStorage.getItem('discord_user');
             if (currentUser) {
                 const userData = JSON.parse(currentUser);
                 if ((userData.id || userData.discord_id) === userId) {
-                    // User is currently logged in - FORCE LOGOUT
+                    // User đang login - KICK THEM OUT
                     localStorage.removeItem('discord_user');
                     localStorage.removeItem('auth_token');
-                    console.log('🔥 FORCE LOGGED OUT current user:', userId);
                     
-                    // Show notification
-                    this.showAlert('success', 'User Session Terminated', 
-                        'The user has been logged out immediately.');
+                    // Set kick flag (temporary - 1 hour)
+                    localStorage.setItem(`user_kicked_${userId}`, Date.now().toString());
+                    
+                    console.log('🦵 KICKED user:', userId);
                 }
             }
         } catch (error) {
-            console.error('Error force logging out user:', error);
+            console.error('Error kicking user:', error);
         }
-        
-        // Set termination flag for user
-        localStorage.setItem(`user_terminated_${userId}`, Date.now().toString());
     }
 
     bindEvents() {
@@ -149,14 +119,8 @@ class GemloginAdmin {
         this.showLoading(true);
         
         try {
-            // Get from localStorage first
+            // Get ALL users from localStorage - NO FILTER
             this.users = this.getStoredUsers();
-            
-            // Filter out blacklisted users
-            this.users = this.users.filter(user => {
-                const userId = user.discord_id || user.id;
-                return !this.isUserBlacklisted(userId);
-            });
             
             // Try API if available
             try {
@@ -165,17 +129,15 @@ class GemloginAdmin {
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.users) {
-                        this.users = data.users.filter(user => {
-                            const userId = user.discord_id || user.id;
-                            return !this.isUserBlacklisted(userId);
-                        });
+                    if (data.users && data.users.length > 0) {
+                        this.users = data.users;
                     }
                 }
             } catch (error) {
                 console.log('API not available, using localStorage');
             }
 
+            console.log(`📊 Loaded ${this.users.length} users`);
             this.filteredUsers = [...this.users];
             this.renderUsers();
             this.updateStats();
@@ -189,8 +151,11 @@ class GemloginAdmin {
     getStoredUsers() {
         try {
             const stored = localStorage.getItem('admin_users');
-            return stored ? JSON.parse(stored) : [];
+            const users = stored ? JSON.parse(stored) : [];
+            console.log(`📦 Found ${users.length} users in localStorage`);
+            return users;
         } catch (error) {
+            console.error('Error reading localStorage:', error);
             return [];
         }
     }
@@ -255,8 +220,8 @@ class GemloginAdmin {
                         <button class="action-btn" onclick="gemloginAdmin.viewUser('${id}')" title="View Details">
                             👁️
                         </button>
-                        <button class="action-btn delete-btn" onclick="gemloginAdmin.deleteUser('${id}')" title="Delete User">
-                            🗑️
+                        <button class="action-btn kick-btn" onclick="gemloginAdmin.kickAndDelete('${id}')" title="Kick & Delete">
+                            🦵
                         </button>
                     </div>
                 </td>
@@ -373,20 +338,20 @@ class GemloginAdmin {
         this.showAlert('info', `User: ${this.getDisplayName(user)}`, html);
     }
 
-    // 🆕 UPDATED DELETE USER FUNCTION
-    async deleteUser(userId) {
+    // 🆕 SIMPLE KICK AND DELETE
+    async kickAndDelete(userId) {
         const user = this.users.find(u => (u.discord_id || u.id) === userId);
         if (!user) return;
 
         const result = await this.showConfirm(
-            'Delete User & Terminate Session',
-            `Are you sure you want to delete ${this.getDisplayName(user)}?`,
-            'This will immediately log them out and ban their session.'
+            'Kick & Delete User',
+            `Kick ${this.getDisplayName(user)} out and delete their data?`,
+            'They will be logged out immediately but can login again.'
         );
 
         if (result.isConfirmed) {
-            // 1. Add to blacklist FIRST
-            this.addToBlacklist(userId);
+            // 1. Kick user out first
+            this.kickUser(userId);
             
             // 2. Remove from users list
             this.users = this.users.filter(u => (u.discord_id || u.id) !== userId);
@@ -413,14 +378,13 @@ class GemloginAdmin {
             this.updateStats();
             
             // 6. Show success
-            this.showAlert('success', 'User Deleted & Terminated', 
-                `${this.getDisplayName(user)} has been removed and logged out immediately.`);
+            this.showAlert('success', 'User Kicked & Deleted', 
+                `${this.getDisplayName(user)} has been kicked out and removed.`);
             
-            console.log('✅ User completely removed:', userId);
+            console.log('✅ User kicked and deleted:', userId);
         }
     }
 
-    // 🆕 UPDATED CLEAR ALL FUNCTION
     async clearAll() {
         if (this.users.length === 0) {
             this.showAlert('info', 'No Data', 'There are no users to delete.');
@@ -428,16 +392,16 @@ class GemloginAdmin {
         }
 
         const result = await this.showConfirm(
-            'Clear All Users & Sessions',
-            `Delete all ${this.users.length} users and terminate all sessions?`,
-            'This will immediately log out ALL users and clear all data.'
+            'Clear All Users',
+            `Delete all ${this.users.length} users?`,
+            'This will kick out all logged in users and clear data.'
         );
 
         if (result.isConfirmed) {
             // Show progress
             Swal.fire({
-                title: 'Terminating All Sessions...',
-                text: 'Please wait while we clear all data...',
+                title: 'Clearing All Users...',
+                text: 'Please wait...',
                 background: '#1e293b',
                 color: '#ffffff',
                 allowOutsideClick: false,
@@ -446,11 +410,11 @@ class GemloginAdmin {
                 }
             });
 
-            // Add all users to blacklist
+            // Kick all currently logged in users
             this.users.forEach(user => {
                 const userId = user.discord_id || user.id;
                 if (userId) {
-                    this.addToBlacklist(userId);
+                    this.kickUser(userId);
                 }
             });
 
@@ -459,12 +423,9 @@ class GemloginAdmin {
             this.filteredUsers = [];
             this.saveUsers();
             
-            // Force clear all possible user sessions
+            // Clear current session if any
             localStorage.removeItem('discord_user');
             localStorage.removeItem('auth_token');
-            
-            // Set global termination flag
-            localStorage.setItem('all_users_terminated', Date.now().toString());
 
             setTimeout(() => {
                 this.renderUsers();
@@ -472,27 +433,14 @@ class GemloginAdmin {
                 
                 Swal.fire({
                     icon: 'success',
-                    title: 'All Users Terminated',
-                    text: 'All users have been deleted and logged out immediately.',
+                    title: 'All Users Cleared',
+                    text: 'All users have been kicked and data cleared.',
                     background: '#1e293b',
                     color: '#ffffff',
                     confirmButtonColor: '#059669'
                 });
             }, 2000);
         }
-    }
-
-    // 🆕 CHECK IF USER IS BLACKLISTED
-    isUserBlacklisted(userId) {
-        return this.deletedUsers.has(userId);
-    }
-
-    // 🆕 UNBAN USER (optional feature)
-    async unbanUser(userId) {
-        this.deletedUsers.delete(userId);
-        this.saveDeletedUsers();
-        localStorage.removeItem(`user_terminated_${userId}`);
-        console.log('✅ User unbanned:', userId);
     }
 
     search(query) {
@@ -564,12 +512,7 @@ class GemloginAdmin {
     }
 
     saveUsers() {
-        // Filter out blacklisted users before saving
-        const usersToSave = this.users.filter(user => {
-            const userId = user.discord_id || user.id;
-            return !this.isUserBlacklisted(userId);
-        });
-        localStorage.setItem('admin_users', JSON.stringify(usersToSave));
+        localStorage.setItem('admin_users', JSON.stringify(this.users));
     }
 
     logout() {
@@ -607,7 +550,7 @@ class GemloginAdmin {
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, delete',
+            confirmButtonText: 'Yes, proceed',
             cancelButtonText: 'Cancel',
             background: '#1e293b',
             color: '#ffffff'
@@ -618,32 +561,29 @@ class GemloginAdmin {
 // Initialize
 const gemloginAdmin = new GemloginAdmin();
 
-// Global functions for easy debugging
+// Global functions
 window.gemloginAdmin = gemloginAdmin;
 window.debugUsers = () => console.table(gemloginAdmin.users);
-window.debugBlacklist = () => console.log('Blacklisted:', [...gemloginAdmin.deletedUsers]);
-window.clearBlacklist = () => {
-    gemloginAdmin.deletedUsers.clear();
-    gemloginAdmin.saveDeletedUsers();
-    localStorage.removeItem('all_users_terminated');
-    console.log('✅ Blacklist cleared');
-};
 window.addTestUser = () => {
     const testUser = {
         discord_id: '999' + Date.now(),
-        username: 'testuser',
-        global_name: 'Test User',
+        username: 'testuser_' + Math.floor(Math.random() * 1000),
+        global_name: 'Test User ' + Math.floor(Math.random() * 1000),
         avatar: null,
         joined_at: new Date().toISOString(),
         days_in_server: Math.floor(Math.random() * 100),
         last_login: Date.now(),
         login_count: Math.floor(Math.random() * 10) + 1
     };
-    gemloginAdmin.users.push(testUser);
-    gemloginAdmin.saveUsers();
+    
+    const currentUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+    currentUsers.push(testUser);
+    localStorage.setItem('admin_users', JSON.stringify(currentUsers));
+    
+    console.log('✅ Test user added:', testUser.username);
     gemloginAdmin.loadUsers();
 };
 
 console.log('🚀 Gemlogin Admin Panel Ready');
 console.log('Password: TuanHai45191');
-console.log('Debug commands: debugUsers(), debugBlacklist(), clearBlacklist()');
+console.log('Commands: debugUsers(), addTestUser()');
