@@ -7,11 +7,13 @@ class TokenManager {
         this.isCreatingToken = false;
         this.isCreatingSession = false;
         this.loginChecked = false;
+        this.userData = null;
         this.API_BASE = '/api/bypass_funlink';
         this.LOGIN_API = '/api/auth';
         this.initializeElements();
         this.setupEventListeners();
         this.setupSweetAlert();
+        this.setupUserMenu();
         // Luôn load giao diện trước, check login âm thầm
         this.loadInterface();
         this.checkLoginStatusSilently();
@@ -64,8 +66,40 @@ class TokenManager {
             'createTokenBtn': document.getElementById('createTokenBtn'),
             'tokenDisplay': document.getElementById('tokenDisplay'),
             'timerDisplay': document.getElementById('timerDisplay'),
-            'copyTokenBtn': document.getElementById('copyTokenBtn')
+            'copyTokenBtn': document.getElementById('copyTokenBtn'),
+            // User Info Elements
+            'loginPrompt': document.getElementById('loginPrompt'),
+            'userInfo': document.getElementById('userInfo'),
+            'userAvatar': document.getElementById('userAvatar'),
+            'userName': document.getElementById('userName'),
+            'userMenuBtn': document.getElementById('userMenuBtn'),
+            'dropdownMenu': document.getElementById('dropdownMenu'),
+            'logoutBtn': document.getElementById('logoutBtn')
         };
+    }
+
+    setupUserMenu() {
+        // Toggle dropdown menu
+        if (this.elements.userMenuBtn) {
+            this.elements.userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.elements.dropdownMenu.classList.toggle('show');
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            if (this.elements.dropdownMenu) {
+                this.elements.dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // Logout functionality
+        if (this.elements.logoutBtn) {
+            this.elements.logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
     }
 
     // Load giao diện bình thường để bot thấy
@@ -95,6 +129,7 @@ class TokenManager {
             if (!sessionToken) {
                 this.isLoggedIn = false;
                 this.loginChecked = true;
+                this.updateUserInterface();
                 return;
             }
 
@@ -110,22 +145,66 @@ class TokenManager {
                 const data = await response.json();
                 if (data.valid && data.user) {
                     this.isLoggedIn = true;
+                    this.userData = data.user;
                     console.log('User logged in:', data.user.username);
-                    // Load token thật nếu có
+                    this.updateUserInterface();
+                    // Load dữ liệu thật nếu có
                     this.loadRealData();
                 } else {
                     this.isLoggedIn = false;
+                    this.userData = null;
                     localStorage.removeItem('sessionToken');
+                    this.updateUserInterface();
                 }
             } else {
                 this.isLoggedIn = false;
+                this.userData = null;
                 localStorage.removeItem('sessionToken');
+                this.updateUserInterface();
             }
         } catch (error) {
             console.error('Error checking login status:', error);
             this.isLoggedIn = false;
+            this.userData = null;
+            this.updateUserInterface();
         }
         this.loginChecked = true;
+    }
+
+    // Cập nhật giao diện user info
+    updateUserInterface() {
+        if (this.isLoggedIn && this.userData) {
+            // Hiện user info, ẩn login prompt
+            if (this.elements.loginPrompt) {
+                this.elements.loginPrompt.style.display = 'none';
+            }
+            if (this.elements.userInfo) {
+                this.elements.userInfo.style.display = 'flex';
+            }
+            
+            // Cập nhật thông tin user
+            if (this.elements.userName) {
+                this.elements.userName.textContent = this.userData.globalName || this.userData.username;
+            }
+            
+            // Cập nhật avatar
+            if (this.elements.userAvatar && this.userData.avatar) {
+                const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
+                this.elements.userAvatar.src = avatarUrl;
+            } else if (this.elements.userAvatar) {
+                // Default avatar nếu không có
+                const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
+                this.elements.userAvatar.src = defaultAvatar;
+            }
+        } else {
+            // Hiện login prompt, ẩn user info
+            if (this.elements.loginPrompt) {
+                this.elements.loginPrompt.style.display = 'block';
+            }
+            if (this.elements.userInfo) {
+                this.elements.userInfo.style.display = 'none';
+            }
+        }
     }
 
     // Load dữ liệu thật cho user đã đăng nhập
@@ -185,14 +264,55 @@ class TokenManager {
         });
     }
 
-    setupEventListeners() {
-        this.elements.createTokenBtn.addEventListener('click', () => {
-            this.createToken();
+    // Đăng xuất
+    async logout() {
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Xác nhận đăng xuất',
+            text: 'Bạn có chắc chắn muốn đăng xuất?',
+            showCancelButton: true,
+            confirmButtonText: 'Đăng xuất',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ff4757',
+            cancelButtonColor: '#6c757d'
         });
 
-        this.elements.copyTokenBtn.addEventListener('click', () => {
-            this.copyToken();
-        });
+        if (result.isConfirmed) {
+            // Clear localStorage
+            localStorage.removeItem('sessionToken');
+            
+            // Reset states
+            this.isLoggedIn = false;
+            this.userData = null;
+            this.currentToken = null;
+            
+            // Update UI
+            this.updateUserInterface();
+            this.showInitialView();
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Đã đăng xuất',
+                text: 'Bạn đã đăng xuất thành công.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    }
+
+    setupEventListeners() {
+        if (this.elements.createTokenBtn) {
+            this.elements.createTokenBtn.addEventListener('click', () => {
+                this.createToken();
+            });
+        }
+
+        if (this.elements.copyTokenBtn) {
+            this.elements.copyTokenBtn.addEventListener('click', () => {
+                this.copyToken();
+            });
+        }
 
         const downloadTrigger = document.querySelector('#downloadTrigger');
         if (downloadTrigger) {
@@ -508,7 +628,9 @@ class TokenManager {
 
         const updateTimer = () => {
             if (secondsLeft <= 0) {
-                this.elements.timerDisplay.textContent = '00:00:00';
+                if (this.elements.timerDisplay) {
+                    this.elements.timerDisplay.textContent = '00:00:00';
+                }
                 this.stopTimer();
                 
                 Swal.fire({
@@ -528,14 +650,16 @@ class TokenManager {
             const minutes = Math.floor((secondsLeft % 3600) / 60);
             const seconds = secondsLeft % 60;
 
-            this.elements.timerDisplay.textContent = 
-                hours.toString().padStart(2, '0') + ':' +
-                minutes.toString().padStart(2, '0') + ':' +
-                seconds.toString().padStart(2, '0');
+            if (this.elements.timerDisplay) {
+                this.elements.timerDisplay.textContent = 
+                    hours.toString().padStart(2, '0') + ':' +
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
 
-            if (secondsLeft <= 300) {
-                this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
-                this.elements.timerDisplay.style.color = '#ff4757';
+                if (secondsLeft <= 300) {
+                    this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
+                    this.elements.timerDisplay.style.color = '#ff4757';
+                }
             }
 
             secondsLeft--;
@@ -607,8 +731,10 @@ class TokenManager {
         } catch (error) {
             console.error('Error copying token:', error);
             
-            this.elements.tokenDisplay.select();
-            this.elements.tokenDisplay.setSelectionRange(0, 99999);
+            if (this.elements.tokenDisplay) {
+                this.elements.tokenDisplay.select();
+                this.elements.tokenDisplay.setSelectionRange(0, 99999);
+            }
             
             try {
                 document.execCommand('copy');
