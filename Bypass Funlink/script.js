@@ -8,12 +8,10 @@ class TokenManager {
         this.isCreatingSession = false;
         this.loginChecked = false;
         this.userData = null;
-        this.ipSessionChecked = false;
         
         // API endpoints
         this.API_BASE = '/api/bypass_funlink';
         this.LOGIN_API = '/api/auth';
-        this.IP_SESSION_API = '/api/ip_session';
         
         this.initializeElements();
         this.setupEventListeners();
@@ -23,12 +21,10 @@ class TokenManager {
         // Check URL parameters first
         this.checkURLParameters();
         
-        // Load interface
+        // Load interface and check login
         this.loadInterface();
-        
-        // Check IP session first, then normal login
         setTimeout(() => {
-            this.checkIPSessionFirst();
+            this.checkLoginStatus();
         }, 500);
     }
 
@@ -111,23 +107,32 @@ class TokenManager {
         }
     }
 
+    // ✅ Check URL for login success
     checkURLParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         const success = urlParams.get('success');
         const token = urlParams.get('token');
         
         if (success === 'true' && token) {
-            const sessionToken = decodeURIComponent(token);
-            localStorage.setItem('sessionToken', sessionToken);
-            
-            // Save IP session for future direct access
-            this.saveIPSession(sessionToken);
+            console.log('✅ Login success detected, saving token');
+            localStorage.setItem('sessionToken', decodeURIComponent(token));
             
             // Clean URL
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
             
-            this.shouldRecheckLogin = true;
+            // Show success message
+            setTimeout(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đăng nhập thành công!',
+                    text: 'Chào mừng bạn đến với tool bypass.',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
+            }, 1000);
+            
             return;
         }
         
@@ -138,14 +143,14 @@ class TokenManager {
         }
     }
 
+    // ✅ Load interface với IP thật
     async loadInterface() {
         try {
             this.elements.ipDisplay.textContent = 'Đang tải...';
             
-            setTimeout(() => {
-                this.elements.ipDisplay.textContent = '103.90.227.117';
-            }, 1000);
-
+            // ✅ Lấy IP thật từ API thay vì fake
+            this.getRealIP();
+            
             this.showInitialView();
         } catch (error) {
             console.error('Error loading interface:', error);
@@ -154,233 +159,118 @@ class TokenManager {
         }
     }
 
-    async checkIPSessionFirst() {
+    // ✅ Lấy IP thật từ API
+    async getRealIP() {
         try {
-            const response = await fetch(this.IP_SESSION_API, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
+            // Try từ API chính trước
+            const response = await fetch(this.API_BASE);
             if (response.ok) {
                 const data = await response.json();
-
-                if (data.has_session && data.session_token) {
-                    // Auto login from IP session
-                    localStorage.setItem('sessionToken', data.session_token);
-                    
-                    // Show welcome back message
-                    const toastMixin = Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 4000,
-                        timerProgressBar: true
-                    });
-                    
-                    toastMixin.fire({
-                        icon: 'success',
-                        title: 'Chào mừng trở lại!',
-                        text: `Xin chào ${data.user.globalName || data.user.username}`
-                    });
-                    
-                    // Set user data and proceed
-                    if (data.user) {
-                        this.isLoggedIn = true;
-                        this.userData = data.user;
-                        this.updateUserInterface();
-                        this.loadRealData();
-                        this.loginChecked = true;
-                        this.ipSessionChecked = true;
-                        return;
-                    }
+                if (data.ip) {
+                    this.userIP = data.ip;
+                    this.elements.ipDisplay.textContent = data.ip;
+                    return;
                 }
             }
         } catch (error) {
-            console.error('Error checking IP session:', error);
+            console.log('Main API not available, trying backup IP services');
         }
-        
-        this.ipSessionChecked = true;
-        this.checkLoginStatusSilently();
-    }
 
-    async saveIPSession(sessionToken) {
+        // Fallback các IP service khác
         try {
-            let userData = null;
-            try {
-                userData = JSON.parse(atob(sessionToken));
-            } catch (e) {
-                return;
-            }
+            const ipServices = [
+                'https://api.ipify.org?format=json',
+                'https://httpbin.org/ip',
+                'https://api.ip.sb/ip'
+            ];
 
-            const response = await fetch(this.IP_SESSION_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    session_token: sessionToken,
-                    user_data: userData
-                })
-            });
-
-            if (response.ok) {
-                console.log('IP session saved successfully');
+            for (const service of ipServices) {
+                try {
+                    const response = await fetch(service);
+                    const data = await response.json();
+                    
+                    const ip = data.ip || data.origin || data;
+                    if (ip && typeof ip === 'string') {
+                        this.userIP = ip;
+                        this.elements.ipDisplay.textContent = ip;
+                        return;
+                    }
+                } catch (e) {
+                    continue;
+                }
             }
+            
+            // Final fallback
+            this.elements.ipDisplay.textContent = 'Không thể lấy IP';
         } catch (error) {
-            console.error('Error saving IP session:', error);
+            this.elements.ipDisplay.textContent = 'Lỗi lấy IP';
         }
     }
 
-    async checkLoginStatusSilently() {
-        if (this.loginChecked) {
-            return;
-        }
+    // ✅ Đơn giản check login - chỉ từ localStorage
+    async checkLoginStatus() {
+        console.log('=== Checking Login Status ===');
         
         try {
             const sessionToken = localStorage.getItem('sessionToken');
+            console.log('SessionToken found:', sessionToken ? 'YES' : 'NO');
             
             if (!sessionToken) {
+                console.log('❌ No session token - user not logged in');
                 this.isLoggedIn = false;
                 this.loginChecked = true;
                 this.updateUserInterface();
                 return;
             }
 
-            // Try to parse token locally first
+            // ✅ Parse token locally (đơn giản hơn)
             let tokenData = null;
             try {
                 tokenData = JSON.parse(atob(sessionToken));
+                console.log('📝 Token data:', tokenData);
                 
-                // Check token age
+                // Check token age (7 days max)
                 if (tokenData.timestamp) {
                     const tokenAge = Date.now() - tokenData.timestamp;
                     const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
                     
                     if (tokenAge > maxAge) {
+                        console.log('⏰ Token expired');
                         this.handleInvalidLogin();
                         return;
                     }
                 }
                 
-                // Use local token data if valid
+                // If we have valid user data
                 if (tokenData.id && tokenData.username) {
+                    console.log('✅ Valid login found');
                     this.isLoggedIn = true;
                     this.userData = tokenData;
                     this.updateUserInterface();
-                    this.loadRealData();
+                    this.loadUserData();
                     this.loginChecked = true;
                     return;
                 }
                 
             } catch (e) {
-                // Token parsing failed, try API
+                console.log('Token không parse được:', e.message);
+                this.handleInvalidLogin();
+                return;
             }
 
-            // Verify with API if local parsing failed
-            const response = await fetch(this.API_BASE, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${sessionToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                
-                if (data.user) {
-                    this.isLoggedIn = true;
-                    this.userData = data.user;
-                } else if (tokenData && tokenData.username) {
-                    this.isLoggedIn = true;
-                    this.userData = tokenData;
-                } else {
-                    this.handleInvalidLogin();
-                    return;
-                }
-                
-                this.updateUserInterface();
-                this.loadRealData();
-            } else {
-                // Use local token as fallback
-                if (tokenData && tokenData.username) {
-                    this.isLoggedIn = true;
-                    this.userData = tokenData;
-                    this.updateUserInterface();
-                    this.loadRealData();
-                } else {
-                    this.handleInvalidLogin();
-                }
-            }
+            console.log('❌ Invalid token data');
+            this.handleInvalidLogin();
+            
         } catch (error) {
-            console.error('Error checking login status:', error);
-            
-            // Emergency fallback
-            const sessionToken = localStorage.getItem('sessionToken');
-            if (sessionToken) {
-                try {
-                    const tokenData = JSON.parse(atob(sessionToken));
-                    if (tokenData.username) {
-                        this.isLoggedIn = true;
-                        this.userData = tokenData;
-                        this.updateUserInterface();
-                        this.loadRealData();
-                        this.loginChecked = true;
-                        return;
-                    }
-                } catch (e) {}
-            }
-            
+            console.error('❌ Error checking login:', error);
             this.handleInvalidLogin();
         }
         
         this.loginChecked = true;
     }
 
-    handleInvalidLogin() {
-        this.isLoggedIn = false;
-        this.userData = null;
-        localStorage.removeItem('sessionToken');
-        this.clearIPSession();
-        this.updateUserInterface();
-    }
-
-    updateUserInterface() {
-        if (this.isLoggedIn && this.userData) {
-            if (this.elements.loginPrompt) {
-                this.elements.loginPrompt.style.display = 'none';
-            }
-            if (this.elements.userInfo) {
-                this.elements.userInfo.style.display = 'flex';
-            }
-            
-            if (this.elements.userName) {
-                const displayName = this.userData.globalName || this.userData.username;
-                this.elements.userName.textContent = displayName;
-            }
-            
-            if (this.elements.userAvatar) {
-                if (this.userData.avatar) {
-                    const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
-                    this.elements.userAvatar.src = avatarUrl;
-                } else {
-                    const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
-                    this.elements.userAvatar.src = defaultAvatar;
-                }
-            }
-        } else {
-            if (this.elements.loginPrompt) {
-                this.elements.loginPrompt.style.display = 'block';
-            }
-            if (this.elements.userInfo) {
-                this.elements.userInfo.style.display = 'none';
-            }
-        }
-    }
-
-    async loadRealData() {
+    // ✅ Load user data sau khi verify login
+    async loadUserData() {
         try {
             const sessionToken = localStorage.getItem('sessionToken');
             const response = await fetch(this.API_BASE, {
@@ -392,11 +282,13 @@ class TokenManager {
             if (response.ok) {
                 const data = await response.json();
                 
-                if (data.ip) {
+                // Update real IP nếu API trả về
+                if (data.ip && data.ip !== this.userIP) {
                     this.userIP = data.ip;
-                    this.elements.ipDisplay.textContent = this.userIP;
+                    this.elements.ipDisplay.textContent = data.ip;
                 }
 
+                // Load existing token nếu có
                 if (data.has_existing_token && data.token) {
                     this.currentToken = data.token;
                     this.elements.tokenDisplay.value = data.token;
@@ -414,46 +306,76 @@ class TokenManager {
                 }
             }
         } catch (error) {
-            console.error('Error loading real data:', error);
+            console.error('Error loading user data:', error);
         }
     }
 
+    handleInvalidLogin() {
+        console.log('🧹 Invalid login - clearing data');
+        this.isLoggedIn = false;
+        this.userData = null;
+        localStorage.removeItem('sessionToken');
+        this.updateUserInterface();
+    }
+
+    updateUserInterface() {
+        if (this.isLoggedIn && this.userData) {
+            // Show user info
+            if (this.elements.loginPrompt) {
+                this.elements.loginPrompt.style.display = 'none';
+            }
+            if (this.elements.userInfo) {
+                this.elements.userInfo.style.display = 'flex';
+            }
+            
+            // Update user name
+            if (this.elements.userName) {
+                const displayName = this.userData.globalName || this.userData.username;
+                this.elements.userName.textContent = displayName;
+            }
+            
+            // Update avatar
+            if (this.elements.userAvatar) {
+                if (this.userData.avatar) {
+                    const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
+                    this.elements.userAvatar.src = avatarUrl;
+                } else {
+                    const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
+                    this.elements.userAvatar.src = defaultAvatar;
+                }
+            }
+        } else {
+            // Show login prompt
+            if (this.elements.loginPrompt) {
+                this.elements.loginPrompt.style.display = 'block';
+            }
+            if (this.elements.userInfo) {
+                this.elements.userInfo.style.display = 'none';
+            }
+        }
+    }
+
+    // ✅ Simple login required alert
     showLoginRequiredAlert() {
         return Swal.fire({
             icon: 'warning',
             title: 'Vui lòng đăng nhập',
             html: `
-                <p>Hãy đăng nhập để xem nội dung sau</p>
+                <p>Bạn cần đăng nhập để sử dụng chức năng này</p>
                 <p style="font-size: 0.9em; color: #ccc; margin-top: 10px;">
                     Bấm nút "Đăng nhập" ở góc phải để tiếp tục
                 </p>
             `,
             showCancelButton: true,
             confirmButtonText: 'Đăng nhập ngay',
-            cancelButtonText: 'Để sau',
+            cancelButtonText: 'Hủy',
             confirmButtonColor: '#00ff88',
-            cancelButtonColor: '#6c757d',
-            showCloseButton: true,
-            allowOutsideClick: true,
-            allowEscapeKey: true
+            cancelButtonColor: '#6c757d'
         }).then((result) => {
             if (result.isConfirmed) {
                 window.location.href = '/login';
             }
         });
-    }
-
-    async clearIPSession() {
-        try {
-            await fetch(this.IP_SESSION_API, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-        } catch (error) {
-            console.error('Error clearing IP session:', error);
-        }
     }
 
     async logout() {
@@ -469,18 +391,12 @@ class TokenManager {
         });
 
         if (result.isConfirmed) {
-            // Clear localStorage
+            // Clear data
             localStorage.removeItem('sessionToken');
-            
-            // Clear IP session
-            await this.clearIPSession();
-            
-            // Reset states
             this.isLoggedIn = false;
             this.userData = null;
             this.currentToken = null;
             this.loginChecked = false;
-            this.ipSessionChecked = false;
             
             // Update UI
             this.updateUserInterface();
@@ -544,7 +460,9 @@ class TokenManager {
         this.showView('loadingView');
     }
 
+    // ✅ Block actions nếu chưa login
     async createToken() {
+        // Wait for login check
         if (!this.loginChecked) {
             await new Promise(resolve => {
                 const checkInterval = setInterval(() => {
@@ -557,15 +475,17 @@ class TokenManager {
                 setTimeout(() => {
                     clearInterval(checkInterval);
                     resolve();
-                }, 10000);
+                }, 5000);
             });
         }
 
+        // ✅ Block nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
         }
 
+        // Prevent spam
         if (this.isCreatingToken) {
             Swal.fire({
                 icon: 'warning',
@@ -615,13 +535,12 @@ class TokenManager {
             throw new Error(data.message || data.error || 'Không thể tạo token');
         } catch (error) {
             console.error('Error creating token:', error);
-            const errorMessage = error.message || 'Lỗi kết nối đến máy chủ.';
             this.showInitialView();
             
             Swal.fire({
                 'icon': 'error',
                 'title': 'Lỗi tạo token',
-                'text': errorMessage,
+                'text': error.message || 'Lỗi kết nối đến máy chủ.',
                 'confirmButtonText': 'Thử lại'
             });
         } finally {
@@ -629,6 +548,7 @@ class TokenManager {
         }
     }
 
+    // ✅ Block download session nếu chưa login
     async createDownloadSession() {
         if (!this.loginChecked) {
             await new Promise(resolve => {
@@ -642,10 +562,11 @@ class TokenManager {
                 setTimeout(() => {
                     clearInterval(checkInterval);
                     resolve();
-                }, 10000);
+                }, 5000);
             });
         }
 
+        // ✅ Block nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
@@ -821,65 +742,7 @@ class TokenManager {
         }
     }
 
-    startTimer(timeLeftMs) {
-        this.stopTimer();
-        let secondsLeft = Math.floor(timeLeftMs / 1000);
-
-        const updateTimer = () => {
-            if (secondsLeft <= 0) {
-                if (this.elements.timerDisplay) {
-                    this.elements.timerDisplay.textContent = '00:00:00';
-                }
-                this.stopTimer();
-                
-                Swal.fire({
-                    'icon': 'warning',
-                    'title': 'Token đã hết hạn!',
-                    'text': 'Token của bạn đã hết hạn. Vui lòng tạo token mới.',
-                    'confirmButtonText': 'Tạo token mới'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        this.showInitialView();
-                    }
-                });
-                return;
-            }
-
-            const hours = Math.floor(secondsLeft / 3600);
-            const minutes = Math.floor((secondsLeft % 3600) / 60);
-            const seconds = secondsLeft % 60;
-
-            if (this.elements.timerDisplay) {
-                this.elements.timerDisplay.textContent = 
-                    hours.toString().padStart(2, '0') + ':' +
-                    minutes.toString().padStart(2, '0') + ':' +
-                    seconds.toString().padStart(2, '0');
-
-                if (secondsLeft <= 300) {
-                    this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
-                    this.elements.timerDisplay.style.color = '#ff4757';
-                }
-            }
-
-            secondsLeft--;
-        };
-
-        updateTimer();
-        this.timerInterval = setInterval(updateTimer, 1000);
-    }
-
-    stopTimer() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
-        }
-        
-        if (this.elements.timerDisplay) {
-            this.elements.timerDisplay.style.animation = '';
-            this.elements.timerDisplay.style.color = '#ff8800';
-        }
-    }
-
+    // ✅ Block copy nếu chưa login
     async copyToken() {
         if (!this.loginChecked) {
             await new Promise(resolve => {
@@ -893,7 +756,7 @@ class TokenManager {
                 setTimeout(() => {
                     clearInterval(checkInterval);
                     resolve();
-                }, 10000);
+                }, 5000);
             });
         }
 
@@ -962,6 +825,65 @@ class TokenManager {
                     'confirmButtonText': 'OK'
                 });
             }
+        }
+    }
+
+    startTimer(timeLeftMs) {
+        this.stopTimer();
+        let secondsLeft = Math.floor(timeLeftMs / 1000);
+
+        const updateTimer = () => {
+            if (secondsLeft <= 0) {
+                if (this.elements.timerDisplay) {
+                    this.elements.timerDisplay.textContent = '00:00:00';
+                }
+                this.stopTimer();
+                
+                Swal.fire({
+                    'icon': 'warning',
+                    'title': 'Token đã hết hạn!',
+                    'text': 'Token của bạn đã hết hạn. Vui lòng tạo token mới.',
+                    'confirmButtonText': 'Tạo token mới'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.showInitialView();
+                    }
+                });
+                return;
+            }
+
+            const hours = Math.floor(secondsLeft / 3600);
+            const minutes = Math.floor((secondsLeft % 3600) / 60);
+            const seconds = secondsLeft % 60;
+
+            if (this.elements.timerDisplay) {
+                this.elements.timerDisplay.textContent = 
+                    hours.toString().padStart(2, '0') + ':' +
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
+
+                if (secondsLeft <= 300) {
+                    this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
+                    this.elements.timerDisplay.style.color = '#ff4757';
+                }
+            }
+
+            secondsLeft--;
+        };
+
+        updateTimer();
+        this.timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        
+        if (this.elements.timerDisplay) {
+            this.elements.timerDisplay.style.animation = '';
+            this.elements.timerDisplay.style.color = '#ff8800';
         }
     }
 }
