@@ -19,6 +19,35 @@ export default async function handler(req, res) {
                   '127.0.0.1';
 
   const PRODUCTION_URL = 'https://tuanhaideptraivcl.vercel.app';
+  const BLACKLIST_URL = 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/blacklist.txt';
+
+  // ✅ Helper function to check blacklist
+  async function isUserBlacklisted(userId) {
+    try {
+      const response = await fetch(BLACKLIST_URL);
+      if (!response.ok) {
+        console.error('Failed to fetch blacklist:', response.status);
+        return false; // Fail open - don't block if can't check
+      }
+      
+      const blacklistText = await response.text();
+      const blacklistedIds = blacklistText
+        .split('\n')
+        .map(id => id.trim())
+        .filter(id => id.length > 0);
+      
+      const isBlocked = blacklistedIds.includes(userId);
+      
+      if (isBlocked) {
+        console.log(`🚫 User ${userId} is blacklisted`);
+      }
+      
+      return isBlocked;
+    } catch (error) {
+      console.error('Error checking blacklist:', error);
+      return false; // Fail open
+    }
+  }
 
   if (method === 'GET') {
     // ✅ Token verification endpoint
@@ -39,6 +68,17 @@ export default async function handler(req, res) {
       try {
         const tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
         console.log('Token decoded:', { id: tokenData.id, username: tokenData.username });
+
+        // Check if user is blacklisted
+        if (await isUserBlacklisted(tokenData.id)) {
+          console.log('Token belongs to blacklisted user');
+          clearIPSession(clientIP);
+          return res.status(403).json({ 
+            valid: false, 
+            error: 'User is blacklisted',
+            blacklisted: true 
+          });
+        }
 
         // Check token age (7 days max)
         if (tokenData.timestamp) {
@@ -91,6 +131,17 @@ export default async function handler(req, res) {
       const session = getIPSession(clientIP);
       
       if (session && session.valid) {
+        // Check if user is blacklisted
+        if (await isUserBlacklisted(session.user.id)) {
+          console.log('Session belongs to blacklisted user');
+          clearIPSession(clientIP);
+          return res.status(200).json({
+            has_session: false,
+            blacklisted: true,
+            ip: clientIP
+          });
+        }
+        
         console.log('✅ Found valid IP session for:', session.user.username);
         return res.status(200).json({
           has_session: true,
@@ -182,6 +233,13 @@ export default async function handler(req, res) {
 
         const userData = await userResponse.json();
         console.log('User logged in:', { id: userData.id, username: userData.username });
+
+        // ✅ CHECK BLACKLIST
+        if (await isUserBlacklisted(userData.id)) {
+          console.log('🚫 BLOCKED USER ATTEMPTED LOGIN:', userData.id, userData.username);
+          // Redirect to home with blacklisted flag
+          return res.redirect(`${PRODUCTION_URL}/?blacklisted=true&user=${encodeURIComponent(userData.username)}`);
+        }
 
         // Check guild membership (optional)
         const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
