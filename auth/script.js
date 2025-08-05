@@ -111,89 +111,184 @@ async function getUserIP() {
     }
 }
 
-window.addEventListener('load', async () => {
-    log('Page loaded, starting auth check');
+// ⭐ CRITICAL: Bắt code ngay khi page load, TRƯỚC KHI LÀM GÌ KHÁC
+window.addEventListener('DOMContentLoaded', async () => {
+    log('DOM loaded, checking for Discord code IMMEDIATELY');
     
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const error = urlParams.get('error');
     
+    // PRIORITY 1: Xử lý Discord code ngay lập tức
     if (code) {
-        log('Found Discord code: ' + code.substring(0, 10) + '...');
+        log('🚨 CRITICAL: Discord code detected: ' + code.substring(0, 10) + '...');
+        log('🚨 Processing auth IMMEDIATELY to prevent code loss');
+        
+        // Hiển thị loading ngay
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('userInfo').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+        document.querySelector('#loading p').textContent = 'Đang xử lý Discord code...';
+        
+        // Block navigation để không bị mất code
+        window.onbeforeunload = function() {
+            return 'Đang xử lý đăng nhập, vui lòng đợi...';
+        };
+        
+        // Process auth ngay lập tức
         await handleDiscordCallback(code);
+        
+        // Clear code khỏi URL để tránh re-process
         window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-        log('No code found, checking existing login');
-        await checkExistingLogin();
+        
+        // Unblock navigation
+        window.onbeforeunload = null;
+        
+        return; // STOP HERE, không chạy checkExistingLogin
     }
+    
+    // PRIORITY 2: Xử lý Discord error
+    if (error) {
+        log('Discord error detected: ' + error);
+        showDiscordError(error, urlParams.get('error_description'));
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
+    
+    // PRIORITY 3: Không có code, check existing login
+    log('No Discord code, proceeding with normal auth check');
+    await checkExistingLogin();
 });
+
+function showDiscordError(error, description) {
+    let errorMessage = 'Đăng nhập thất bại';
+    
+    switch (error) {
+        case 'access_denied':
+            errorMessage = 'Bạn đã từ chối quyền truy cập';
+            break;
+        case 'invalid_request':
+            errorMessage = 'Yêu cầu không hợp lệ';
+            break;
+        case 'unauthorized_client':
+            errorMessage = 'Ứng dụng không được phép';
+            break;
+        default:
+            errorMessage = description || 'Lỗi không xác định từ Discord';
+    }
+    
+    showError(errorMessage);
+}
 
 async function handleDiscordCallback(code) {
     try {
-        log('Processing Discord callback');
-        
-        document.getElementById('loading').style.display = 'block';
-        document.querySelector('#loading p').textContent = 'Đang xác thực với Discord';
+        log('🔥 PROCESSING DISCORD CALLBACK - NO INTERRUPTION ALLOWED');
         
         const userIP = await getUserIP();
         log('Processing auth for IP: ' + userIP);
         
-        const response = await fetch('/api/auth', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code, ip: userIP })
-        });
+        // Gọi auth API với retry mechanism
+        let authSuccess = false;
+        let authData = null;
+        let attempts = 0;
+        const maxAttempts = 3;
         
-        log('Auth API response status: ' + response.status);
-        
-        if (!response.ok) {
-            throw new Error(`Auth API failed: ${response.status}`);
+        while (!authSuccess && attempts < maxAttempts) {
+            attempts++;
+            log(`Auth attempt ${attempts}/${maxAttempts}`);
+            
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code, ip: userIP })
+                });
+                
+                log('Auth API response status: ' + response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('Auth API error: ' + errorText);
+                    throw new Error(`Auth API failed: ${response.status} - ${errorText}`);
+                }
+                
+                authData = await response.json();
+                log('Auth response: ' + JSON.stringify(authData));
+                
+                if (authData.success) {
+                    authSuccess = true;
+                    break;
+                } else {
+                    log('Auth failed: ' + authData.message);
+                    if (attempts === maxAttempts) {
+                        throw new Error(authData.message || 'Authentication failed');
+                    }
+                }
+            } catch (error) {
+                log(`Auth attempt ${attempts} failed: ${error.message}`);
+                if (attempts === maxAttempts) {
+                    throw error;
+                }
+                // Wait 1 second before retry
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
         
-        const data = await response.json();
-        log('Auth response: ' + JSON.stringify(data));
-        
-        if (data.success) {
-            log('Auth successful for: ' + data.user.username);
-            showUserInfo(data.user);
+        if (authSuccess && authData.success) {
+            log('🎉 AUTH SUCCESS for: ' + authData.user.username);
             
-            // Force save to both localStorage AND sessionStorage
-            const authData = {
-                user: data.user,
+            // FORCE SAVE ngay lập tức
+            const authObj = {
+                user: authData.user,
                 timestamp: Date.now(),
                 ip: userIP
             };
             
-            localStorage.setItem('discordAuth', JSON.stringify(authData));
-            sessionStorage.setItem('discordAuthBackup', JSON.stringify(authData));
+            // Triple save cho chắc chắn
+            localStorage.setItem('discordAuth', JSON.stringify(authObj));
+            sessionStorage.setItem('discordAuthBackup', JSON.stringify(authObj));
+            sessionStorage.setItem('discordAuthUltimate', JSON.stringify(authObj));
             
-            log('Saved auth data to both storages');
+            log('🔒 FORCE SAVED auth data to ALL storages');
+            
+            // Verify save
+            const saved1 = localStorage.getItem('discordAuth');
+            const saved2 = sessionStorage.getItem('discordAuthBackup');
+            log('Verify save - LocalStorage: ' + (saved1 ? 'OK' : 'FAIL'));
+            log('Verify save - SessionStorage: ' + (saved2 ? 'OK' : 'FAIL'));
+            
+            showUserInfo(authData.user);
             
             Swal.fire({
                 icon: 'success',
-                title: 'Đăng nhập thành công! 🎉',
-                text: `Chào mừng ${data.user.username}!`,
+                title: '🎉 Đăng nhập thành công!',
+                text: `Chào mừng ${authData.user.username}! Tài khoản đã được lưu an toàn.`,
                 background: '#1a1a1a',
                 color: '#fff',
                 confirmButtonColor: '#5865f2',
-                timer: 3000,
+                timer: 4000,
                 timerProgressBar: true
             });
         } else {
-            log('Auth failed: ' + data.message);
-            let errorMessage = 'Có lỗi xảy ra khi đăng nhập';
-            if (data.message === 'User not in server') {
-                errorMessage = 'Tài khoản bạn không tồn tại trong server chúng tôi';
-            } else if (data.message) {
-                errorMessage = data.message;
-            }
-            showError(errorMessage);
+            throw new Error('Authentication failed after all attempts');
         }
+        
     } catch (error) {
-        log('Auth callback error: ' + error.message);
+        log('🚨 CRITICAL AUTH ERROR: ' + error.message);
         console.error('Auth callback error:', error);
-        showError('Lỗi kết nối server, vui lòng thử lại');
+        
+        let errorMessage = 'Có lỗi xảy ra khi đăng nhập';
+        if (error.message.includes('User not in server')) {
+            errorMessage = 'Tài khoản bạn không tồn tại trong server chúng tôi';
+        } else if (error.message.includes('Rate limited')) {
+            errorMessage = 'Quá nhiều yêu cầu, vui lòng thử lại sau';
+        } else if (error.message.includes('Invalid code')) {
+            errorMessage = 'Mã xác thực đã hết hạn, vui lòng thử lại';
+        }
+        
+        showError(errorMessage);
     }
 }
 
@@ -204,16 +299,20 @@ async function checkExistingLogin() {
         document.getElementById('loading').style.display = 'block';
         document.querySelector('#loading p').textContent = 'Đang kiểm tra tài khoản';
         
-        // Check localStorage và sessionStorage
+        // Check ALL storage locations
         const savedAuth = localStorage.getItem('discordAuth');
         const savedBackup = sessionStorage.getItem('discordAuthBackup');
+        const savedUltimate = sessionStorage.getItem('discordAuthUltimate');
         
         log('LocalStorage auth: ' + (savedAuth ? 'EXISTS' : 'NONE'));
         log('SessionStorage backup: ' + (savedBackup ? 'EXISTS' : 'NONE'));
+        log('SessionStorage ultimate: ' + (savedUltimate ? 'EXISTS' : 'NONE'));
         
-        if (savedAuth || savedBackup) {
+        const authSource = savedAuth || savedBackup || savedUltimate;
+        
+        if (authSource) {
             try {
-                const authData = JSON.parse(savedAuth || savedBackup);
+                const authData = JSON.parse(authSource);
                 const oneHour = 60 * 60 * 1000;
                 const age = Date.now() - authData.timestamp;
                 
@@ -221,25 +320,27 @@ async function checkExistingLogin() {
                 log('Auth valid: ' + (age < oneHour));
                 
                 if (age < oneHour) {
-                    log('Using saved auth for: ' + authData.user.username);
+                    log('✅ Using saved auth for: ' + authData.user.username);
                     showUserInfo(authData.user);
                     return;
                 }
-                log('Saved auth expired, clearing');
+                log('⏰ Saved auth expired, clearing');
             } catch (error) {
-                log('Error parsing saved auth: ' + error.message);
+                log('❌ Error parsing saved auth: ' + error.message);
             }
             
+            // Clear expired auth
             localStorage.removeItem('discordAuth');
             sessionStorage.removeItem('discordAuthBackup');
+            sessionStorage.removeItem('discordAuthUltimate');
         }
 
         // Check IP trong database
-        log('Checking IP in database');
+        log('🔍 Checking IP in database');
         const userIP = await getUserIP();
         log('Current IP: ' + userIP);
         
-        log('Calling /api/check-ip endpoint');
+        log('📡 Calling /api/check-ip endpoint');
         const response = await fetch('/api/check-ip', {
             method: 'POST',
             headers: {
@@ -258,19 +359,20 @@ async function checkExistingLogin() {
         log('Check-IP response: ' + JSON.stringify(data));
         
         if (data.success && data.user) {
-            log('IP check successful, auto login for: ' + data.user.username);
+            log('🎯 IP check successful, auto login for: ' + data.user.username);
             showUserInfo(data.user);
             
             // Save to storage for next time
-            const authData = {
+            const authObj = {
                 user: data.user,
                 timestamp: Date.now(),
                 ip: userIP
             };
-            localStorage.setItem('discordAuth', JSON.stringify(authData));
-            sessionStorage.setItem('discordAuthBackup', JSON.stringify(authData));
+            localStorage.setItem('discordAuth', JSON.stringify(authObj));
+            sessionStorage.setItem('discordAuthBackup', JSON.stringify(authObj));
+            sessionStorage.setItem('discordAuthUltimate', JSON.stringify(authObj));
             
-            log('Saved new auth data to storages');
+            log('💾 Saved IP-based auth data to all storages');
             
             Swal.fire({
                 icon: 'info',
@@ -286,18 +388,17 @@ async function checkExistingLogin() {
                 showConfirmButton: false
             });
         } else {
-            log('No user found for IP, showing login form');
+            log('❌ No user found for IP, showing login form');
             document.getElementById('loading').style.display = 'none';
             document.getElementById('loginSection').style.display = 'block';
         }
     } catch (error) {
-        log('Error in checkExistingLogin: ' + error.message);
+        log('💥 Error in checkExistingLogin: ' + error.message);
         console.error('Error checking existing login:', error);
         
         document.getElementById('loading').style.display = 'none';
         document.getElementById('loginSection').style.display = 'block';
         
-        // Show error in debug mode
         if (debugMode) {
             Swal.fire({
                 icon: 'error',
@@ -310,7 +411,7 @@ async function checkExistingLogin() {
     }
 }
 
-// Debug functions
+// Debug functions (giữ nguyên)
 async function testAPI() {
     try {
         log('=== API TEST START ===');
@@ -347,7 +448,6 @@ async function testAPI() {
         
         log('=== API TEST END ===');
         
-        // Show result
         Swal.fire({
             title: 'API Test Complete',
             text: 'Check debug panel for detailed results',
@@ -365,7 +465,8 @@ async function testAPI() {
 function clearAllAuth() {
     localStorage.removeItem('discordAuth');
     sessionStorage.removeItem('discordAuthBackup');
-    log('Cleared all auth data');
+    sessionStorage.removeItem('discordAuthUltimate');
+    log('Cleared ALL auth data');
     
     Swal.fire({
         title: 'Auth Cleared',
@@ -382,14 +483,17 @@ function clearAllAuth() {
 function showCurrentState() {
     const savedAuth = localStorage.getItem('discordAuth');
     const savedBackup = sessionStorage.getItem('discordAuthBackup');
+    const savedUltimate = sessionStorage.getItem('discordAuthUltimate');
     
     let stateInfo = 'CURRENT AUTH STATE:\n\n';
     stateInfo += 'LocalStorage: ' + (savedAuth ? 'EXISTS' : 'NONE') + '\n';
-    stateInfo += 'SessionStorage: ' + (savedBackup ? 'EXISTS' : 'NONE') + '\n\n';
+    stateInfo += 'SessionStorage Backup: ' + (savedBackup ? 'EXISTS' : 'NONE') + '\n';
+    stateInfo += 'SessionStorage Ultimate: ' + (savedUltimate ? 'EXISTS' : 'NONE') + '\n\n';
     
-    if (savedAuth) {
+    const authSource = savedAuth || savedBackup || savedUltimate;
+    if (authSource) {
         try {
-            const authData = JSON.parse(savedAuth);
+            const authData = JSON.parse(authSource);
             const age = Date.now() - authData.timestamp;
             stateInfo += 'User: ' + authData.user.username + '\n';
             stateInfo += 'Age: ' + Math.floor(age / 1000) + ' seconds\n';
@@ -410,6 +514,7 @@ function showCurrentState() {
     });
 }
 
+// Các functions khác giữ nguyên...
 function showUserInfo(user) {
     log('Showing user info for: ' + user.username);
     
@@ -478,6 +583,7 @@ function logout() {
         if (result.isConfirmed) {
             localStorage.removeItem('discordAuth');
             sessionStorage.removeItem('discordAuthBackup');
+            sessionStorage.removeItem('discordAuthUltimate');
             
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('loginSection').style.display = 'block';
@@ -537,6 +643,7 @@ async function deleteAccount() {
                 if (data.success) {
                     localStorage.removeItem('discordAuth');
                     sessionStorage.removeItem('discordAuthBackup');
+                    sessionStorage.removeItem('discordAuthUltimate');
                     
                     Swal.fire({
                         title: 'Đã xóa tài khoản! 🗑️',
@@ -564,7 +671,9 @@ async function deleteAccount() {
 }
 
 window.checkUserAuth = function() {
-    const savedAuth = localStorage.getItem('discordAuth') || sessionStorage.getItem('discordAuthBackup');
+    const savedAuth = localStorage.getItem('discordAuth') || 
+                     sessionStorage.getItem('discordAuthBackup') || 
+                     sessionStorage.getItem('discordAuthUltimate');
     if (savedAuth) {
         try {
             const authData = JSON.parse(savedAuth);
@@ -596,7 +705,7 @@ window.requireAuth = function() {
     return true;
 };
 
-// Make functions available globally for debug panel
+// Make functions available globally
 window.testAPI = testAPI;
 window.clearAllAuth = clearAllAuth;
 window.showCurrentState = showCurrentState;
