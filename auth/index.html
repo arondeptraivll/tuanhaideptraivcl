@@ -47,6 +47,25 @@
         </div>
     </div>
 
+    <!-- Debug Panel -->
+    <div id="debugPanel" class="debug-panel">
+        <div class="debug-header">
+            <h4>🐛 Debug Panel</h4>
+            <button onclick="toggleDebug()" class="debug-close">×</button>
+        </div>
+        <div id="debugInfo" class="debug-content"></div>
+        <div class="debug-actions">
+            <button onclick="testAPI()" class="debug-btn">Test API</button>
+            <button onclick="clearAllAuth()" class="debug-btn">Clear Auth</button>
+            <button onclick="showCurrentState()" class="debug-btn">Show State</button>
+        </div>
+    </div>
+
+    <!-- Debug Toggle Button -->
+    <div class="debug-toggle">
+        <button onclick="toggleDebug()" class="debug-toggle-btn">🐛</button>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

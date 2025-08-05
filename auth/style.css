@@ -97,16 +97,35 @@ h1 {
     display: none;
     color: #fff;
     margin-top: 20px;
+    text-align: center;
+}
+
+.loading p {
+    margin-top: 15px;
+    font-size: 1.1em;
+    color: #ccc;
 }
 
 .spinner {
     border: 3px solid #333;
     border-top: 3px solid #5865f2;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     animation: spin 1s linear infinite;
     margin: 0 auto 15px;
+}
+
+.loading p::after {
+    content: '';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
 }
 
 .user-info {
@@ -141,59 +160,6 @@ h1 {
     margin-bottom: 25px;
     text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
 }
-
-.logout-btn {
-    background: linear-gradient(45deg, #ed4245, #ff6b6b);
-    border: none;
-    color: white;
-    padding: 10px 25px;
-    border-radius: 25px;
-    font-size: 1em;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.logout-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(237, 66, 69, 0.4);
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .container {
-        padding: 30px 20px;
-        margin: 20px;
-    }
-    
-    h1 {
-        font-size: 1.8em;
-    }
-    
-    .description {
-        font-size: 1em;
-    }
-    
-    .discord-btn {
-        padding: 12px 25px;
-        font-size: 1em;
-    }
-}
-
-/* Custom SweetAlert2 styles */
-.swal2-popup {
-    background: #1a1a1a !important;
-    border: 2px solid #5865f2 !important;
-}
-
-.swal2-title {
-    color: #fff !important;
-}
-
-.swal2-content {
-    color: #ccc !important;
-}
-/* Thêm vào cuối file style.css */
 
 .action-buttons {
     display: flex;
@@ -266,8 +232,132 @@ h1 {
     background: linear-gradient(45deg, #c62828, #b71c1c);
 }
 
-/* Responsive cho mobile */
+/* Debug Panel Styles */
+.debug-panel {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    max-width: 350px;
+    min-width: 300px;
+    max-height: 500px;
+    z-index: 9999;
+    display: none;
+    font-family: 'Courier New', monospace;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.debug-header {
+    background: #333;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #555;
+}
+
+.debug-header h4 {
+    margin: 0;
+    font-size: 14px;
+    color: #00ff88;
+}
+
+.debug-close {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.debug-content {
+    padding: 15px;
+    font-size: 11px;
+    line-height: 1.4;
+    max-height: 350px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.debug-actions {
+    padding: 10px 15px;
+    border-top: 1px solid #555;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.debug-btn {
+    background: #444;
+    border: 1px solid #666;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.debug-btn:hover {
+    background: #555;
+    border-color: #777;
+}
+
+.debug-toggle {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    z-index: 9998;
+}
+
+.debug-toggle-btn {
+    background: #333;
+    border: 2px solid #555;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.debug-toggle-btn:hover {
+    background: #444;
+    border-color: #666;
+    transform: translateY(-2px);
+}
+
+/* Responsive */
 @media (max-width: 480px) {
+    .container {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    h1 {
+        font-size: 1.8em;
+    }
+    
+    .description {
+        font-size: 1em;
+    }
+    
+    .discord-btn {
+        padding: 12px 25px;
+        font-size: 1em;
+    }
+    
     .action-buttons {
         gap: 12px;
     }
@@ -276,40 +366,26 @@ h1 {
         padding: 10px 20px;
         font-size: 0.9em;
     }
-}
-/* Thêm vào style.css */
-.loading {
-    display: none;
-    color: #fff;
-    margin-top: 20px;
-    text-align: center;
-}
-
-.loading p {
-    margin-top: 15px;
-    font-size: 1.1em;
-    color: #ccc;
+    
+    .debug-panel {
+        top: 5px;
+        right: 5px;
+        left: 5px;
+        max-width: none;
+        min-width: auto;
+    }
 }
 
-.spinner {
-    border: 3px solid #333;
-    border-top: 3px solid #5865f2;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 15px;
+/* Custom SweetAlert2 styles */
+.swal2-popup {
+    background: #1a1a1a !important;
+    border: 2px solid #5865f2 !important;
 }
 
-/* Loading text animation */
-.loading p::after {
-    content: '';
-    animation: dots 1.5s infinite;
+.swal2-title {
+    color: #fff !important;
 }
 
-@keyframes dots {
-    0%, 20% { content: ''; }
-    40% { content: '.'; }
-    60% { content: '..'; }
-    80%, 100% { content: '...'; }
+.swal2-content {
+    color: #ccc !important;
 }
