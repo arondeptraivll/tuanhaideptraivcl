@@ -38,14 +38,24 @@ export default async function handler(req, res) {
 
 async function handleLogin(req, res) {
     try {
-        const { code, ip } = req.body;
+        const { code, ip, state } = req.body;
+        
+        console.log('Auth request received:', { code: code?.substring(0, 10) + '...', ip, state });
         
         if (!code) {
+            console.log('Missing authorization code');
+            if (state) {
+                await saveAuthResult(state, 'error', null, 'Missing authorization code');
+            }
             return res.status(400).json({ success: false, message: 'Missing authorization code' });
         }
 
         // Rate limiting
         if (!checkRateLimit(ip)) {
+            console.log('Rate limited for IP:', ip);
+            if (state) {
+                await saveAuthResult(state, 'error', null, 'Rate limited');
+            }
             return res.status(429).json({ success: false, message: 'Rate limited' });
         }
 
@@ -57,6 +67,7 @@ async function handleLogin(req, res) {
             .single();
 
         if (existingUser) {
+            console.log('Found existing user for IP:', ip);
             // Verify user still in server
             const memberInfo = await checkServerMembership(existingUser.discord_id);
             if (memberInfo) {
@@ -69,26 +80,38 @@ async function handleLogin(req, res) {
                     })
                     .eq('id', existingUser.id);
 
+                const userData = {
+                    id: existingUser.discord_id,
+                    username: existingUser.username,
+                    avatar: existingUser.avatar_url,
+                    daysInServer: memberInfo.daysInServer
+                };
+
+                if (state) {
+                    await saveAuthResult(state, 'success', userData, null);
+                }
+
                 return res.status(200).json({
                     success: true,
-                    user: {
-                        id: existingUser.discord_id,
-                        username: existingUser.username,
-                        avatar: existingUser.avatar_url,
-                        daysInServer: memberInfo.daysInServer
-                    }
+                    user: userData
                 });
             } else {
+                console.log('User no longer in server, deleting from DB');
                 // User no longer in server, delete from DB
                 await supabase
                     .from('discord_users')
                     .delete()
                     .eq('id', existingUser.id);
                 
+                if (state) {
+                    await saveAuthResult(state, 'error', null, 'User not in server');
+                }
+                
                 return res.status(403).json({ success: false, message: 'User not in server' });
             }
         }
 
+        console.log('Getting Discord access token...');
         // Get Discord access token
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
@@ -107,10 +130,14 @@ async function handleLogin(req, res) {
         if (!tokenResponse.ok) {
             const errorData = await tokenResponse.text();
             console.error('Discord token error:', errorData);
+            if (state) {
+                await saveAuthResult(state, 'error', null, 'Invalid code');
+            }
             return res.status(400).json({ success: false, message: 'Invalid code' });
         }
 
         const tokenData = await tokenResponse.json();
+        console.log('Got Discord token, fetching user info...');
 
         // Get user info from Discord
         const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -120,28 +147,39 @@ async function handleLogin(req, res) {
         });
 
         if (!userResponse.ok) {
+            console.error('Discord user API error:', userResponse.status);
+            if (state) {
+                await saveAuthResult(state, 'error', null, 'Discord API error');
+            }
             return res.status(500).json({ success: false, message: 'Discord API error' });
         }
 
         const userData = await userResponse.json();
+        console.log('Got user data:', userData.username);
 
         // Check if user is in server
+        console.log('Checking server membership...');
         const memberInfo = await checkServerMembership(userData.id);
         if (!memberInfo) {
+            console.log('User not in server:', userData.username);
+            if (state) {
+                await saveAuthResult(state, 'error', null, 'User not in server');
+            }
             return res.status(403).json({ success: false, message: 'User not in server' });
         }
 
+        console.log('User is in server, saving to database...');
         // Save to database
         const avatarUrl = userData.avatar 
             ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=256`
-            : `https://cdn.discordapp.com/embed/avatars/${userData.discriminator % 5}.png`;
+            : `https://cdn.discordapp.com/embed/avatars/${(userData.discriminator || 0) % 5}.png`;
 
         const { data: dbUser, error } = await supabase
             .from('discord_users')
             .upsert({
                 discord_id: userData.id,
                 username: userData.username,
-                discriminator: userData.discriminator,
+                discriminator: userData.discriminator || '0000',
                 avatar_url: avatarUrl,
                 ip_address: ip,
                 days_in_server: memberInfo.daysInServer,
@@ -155,21 +193,39 @@ async function handleLogin(req, res) {
 
         if (error) {
             console.error('Database error:', error);
+            if (state) {
+                await saveAuthResult(state, 'error', null, 'Database error');
+            }
             return res.status(500).json({ success: false, message: 'Database error' });
+        }
+
+        const finalUserData = {
+            id: userData.id,
+            username: userData.username,
+            avatar: avatarUrl,
+            daysInServer: memberInfo.daysInServer
+        };
+
+        console.log('Auth successful for:', userData.username);
+
+        // Save successful auth result if we have state (for polling)
+        if (state) {
+            await saveAuthResult(state, 'success', finalUserData, null);
         }
 
         return res.status(200).json({
             success: true,
-            user: {
-                id: userData.id,
-                username: userData.username,
-                avatar: avatarUrl,
-                daysInServer: memberInfo.daysInServer
-            }
+            user: finalUserData
         });
 
     } catch (error) {
         console.error('Auth error:', error);
+        
+        // Save error to state if we have state
+        if (req.body.state) {
+            await saveAuthResult(req.body.state, 'error', null, 'Internal server error');
+        }
+        
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
@@ -181,6 +237,8 @@ async function handleDeleteAccount(req, res) {
         if (!userId) {
             return res.status(400).json({ success: false, message: 'Missing user ID' });
         }
+
+        console.log('Deleting account:', userId);
 
         // Delete user from database
         const { error } = await supabase
@@ -194,6 +252,7 @@ async function handleDeleteAccount(req, res) {
             return res.status(500).json({ success: false, message: 'Database error' });
         }
 
+        console.log('Account deleted successfully:', userId);
         return res.status(200).json({ success: true, message: 'Account deleted successfully' });
 
     } catch (error) {
@@ -202,8 +261,35 @@ async function handleDeleteAccount(req, res) {
     }
 }
 
+async function saveAuthResult(state, status, userData, errorMessage) {
+    try {
+        const data = {
+            state: state,
+            status: status,
+            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes
+        };
+
+        if (userData) {
+            data.user_data = JSON.stringify(userData);
+        }
+
+        if (errorMessage) {
+            data.error_message = errorMessage;
+        }
+
+        await supabase
+            .from('auth_states')
+            .upsert(data, { onConflict: 'state' });
+
+        console.log('Auth result saved:', { state, status });
+    } catch (error) {
+        console.error('Error saving auth result:', error);
+    }
+}
+
 async function checkServerMembership(userId) {
     try {
+        console.log('Checking membership for user:', userId);
         const response = await fetch(`https://discord.com/api/guilds/${process.env.SERVER_ID}/members/${userId}`, {
             headers: {
                 Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
@@ -211,6 +297,7 @@ async function checkServerMembership(userId) {
         });
 
         if (!response.ok) {
+            console.log('User not found in server or API error:', response.status);
             return null;
         }
 
@@ -221,6 +308,7 @@ async function checkServerMembership(userId) {
         const now = new Date();
         const daysInServer = Math.floor((now - joinedAt) / (1000 * 60 * 60 * 24));
 
+        console.log('User has been in server for', daysInServer, 'days');
         return { daysInServer };
     } catch (error) {
         console.error('Server membership check error:', error);
@@ -233,3 +321,24 @@ function getRedirectUri(req) {
     const host = req.headers.host;
     return `${protocol}://${host}`;
 }
+
+// Cleanup expired auth states (call này có thể được scheduled)
+async function cleanupExpiredAuthStates() {
+    try {
+        const { error } = await supabase
+            .from('auth_states')
+            .delete()
+            .lt('expires_at', new Date().toISOString());
+
+        if (error) {
+            console.error('Cleanup error:', error);
+        } else {
+            console.log('Expired auth states cleaned up');
+        }
+    } catch (error) {
+        console.error('Cleanup error:', error);
+    }
+}
+
+// Cleanup khi server start
+cleanupExpiredAuthStates();
