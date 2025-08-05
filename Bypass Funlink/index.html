@@ -6,7 +6,6 @@
     <title>Tool Bypass Funlink by Gemlogin Tool</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
@@ -246,68 +245,6 @@
             </div>
         </div>
     </footer>
-
-    <!-- Debug Buttons (Remove in production) -->
-    <div class="debug-panel" style="position: fixed; bottom: 10px; left: 10px; z-index: 9999; display: flex; gap: 5px;">
-        <button onclick="testLogin()" style="background: #ff4757; color: white; padding: 8px 12px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;">Test Login</button>
-        <button onclick="testToken()" style="background: #3742fa; color: white; padding: 8px 12px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;">Test Token</button>
-        <button onclick="clearStorage()" style="background: #ff6b00; color: white; padding: 8px 12px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;">Clear Storage</button>
-    </div>
-
-    <script>
-        // Debug functions
-        function testLogin() {
-            console.log('=== MANUAL LOGIN TEST ===');
-            console.log('SessionToken:', localStorage.getItem('sessionToken'));
-            
-            fetch('/api/auth?action=verify', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                console.log('Test response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Test response data:', data);
-                alert('Check console for results');
-            })
-            .catch(error => {
-                console.error('Test error:', error);
-                alert('Error: ' + error.message);
-            });
-        }
-
-        function testToken() {
-            const token = localStorage.getItem('sessionToken');
-            console.log('=== TOKEN TEST ===');
-            console.log('Raw token:', token);
-            
-            if (token) {
-                try {
-                    const decoded = JSON.parse(atob(token));
-                    console.log('Decoded token:', decoded);
-                    alert('Token decoded successfully. Check console.');
-                } catch (e) {
-                    console.log('Token is not base64 JSON, might be JWT');
-                    console.log('Token length:', token.length);
-                    alert('Token is not base64 JSON format');
-                }
-            } else {
-                alert('No token found in localStorage');
-            }
-        }
-
-        function clearStorage() {
-            localStorage.clear();
-            sessionStorage.clear();
-            console.log('Storage cleared');
-            alert('Storage cleared. Refresh page.');
-            location.reload();
-        }
-    </script>
 
     <script src="script.js"></script>
     <script src="../security/security.js"></script>
