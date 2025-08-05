@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #000;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+@keyframes rainbow {
+    0% { border-color: #ff0000; }
+    16% { border-color: #ff8000; }
+    33% { border-color: #ffff00; }
+    50% { border-color: #00ff00; }
+    66% { border-color: #0080ff; }
+    83% { border-color: #8000ff; }
+    100% { border-color: #ff0000; }
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.container {
+    background: rgba(20, 20, 20, 0.9);
+    border: 3px solid;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    animation: rainbow 3s linear infinite, fadeInOut 2s ease-in-out infinite;
+    max-width: 400px;
+    width: 90%;
+    transition: all 0.3s ease;
+}
+
+h1 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 2.2em;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.description {
+    color: #ccc;
+    margin-bottom: 30px;
+    font-size: 1.1em;
+    line-height: 1.5;
+}
+
+.discord-btn {
+    background: linear-gradient(45deg, #5865f2, #7289da);
+    border: none;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 50px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    box-shadow: 0 5px 15px rgba(88, 101, 242, 0.3);
+}
+
+.discord-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(88, 101, 242, 0.5);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.loading {
+    display: none;
+    color: #fff;
+    margin-top: 20px;
+}
+
+.spinner {
+    border: 3px solid #333;
+    border-top: 3px solid #5865f2;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+.user-info {
+    display: none;
+    margin-top: 30px;
+    animation: fadeInOut 1s ease-in;
+}
+
+.avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    border: 4px solid;
+    animation: rainbow 3s linear infinite;
+    display: block;
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.5);
+}
+
+.username {
+    color: #fff;
+    font-size: 1.4em;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.days-info {
+    color: #00ff88;
+    font-size: 1.2em;
+    font-weight: 500;
+    margin-bottom: 25px;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.logout-btn {
+    background: linear-gradient(45deg, #ed4245, #ff6b6b);
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(237, 66, 69, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .container {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    h1 {
+        font-size: 1.8em;
+    }
+    
+    .description {
+        font-size: 1em;
+    }
+    
+    .discord-btn {
+        padding: 12px 25px;
+        font-size: 1em;
+    }
+}
+
+/* Custom SweetAlert2 styles */
+.swal2-popup {
+    background: #1a1a1a !important;
+    border: 2px solid #5865f2 !important;
+}
+
+.swal2-title {
+    color: #fff !important;
+}
+
+.swal2-content {
+    color: #ccc !important;
+}
