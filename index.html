@@ -14,10 +14,8 @@
         <source src="https://github.com/arondeptraivll/tuanhaideptraivcl/raw/refs/heads/main/videoplayback.mp4" type="video/mp4">
     </video>
 
-    
     <audio id="bg-audio" src="https://github.com/arondeptraivll/tuanhaideptraivcl/raw/refs/heads/main/videoplayback.mp3" loop></audio>
 
-    
     <div id="welcome-overlay" class="welcome-overlay">
         <div class="welcome-content">
             <h1 class="welcome-title">Bấm vào đây để đến với bio của Anh Hải Dz</h1>
@@ -33,12 +31,56 @@
         <a href="HaiGPT/index.html" class="top-button">
             <span class="tab-text">HAIGPT</span>
         </a>
-        <a href="https://tuanhaideptraivcl.vercel.app/tools/index.html" class="top-button"> <!-- Bỏ target="_blank" -->
+        <a href="https://tuanhaideptraivcl.vercel.app/tools/index.html" class="top-button">
             <span class="tab-text">TOOLS</span>
         </a>
     </div>
 
-    
+    <!-- ✅ NEW: User info box ở góc phải -->
+    <div class="top-right-user">
+        <!-- Khi chưa đăng nhập -->
+        <div class="login-prompt" id="loginPrompt">
+            <a href="/login" class="top-button login-button">
+                <i class="fas fa-sign-in-alt"></i>
+                <span class="tab-text">ĐĂNG NHẬP</span>
+            </a>
+        </div>
+        
+        <!-- Khi đã đăng nhập -->
+        <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-avatar">
+                <img id="userAvatar" src="" alt="Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0Nzc0ODEiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxMiIgcj0iNSIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNiAyNmMwLTUuNTIzIDQuNDc3LTEwIDEwLTEwczEwIDQuNDc3IDEwIDEwdjJINnoiIGZpbGw9IiNGRkYiLz4KPC9zdmc+'">
+            </div>
+            <div class="user-details">
+                <div class="user-name" id="userName">Loading...</div>
+                <div class="user-status">
+                    <i class="fas fa-circle online"></i>
+                    <span>Online</span>
+                </div>
+            </div>
+            <div class="user-menu">
+                <button class="menu-button" id="userMenuBtn">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <a href="https://tuanhaideptraivcl.vercel.app/Bypass%20Funlink/index.html" class="dropdown-item">
+                        <i class="fas fa-tools"></i>
+                        <span>Tool Bypass</span>
+                    </a>
+                    <a href="https://tuanhaideptraivcl.vercel.app/tools/index.html" class="dropdown-item">
+                        <i class="fas fa-th"></i>
+                        <span>Tất cả tools</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item logout-btn" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Đăng xuất</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="bio-container">
         <div class="avatar-border">
             <img src="avatar.jpg" alt="Avatar của TuanHaii" class="avatar">
@@ -46,7 +88,6 @@
         <div class="username rainbow-text">TuanHaii</div>
         <div class="caption">🍀 Anh Hải đẹp trai cu dài tài năng còn em thì không 🍀</div>
     </div>
-    
     
     <div class="social-icons">
         <a href="https://www.youtube.com/@GemloginTool1" target="_blank" class="social-icon youtube" aria-label="YouTube">
