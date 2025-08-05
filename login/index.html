@@ -720,6 +720,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const userData = JSON.parse(atob(token));
                 localStorage.setItem('discord_user', JSON.stringify(userData));
                 localStorage.setItem('auth_token', token);
+                
+                // 🆕 Save user data for admin dashboard
+                saveUserToAdmin(userData);
+                
                 showProfile(userData);
                 
                 // Enhanced success notification
@@ -757,8 +761,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const age = Date.now() - userData.timestamp;
             if (age < 24 * 60 * 60 * 1000) {
                 showProfile(userData);
+                // 🆕 Update last login time for admin
+                updateUserLastLogin(userData);
             } else {
                 localStorage.clear();
+                // 🆕 Clear user from admin data if expired
+                removeUserFromAdmin(userData.id);
             }
         } catch (e) {
             localStorage.clear();
@@ -802,6 +810,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
+                    const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
+                    
+                    // 🆕 Update user logout time for admin
+                    updateUserLogoutTime(userData.id);
+                    
                     localStorage.clear();
                     Swal.fire({
                         icon: 'success',
@@ -845,6 +858,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
+                    const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
+                    
                     // Simulate account deletion
                     Swal.fire({
                         title: '🔄 Đang xóa...',
@@ -858,6 +873,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     setTimeout(() => {
+                        // 🆕 Remove user from admin database
+                        removeUserFromAdmin(userData.id);
+                        
                         localStorage.clear();
                         Swal.fire({
                             icon: 'success',
@@ -941,6 +959,165 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmButtonColor: '#ef4444',
         });
     }
+
+    // 🆕 ADMIN INTEGRATION FUNCTIONS
+    function saveUserToAdmin(userData) {
+        try {
+            const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            
+            // Check if user already exists
+            const existingIndex = savedUsers.findIndex(user => 
+                (user.discord_id || user.id) === userData.id
+            );
+
+            const userRecord = {
+                discord_id: userData.id,
+                username: userData.username,
+                discriminator: userData.discriminator,
+                global_name: userData.globalName,
+                avatar: userData.avatar,
+                joined_at: userData.joinedAt,
+                days_in_server: userData.daysInServer,
+                guilds_count: userData.guilds,
+                last_login: Date.now(),
+                login_count: existingIndex !== -1 ? (savedUsers[existingIndex].login_count || 0) + 1 : 1,
+                created_at: existingIndex === -1 ? Date.now() : savedUsers[existingIndex].created_at,
+                updated_at: Date.now(),
+                status: 'online'
+            };
+
+            if (existingIndex !== -1) {
+                savedUsers[existingIndex] = userRecord;
+            } else {
+                savedUsers.push(userRecord);
+            }
+
+            localStorage.setItem('admin_users', JSON.stringify(savedUsers));
+            
+            // Also try to call API if available
+            callAdminAPI('POST', { userData: userRecord });
+            
+            console.log('✅ User data saved to admin dashboard');
+        } catch (error) {
+            console.error('❌ Error saving user to admin:', error);
+        }
+    }
+
+    function updateUserLastLogin(userData) {
+        try {
+            const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            const userIndex = savedUsers.findIndex(user => 
+                (user.discord_id || user.id) === userData.id
+            );
+
+            if (userIndex !== -1) {
+                savedUsers[userIndex].last_login = Date.now();
+                savedUsers[userIndex].updated_at = Date.now();
+                savedUsers[userIndex].status = 'online';
+                localStorage.setItem('admin_users', JSON.stringify(savedUsers));
+            }
+        } catch (error) {
+            console.error('❌ Error updating user last login:', error);
+        }
+    }
+
+    function updateUserLogoutTime(userId) {
+        try {
+            const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            const userIndex = savedUsers.findIndex(user => 
+                (user.discord_id || user.id) === userId
+            );
+
+            if (userIndex !== -1) {
+                savedUsers[userIndex].last_logout = Date.now();
+                savedUsers[userIndex].updated_at = Date.now();
+                savedUsers[userIndex].status = 'offline';
+                localStorage.setItem('admin_users', JSON.stringify(savedUsers));
+            }
+        } catch (error) {
+            console.error('❌ Error updating user logout time:', error);
+        }
+    }
+
+    function removeUserFromAdmin(userId) {
+        try {
+            let savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            savedUsers = savedUsers.filter(user => 
+                (user.discord_id || user.id) !== userId
+            );
+            localStorage.setItem('admin_users', JSON.stringify(savedUsers));
+            
+            // Also try to call API if available
+            callAdminAPI('DELETE', null, userId);
+            
+            console.log('✅ User removed from admin dashboard');
+        } catch (error) {
+            console.error('❌ Error removing user from admin:', error);
+        }
+    }
+
+    async function callAdminAPI(method, data = null, userId = null) {
+        try {
+            const adminPassword = localStorage.getItem('admin_auth');
+            if (!adminPassword) return;
+
+            let url = '/api/admin';
+            if (method === 'DELETE' && userId) {
+                url += `?userId=${userId}`;
+            }
+
+            const options = {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${adminPassword}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (data && (method === 'POST' || method === 'PUT')) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(url, options);
+            
+            if (response.ok) {
+                console.log('✅ Admin API call successful');
+            } else {
+                console.log('⚠️ Admin API not available, using localStorage');
+            }
+        } catch (error) {
+            console.log('⚠️ Admin API not available, using localStorage fallback');
+        }
+    }
+
+    // 🆕 ADMIN DASHBOARD INTEGRATION
+    // Auto-sync user data every 5 minutes
+    setInterval(() => {
+        const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
+        if (userData.id) {
+            updateUserLastLogin(userData);
+        }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Mark user as offline when page unloads
+    window.addEventListener('beforeunload', () => {
+        const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
+        if (userData.id) {
+            updateUserLogoutTime(userData.id);
+        }
+    });
+
+    // Handle visibility change (tab switching)
+    document.addEventListener('visibilitychange', () => {
+        const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
+        if (userData.id) {
+            if (document.hidden) {
+                updateUserLogoutTime(userData.id);
+            } else {
+                updateUserLastLogin(userData);
+            }
+        }
+    });
 });
 
 // Global function for bio button
@@ -956,9 +1133,57 @@ function goToBio() {
         timerProgressBar: true
     }).then(() => {
         // Change this URL to your bio page
-        window.location.href = 'https://tuanhaideptraivcl.vercel.app/'; // hoặc URL trang bio của bạn
+        window.location.href = '/bio'; // hoặc URL trang bio của bạn
     });
 }
-    </script>
+
+// 🆕 EXPOSE GLOBAL FUNCTIONS FOR ADMIN DASHBOARD
+window.saveUserToAdmin = function(userData) {
+    const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+    const existingIndex = savedUsers.findIndex(user => 
+        (user.discord_id || user.id) === userData.id
+    );
+
+    const userRecord = {
+        discord_id: userData.id,
+        username: userData.username,
+        discriminator: userData.discriminator,
+        global_name: userData.globalName,
+        avatar: userData.avatar,
+        joined_at: userData.joinedAt,
+        days_in_server: userData.daysInServer,
+        guilds_count: userData.guilds,
+        last_login: Date.now(),
+        login_count: existingIndex !== -1 ? (savedUsers[existingIndex].login_count || 0) + 1 : 1,
+        created_at: existingIndex === -1 ? Date.now() : savedUsers[existingIndex].created_at,
+        updated_at: Date.now(),
+        status: 'online',
+        user_agent: navigator.userAgent,
+        ip_address: 'N/A' // Would need server-side to get real IP
+    };
+
+    if (existingIndex !== -1) {
+        savedUsers[existingIndex] = userRecord;
+    } else {
+        savedUsers.push(userRecord);
+    }
+
+    localStorage.setItem('admin_users', JSON.stringify(savedUsers));
+};
+
+// 🆕 DEBUG FUNCTIONS (Remove in production)
+window.debugAdminData = function() {
+    const adminUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+    console.table(adminUsers);
+    return adminUsers;
+};
+
+window.clearAdminData = function() {
+    localStorage.removeItem('admin_users');
+    console.log('✅ Admin data cleared');
+};
+
+console.log('🚀 Gemlogin Tool loaded with Admin integration');
+</script>
 </body>
 </html>
