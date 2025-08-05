@@ -38,6 +38,7 @@ async function loginWithDiscord() {
 
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('loading').style.display = 'block';
+        document.querySelector('#loading p').textContent = 'Đang chuyển hướng đến Discord';
         
         // Lấy config từ backend
         const configResponse = await fetch('/api/config');
@@ -79,7 +80,7 @@ async function getUserIP() {
     }
 }
 
-// Xử lý callback khi Discord redirect về
+// Main load event handler
 window.addEventListener('load', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -114,15 +115,19 @@ window.addEventListener('load', async () => {
     }
     
     if (code) {
+        // Có code từ Discord callback
         await handleDiscordCallback(code);
     } else {
-        // Check if user already logged in
-        checkExistingLogin();
+        // Không có code, check existing login (bao gồm cả IP check)
+        await checkExistingLogin();
     }
 });
 
 async function handleDiscordCallback(code) {
     try {
+        document.getElementById('loading').style.display = 'block';
+        document.querySelector('#loading p').textContent = 'Đang xác thực với Discord';
+        
         const userIP = await getUserIP();
         
         const response = await fetch('/api/auth', {
@@ -186,24 +191,82 @@ async function handleDiscordCallback(code) {
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-function checkExistingLogin() {
-    const savedAuth = localStorage.getItem('discordAuth');
-    if (savedAuth) {
-        try {
-            const authData = JSON.parse(savedAuth);
-            const oneHour = 60 * 60 * 1000;
-            
-            // Check if login is still valid (1 hour)
-            if (Date.now() - authData.timestamp < oneHour) {
-                showUserInfo(authData.user);
-                return;
+async function checkExistingLogin() {
+    try {
+        // Hiển thị loading khi check
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+        document.querySelector('#loading p').textContent = 'Đang kiểm tra tài khoản';
+        
+        // Check localStorage trước
+        const savedAuth = localStorage.getItem('discordAuth');
+        if (savedAuth) {
+            try {
+                const authData = JSON.parse(savedAuth);
+                const oneHour = 60 * 60 * 1000;
+                
+                // Check if login is still valid (1 hour)
+                if (Date.now() - authData.timestamp < oneHour) {
+                    showUserInfo(authData.user);
+                    return;
+                }
+            } catch (error) {
+                console.error('Error parsing saved auth:', error);
             }
-        } catch (error) {
-            console.error('Error parsing saved auth:', error);
+            
+            // Clear expired auth
+            localStorage.removeItem('discordAuth');
+        }
+
+        // Check IP trên server
+        const userIP = await getUserIP();
+        
+        const response = await fetch('/api/check-ip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ip: userIP })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+            // Auto login thành công
+            showUserInfo(data.user);
+            
+            // Save to localStorage
+            localStorage.setItem('discordAuth', JSON.stringify({
+                user: data.user,
+                timestamp: Date.now()
+            }));
+            
+            // Hiển thị thông báo welcome back
+            Swal.fire({
+                icon: 'info',
+                title: 'Chào mừng trở lại! 👋',
+                text: `Xin chào ${data.user.username}! Bạn đã được tự động đăng nhập.`,
+                background: '#1a1a1a',
+                color: '#fff',
+                confirmButtonColor: '#5865f2',
+                timer: 3000,
+                timerProgressBar: true,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false
+            });
+        } else {
+            // Không có user nào với IP này, hiển thị form login
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
         }
         
-        // Clear expired auth
-        localStorage.removeItem('discordAuth');
+    } catch (error) {
+        console.error('Error checking existing login:', error);
+        
+        // Lỗi thì hiển thị form login bình thường
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('loginSection').style.display = 'block';
     }
 }
 
@@ -236,76 +299,6 @@ function showError(message) {
     });
 }
 
-function logout() {
-    Swal.fire({
-        title: 'Đăng xuất?',
-        text: 'Bạn có chắc muốn đăng xuất không?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#ed4245',
-        cancelButtonColor: '#5865f2',
-        confirmButtonText: 'Đăng xuất',
-        cancelButtonText: 'Hủy',
-        background: '#1a1a1a',
-        color: '#fff'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            localStorage.removeItem('discordAuth');
-            
-            document.getElementById('userInfo').style.display = 'none';
-            document.getElementById('loginSection').style.display = 'block';
-            
-            // Trigger logout event
-            window.dispatchEvent(new CustomEvent('userLoggedOut'));
-            
-            Swal.fire({
-                title: 'Đã đăng xuất!',
-                text: 'Bạn đã đăng xuất thành công',
-                icon: 'success',
-                timer: 2000,
-                background: '#1a1a1a',
-                color: '#fff',
-                confirmButtonColor: '#5865f2'
-            });
-        }
-    });
-}
-
-// Global functions để các file khác có thể sử dụng
-window.checkUserAuth = function() {
-    const savedAuth = localStorage.getItem('discordAuth');
-    if (savedAuth) {
-        try {
-            const authData = JSON.parse(savedAuth);
-            const oneHour = 60 * 60 * 1000;
-            
-            if (Date.now() - authData.timestamp < oneHour) {
-                return authData.user;
-            }
-        } catch (error) {
-            console.error('Error checking auth:', error);
-        }
-    }
-    return null;
-};
-
-window.requireAuth = function() {
-    const user = window.checkUserAuth();
-    if (!user) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Cần đăng nhập!',
-            text: 'Bạn cần đăng nhập để sử dụng tính năng này',
-            background: '#1a1a1a',
-            color: '#fff',
-            confirmButtonColor: '#5865f2'
-        });
-        return false;
-    }
-    return true;
-};
-// Thêm vào cuối script.js
-
 function goHome() {
     Swal.fire({
         title: 'Quay về trang chủ?',
@@ -322,6 +315,42 @@ function goHome() {
         if (result.isConfirmed) {
             // Chuyển về trang chủ - thay đổi URL này theo trang chủ của bạn
             window.location.href = '/'; // hoặc '/bio' hoặc trang chủ của bạn
+        }
+    });
+}
+
+function logout() {
+    Swal.fire({
+        title: 'Đăng xuất? 🚪',
+        text: 'Bạn có chắc muốn đăng xuất không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ffa726',
+        cancelButtonColor: '#5865f2',
+        confirmButtonText: 'Đăng xuất',
+        cancelButtonText: 'Ở lại',
+        background: '#1a1a1a',
+        color: '#fff'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            localStorage.removeItem('discordAuth');
+            
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            
+            // Trigger logout event
+            window.dispatchEvent(new CustomEvent('userLoggedOut'));
+            
+            Swal.fire({
+                title: 'Đã đăng xuất! 👋',
+                text: 'Hẹn gặp lại bạn!',
+                icon: 'success',
+                timer: 2000,
+                background: '#1a1a1a',
+                color: '#fff',
+                confirmButtonColor: '#5865f2',
+                timerProgressBar: true
+            });
         }
     });
 }
@@ -400,39 +429,36 @@ async function deleteAccount() {
     });
 }
 
-// Update logout function để phù hợp với style mới
-function logout() {
-    Swal.fire({
-        title: 'Đăng xuất? 🚪',
-        text: 'Bạn có chắc muốn đăng xuất không?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#ffa726',
-        cancelButtonColor: '#5865f2',
-        confirmButtonText: 'Đăng xuất',
-        cancelButtonText: 'Ở lại',
-        background: '#1a1a1a',
-        color: '#fff'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            localStorage.removeItem('discordAuth');
+// Global functions để các file khác có thể sử dụng
+window.checkUserAuth = function() {
+    const savedAuth = localStorage.getItem('discordAuth');
+    if (savedAuth) {
+        try {
+            const authData = JSON.parse(savedAuth);
+            const oneHour = 60 * 60 * 1000;
             
-            document.getElementById('userInfo').style.display = 'none';
-            document.getElementById('loginSection').style.display = 'block';
-            
-            // Trigger logout event
-            window.dispatchEvent(new CustomEvent('userLoggedOut'));
-            
-            Swal.fire({
-                title: 'Đã đăng xuất! 👋',
-                text: 'Hẹn gặp lại bạn!',
-                icon: 'success',
-                timer: 2000,
-                background: '#1a1a1a',
-                color: '#fff',
-                confirmButtonColor: '#5865f2',
-                timerProgressBar: true
-            });
+            if (Date.now() - authData.timestamp < oneHour) {
+                return authData.user;
+            }
+        } catch (error) {
+            console.error('Error checking auth:', error);
         }
-    });
-}
+    }
+    return null;
+};
+
+window.requireAuth = function() {
+    const user = window.checkUserAuth();
+    if (!user) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cần đăng nhập!',
+            text: 'Bạn cần đăng nhập để sử dụng tính năng này',
+            background: '#1a1a1a',
+            color: '#fff',
+            confirmButtonColor: '#5865f2'
+        });
+        return false;
+    }
+    return true;
+};

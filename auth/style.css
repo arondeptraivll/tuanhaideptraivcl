@@ -277,3 +277,39 @@ h1 {
         font-size: 0.9em;
     }
 }
+/* Thêm vào style.css */
+.loading {
+    display: none;
+    color: #fff;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.loading p {
+    margin-top: 15px;
+    font-size: 1.1em;
+    color: #ccc;
+}
+
+.spinner {
+    border: 3px solid #333;
+    border-top: 3px solid #5865f2;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+/* Loading text animation */
+.loading p::after {
+    content: '';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+}
