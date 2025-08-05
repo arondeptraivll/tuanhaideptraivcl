@@ -13,6 +13,8 @@ class TokenManager {
         this.API_BASE = '/api/bypass_funlink';
         this.LOGIN_API = '/api/auth';
         
+        console.log('🚀 TokenManager started');
+        
         this.initializeElements();
         this.setupEventListeners();
         this.setupSweetAlert();
@@ -21,7 +23,7 @@ class TokenManager {
         // Check URL parameters first
         this.checkURLParameters();
         
-        // Load interface and check login
+        // Load interface
         this.loadInterface();
         setTimeout(() => {
             this.checkLoginStatus();
@@ -113,8 +115,10 @@ class TokenManager {
         const success = urlParams.get('success');
         const token = urlParams.get('token');
         
+        console.log('📋 URL check - Success:', success, 'Token:', token ? 'YES' : 'NO');
+        
         if (success === 'true' && token) {
-            console.log('✅ Login success detected, saving token');
+            console.log('✅ Login success detected!');
             localStorage.setItem('sessionToken', decodeURIComponent(token));
             
             // Clean URL
@@ -136,21 +140,17 @@ class TokenManager {
             return;
         }
         
-        // Clean any other parameters
+        // Clean URL
         if (urlParams.toString()) {
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }
     }
 
-    // ✅ Load interface với IP thật
     async loadInterface() {
         try {
             this.elements.ipDisplay.textContent = 'Đang tải...';
-            
-            // ✅ Lấy IP thật từ API thay vì fake
             this.getRealIP();
-            
             this.showInitialView();
         } catch (error) {
             console.error('Error loading interface:', error);
@@ -159,10 +159,9 @@ class TokenManager {
         }
     }
 
-    // ✅ Lấy IP thật từ API
     async getRealIP() {
         try {
-            // Try từ API chính trước
+            // Try main API first
             const response = await fetch(this.API_BASE);
             if (response.ok) {
                 const data = await response.json();
@@ -173,103 +172,128 @@ class TokenManager {
                 }
             }
         } catch (error) {
-            console.log('Main API not available, trying backup IP services');
+            console.log('Main API not available for IP');
         }
 
-        // Fallback các IP service khác
-        try {
-            const ipServices = [
-                'https://api.ipify.org?format=json',
-                'https://httpbin.org/ip',
-                'https://api.ip.sb/ip'
-            ];
+        // Fallback IP services
+        const ipServices = [
+            'https://api.ipify.org?format=json',
+            'https://httpbin.org/ip'
+        ];
 
-            for (const service of ipServices) {
-                try {
-                    const response = await fetch(service);
-                    const data = await response.json();
-                    
-                    const ip = data.ip || data.origin || data;
-                    if (ip && typeof ip === 'string') {
-                        this.userIP = ip;
-                        this.elements.ipDisplay.textContent = ip;
-                        return;
-                    }
-                } catch (e) {
-                    continue;
+        for (const service of ipServices) {
+            try {
+                const response = await fetch(service);
+                const data = await response.json();
+                
+                const ip = data.ip || data.origin;
+                if (ip && typeof ip === 'string') {
+                    this.userIP = ip;
+                    this.elements.ipDisplay.textContent = ip;
+                    return;
                 }
+            } catch (e) {
+                continue;
             }
-            
-            // Final fallback
-            this.elements.ipDisplay.textContent = 'Không thể lấy IP';
-        } catch (error) {
-            this.elements.ipDisplay.textContent = 'Lỗi lấy IP';
         }
+        
+        this.elements.ipDisplay.textContent = 'Không thể lấy IP';
     }
 
-    // ✅ Đơn giản check login - chỉ từ localStorage
+    // ✅ Check login với API verify
     async checkLoginStatus() {
-        console.log('=== Checking Login Status ===');
+        console.log('🔍 Checking login status...');
         
         try {
             const sessionToken = localStorage.getItem('sessionToken');
             console.log('SessionToken found:', sessionToken ? 'YES' : 'NO');
             
             if (!sessionToken) {
-                console.log('❌ No session token - user not logged in');
+                console.log('❌ No session token');
                 this.isLoggedIn = false;
                 this.loginChecked = true;
                 this.updateUserInterface();
                 return;
             }
 
-            // ✅ Parse token locally (đơn giản hơn)
-            let tokenData = null;
-            try {
-                tokenData = JSON.parse(atob(sessionToken));
-                console.log('📝 Token data:', tokenData);
-                
-                // Check token age (7 days max)
-                if (tokenData.timestamp) {
-                    const tokenAge = Date.now() - tokenData.timestamp;
-                    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-                    
-                    if (tokenAge > maxAge) {
-                        console.log('⏰ Token expired');
-                        this.handleInvalidLogin();
-                        return;
-                    }
+            // ✅ Verify với API
+            console.log('🔄 Verifying token with API...');
+            const response = await fetch(`${this.LOGIN_API}?action=verify`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`,
+                    'Content-Type': 'application/json'
                 }
+            });
+
+            console.log('Verify response status:', response.status);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Verify response:', data);
                 
-                // If we have valid user data
-                if (tokenData.id && tokenData.username) {
-                    console.log('✅ Valid login found');
+                if (data.valid && data.user) {
+                    console.log('✅ Login verified successfully!');
                     this.isLoggedIn = true;
-                    this.userData = tokenData;
+                    this.userData = data.user;
+                    
+                    // Update IP from response
+                    if (data.ip) {
+                        this.userIP = data.ip;
+                        this.elements.ipDisplay.textContent = data.ip;
+                    }
+                    
                     this.updateUserInterface();
                     this.loadUserData();
-                    this.loginChecked = true;
-                    return;
+                } else {
+                    console.log('❌ Invalid verification response');
+                    this.handleInvalidLogin();
                 }
-                
-            } catch (e) {
-                console.log('Token không parse được:', e.message);
-                this.handleInvalidLogin();
-                return;
+            } else {
+                console.log('❌ API verification failed');
+                // Try local token as fallback
+                try {
+                    const tokenData = JSON.parse(atob(sessionToken));
+                    if (tokenData.id && tokenData.username) {
+                        console.log('🔄 Using local token as fallback');
+                        this.isLoggedIn = true;
+                        this.userData = tokenData;
+                        this.updateUserInterface();
+                        this.loadUserData();
+                    } else {
+                        this.handleInvalidLogin();
+                    }
+                } catch (e) {
+                    this.handleInvalidLogin();
+                }
             }
-
-            console.log('❌ Invalid token data');
-            this.handleInvalidLogin();
-            
         } catch (error) {
-            console.error('❌ Error checking login:', error);
+            console.error('❌ Login check error:', error);
+            
+            // Emergency fallback to local token
+            const sessionToken = localStorage.getItem('sessionToken');
+            if (sessionToken) {
+                try {
+                    const tokenData = JSON.parse(atob(sessionToken));
+                    if (tokenData.username) {
+                        console.log('🆘 Emergency fallback to local token');
+                        this.isLoggedIn = true;
+                        this.userData = tokenData;
+                        this.updateUserInterface();
+                        this.loadUserData();
+                        this.loginChecked = true;
+                        return;
+                    }
+                } catch (e) {}
+            }
+            
             this.handleInvalidLogin();
         }
         
         this.loginChecked = true;
+        console.log('Final login status:', this.isLoggedIn);
     }
 
-    // ✅ Load user data sau khi verify login
     async loadUserData() {
         try {
             const sessionToken = localStorage.getItem('sessionToken');
@@ -282,13 +306,11 @@ class TokenManager {
             if (response.ok) {
                 const data = await response.json();
                 
-                // Update real IP nếu API trả về
                 if (data.ip && data.ip !== this.userIP) {
                     this.userIP = data.ip;
                     this.elements.ipDisplay.textContent = data.ip;
                 }
 
-                // Load existing token nếu có
                 if (data.has_existing_token && data.token) {
                     this.currentToken = data.token;
                     this.elements.tokenDisplay.value = data.token;
@@ -311,7 +333,7 @@ class TokenManager {
     }
 
     handleInvalidLogin() {
-        console.log('🧹 Invalid login - clearing data');
+        console.log('🧹 Handling invalid login');
         this.isLoggedIn = false;
         this.userData = null;
         localStorage.removeItem('sessionToken');
@@ -319,6 +341,8 @@ class TokenManager {
     }
 
     updateUserInterface() {
+        console.log('🎨 Updating UI - Logged in:', this.isLoggedIn);
+        
         if (this.isLoggedIn && this.userData) {
             // Show user info
             if (this.elements.loginPrompt) {
@@ -355,7 +379,6 @@ class TokenManager {
         }
     }
 
-    // ✅ Simple login required alert
     showLoginRequiredAlert() {
         return Swal.fire({
             icon: 'warning',
@@ -391,14 +414,12 @@ class TokenManager {
         });
 
         if (result.isConfirmed) {
-            // Clear data
             localStorage.removeItem('sessionToken');
             this.isLoggedIn = false;
             this.userData = null;
             this.currentToken = null;
             this.loginChecked = false;
             
-            // Update UI
             this.updateUserInterface();
             this.showInitialView();
             
@@ -460,9 +481,7 @@ class TokenManager {
         this.showView('loadingView');
     }
 
-    // ✅ Block actions nếu chưa login
     async createToken() {
-        // Wait for login check
         if (!this.loginChecked) {
             await new Promise(resolve => {
                 const checkInterval = setInterval(() => {
@@ -479,13 +498,11 @@ class TokenManager {
             });
         }
 
-        // ✅ Block nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
         }
 
-        // Prevent spam
         if (this.isCreatingToken) {
             Swal.fire({
                 icon: 'warning',
@@ -548,7 +565,6 @@ class TokenManager {
         }
     }
 
-    // ✅ Block download session nếu chưa login
     async createDownloadSession() {
         if (!this.loginChecked) {
             await new Promise(resolve => {
@@ -566,7 +582,6 @@ class TokenManager {
             });
         }
 
-        // ✅ Block nếu chưa đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
@@ -742,7 +757,6 @@ class TokenManager {
         }
     }
 
-    // ✅ Block copy nếu chưa login
     async copyToken() {
         if (!this.loginChecked) {
             await new Promise(resolve => {
