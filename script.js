@@ -1,27 +1,37 @@
-// API endpoint
+// ==================== AUTHENTICATION SYSTEM ====================
 const AUTH_API = '/api/auth';
 
-// DOM elements
+// DOM elements for auth
 let loginPrompt, userInfo, userAvatar, userName, userMenuBtn, dropdownMenu, logoutBtn;
-let welcomeOverlay, enterBtn, bgAudio, bgVideo, loadingSpinner;
 
-// Initialize when page loads
+// ==================== BACKGROUND & WELCOME SYSTEM ====================
+const welcomeOverlay = document.getElementById('welcome-overlay');
+const enterBtn = document.querySelector('.enter-btn');
+const bgAudio = document.getElementById('bg-audio');
+const bgVideo = document.getElementById('bg-video');
+const loadingSpinner = document.createElement('div');
+
+// ==================== MAIN INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Page loaded, initializing...');
     
-    // Get DOM elements
+    // Initialize all systems
     initializeElements();
+    initializeLoadingSpinner();
+    setupWelcomeOverlay();
+    setupBackgroundMedia();
+    setupAnimations();
+    setupRainbowAnimations();
     
-    // Setup functionality
+    // Auth system
     checkLoginWelcome();
     checkLoginStatus();
     setupUserMenu();
-    setupWelcomeOverlay();
-    setupAnimations();
 });
 
-// Initialize DOM elements
+// ==================== ELEMENT INITIALIZATION ====================
 function initializeElements() {
+    // Auth elements
     loginPrompt = document.getElementById('loginPrompt');
     userInfo = document.getElementById('userInfo');
     userAvatar = document.getElementById('userAvatar');
@@ -29,40 +39,86 @@ function initializeElements() {
     userMenuBtn = document.getElementById('userMenuBtn');
     dropdownMenu = document.getElementById('dropdownMenu');
     logoutBtn = document.getElementById('logoutBtn');
-    welcomeOverlay = document.getElementById('welcome-overlay');
-    enterBtn = document.querySelector('.enter-btn');
-    bgAudio = document.getElementById('bg-audio');
-    bgVideo = document.getElementById('bg-video');
-    loadingSpinner = document.getElementById('loading-spinner');
 }
 
-// Setup welcome overlay
+function initializeLoadingSpinner() {
+    loadingSpinner.className = 'loading-spinner';
+    loadingSpinner.id = 'loading-spinner';
+    document.body.appendChild(loadingSpinner);
+}
+
+// ==================== WELCOME OVERLAY SYSTEM ====================
 function setupWelcomeOverlay() {
     if (enterBtn) {
         enterBtn.addEventListener('click', function() {
             console.log('🎬 Entering website...');
             
-            if (loadingSpinner) {
-                loadingSpinner.style.display = 'block';
-            }
+            // Show loading spinner
+            loadingSpinner.style.display = 'block';
             
             setTimeout(() => {
-                if (welcomeOverlay) {
-                    welcomeOverlay.classList.add('hidden');
-                }
-                if (loadingSpinner) {
-                    loadingSpinner.style.display = 'none';
-                }
-                playAudio();
-                playVideo();
+                // Hide welcome overlay
+                welcomeOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'none';
+                
+                // Start background media
+                playBackgroundMedia();
             }, 500);
         });
     }
 }
 
-// Play background audio
+// ==================== BACKGROUND MEDIA SYSTEM ====================
+function setupBackgroundMedia() {
+    // Setup video error handling
+    if (bgVideo) {
+        bgVideo.addEventListener('loadstart', () => {
+            console.log('🎥 Video loading started');
+        });
+        
+        bgVideo.addEventListener('canplay', () => {
+            console.log('🎥 Video can play');
+        });
+        
+        bgVideo.addEventListener('error', (e) => {
+            console.error('🎥 Video error:', e);
+        });
+    }
+    
+    // Setup audio error handling
+    if (bgAudio) {
+        bgAudio.addEventListener('loadstart', () => {
+            console.log('🔊 Audio loading started');
+        });
+        
+        bgAudio.addEventListener('canplay', () => {
+            console.log('🔊 Audio can play');
+        });
+        
+        bgAudio.addEventListener('error', (e) => {
+            console.error('🔊 Audio error:', e);
+        });
+    }
+}
+
+function playBackgroundMedia() {
+    playVideo();
+    playAudio();
+}
+
+function playVideo() {
+    if (bgVideo) {
+        console.log('🎥 Starting video...');
+        bgVideo.classList.add('playing');
+        bgVideo.play().catch(error => {
+            console.log('🎥 Video autoplay prevented:', error);
+        });
+    }
+}
+
 function playAudio() {
     if (bgAudio) {
+        console.log('🔊 Starting audio...');
         bgAudio.currentTime = 0;
         bgAudio.play().catch(error => {
             console.log('🔊 Audio autoplay prevented:', error);
@@ -70,15 +126,100 @@ function playAudio() {
     }
 }
 
-// Play background video
-function playVideo() {
-    if (bgVideo) {
-        bgVideo.classList.add('playing');
-        bgVideo.play().catch(error => {
-            console.log('🎥 Video play failed:', error);
-        });
-    }
+// ==================== RAINBOW ANIMATIONS SYSTEM ====================
+function setupRainbowAnimations() {
+    setupAvatarBorderAnimation();
+    setupTopButtonAnimations();
 }
+
+function setupAvatarBorderAnimation() {
+    const avatarBorder = document.querySelector('.bio-container .avatar-border');
+    if (!avatarBorder) return;
+    
+    let deg = 0;
+    let animationId;
+
+    function animateAvatarBorder() {
+        deg = (deg + 1) % 360;
+        avatarBorder.style.background = `conic-gradient(
+            from ${deg}deg,
+            #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000
+        )`;
+        animationId = requestAnimationFrame(animateAvatarBorder);
+    }
+
+    // Start animation
+    animateAvatarBorder();
+
+    // Pause animation when tab is hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelAnimationFrame(animationId);
+        } else {
+            animateAvatarBorder();
+        }
+    });
+}
+
+function setupTopButtonAnimations() {
+    const topButtons = document.querySelectorAll('.top-button');
+    
+    topButtons.forEach(button => {
+        let buttonDeg = 0;
+        let buttonAnimId;
+
+        const animateButtonRainbow = () => {
+            buttonDeg = (buttonDeg + 2) % 360;
+            button.style.backgroundImage = `
+                linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+                conic-gradient(
+                    from ${buttonDeg}deg,
+                    #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000
+                )
+            `;
+            buttonAnimId = requestAnimationFrame(animateButtonRainbow);
+        };
+
+        button.addEventListener('mouseenter', () => {
+            button.classList.add('rainbow-border');
+            animateButtonRainbow();
+        });
+
+        button.addEventListener('mouseleave', () => {
+            cancelAnimationFrame(buttonAnimId);
+            button.classList.remove('rainbow-border');
+            button.style.backgroundImage = '';
+            buttonDeg = 0;
+        });
+    });
+}
+
+// ==================== GENERAL ANIMATIONS ====================
+function setupAnimations() {
+    // Social icons already have CSS animations, just ensure they work
+    const socialIcons = document.querySelectorAll('.social-icon');
+    socialIcons.forEach((icon, index) => {
+        // Add staggered animation delay
+        icon.style.animationDelay = `${index * 2}s`;
+    });
+    
+    // Username rainbow text animation is handled by CSS
+    
+    // Add subtle entrance animations
+    setTimeout(() => {
+        const bioContainer = document.querySelector('.bio-container');
+        if (bioContainer) {
+            bioContainer.style.animation = 'fadeInUp 1s ease-out';
+        }
+        
+        const socialIconsContainer = document.querySelector('.social-icons');
+        if (socialIconsContainer) {
+            socialIconsContainer.style.animation = 'fadeInUp 1s ease-out 0.5s both';
+        }
+    }, 1000);
+}
+
+// ==================== AUTHENTICATION SYSTEM ====================
 
 // Check for login welcome message
 function checkLoginWelcome() {
@@ -279,7 +420,7 @@ function setupUserMenu() {
     }
 }
 
-// Show notification
+// ==================== NOTIFICATION SYSTEM ====================
 function showNotification(message, type = 'info') {
     // Remove existing notifications
     const existingNotifications = document.querySelectorAll('.notification');
@@ -288,7 +429,7 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = 'notification';
     
-    // Apply styles directly since we don't have CSS class
+    // Apply styles directly
     notification.style.cssText = `
         position: fixed;
         top: 30px;
@@ -326,44 +467,85 @@ function showNotification(message, type = 'info') {
     }, 4000);
 }
 
-// Setup animations
-function setupAnimations() {
-    // Top buttons rainbow effect
-    const topButtons = document.querySelectorAll('.top-button');
-    topButtons.forEach(button => {
-        let buttonDeg = 0;
-        let buttonAnimId;
+// ==================== CSS ANIMATIONS (INJECTED) ====================
+// Add missing CSS animations
+const additionalStyles = document.createElement('style');
+additionalStyles.textContent = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .notification {
+        animation: slideInDown 0.3s ease-out;
+    }
+    
+    @keyframes slideInDown {
+        from {
+            transform: translateX(-50%) translateY(-100px);
+        }
+        to {
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+`;
+document.head.appendChild(additionalStyles);
 
-        const animateButtonRainbow = () => {
-            buttonDeg = (buttonDeg + 2) % 360;
-            button.style.backgroundImage = `
-                linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
-                conic-gradient(
-                    from ${buttonDeg}deg,
-                    #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000
-                )
-            `;
-            buttonAnimId = requestAnimationFrame(animateButtonRainbow);
-        };
-
-        button.addEventListener('mouseenter', () => {
-            button.classList.add('rainbow-border');
-            animateButtonRainbow();
-        });
-
-        button.addEventListener('mouseleave', () => {
-            cancelAnimationFrame(buttonAnimId);
-            button.classList.remove('rainbow-border');
-            button.style.backgroundImage = '';
-            buttonDeg = 0;
-        });
+// ==================== UTILITY FUNCTIONS ====================
+function addGlobalEventListeners() {
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // Pause animations when tab is hidden
+            if (bgAudio && !bgAudio.paused) {
+                bgAudio.pause();
+            }
+        } else {
+            // Resume when tab is visible
+            if (bgAudio && bgAudio.paused && !welcomeOverlay.classList.contains('hidden')) {
+                bgAudio.play().catch(e => console.log('Audio resume failed:', e));
+            }
+        }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        // Adjust video size if needed
+        if (bgVideo) {
+            console.log('Window resized, video will auto-adjust');
+        }
     });
 }
 
-// Export functions for global use if needed
+// Initialize global event listeners
+addGlobalEventListeners();
+
+// ==================== EXPORT FOR DEBUGGING ====================
 window.authModule = {
     checkLoginStatus,
     showNotification,
     showUserInfo,
-    showLoginButton
+    showLoginButton,
+    playBackgroundMedia,
+    bgVideo,
+    bgAudio
 };
+
+// ==================== DEBUG FUNCTIONS ====================
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    window.debugAuth = {
+        checkStatus: checkLoginStatus,
+        clearStorage: () => localStorage.clear(),
+        showLogin: showLoginButton,
+        testNotification: (msg, type) => showNotification(msg, type)
+    };
+    console.log('🔧 Debug functions available: window.debugAuth');
+}
+
+console.log('🎉 Script fully loaded and initialized!');
