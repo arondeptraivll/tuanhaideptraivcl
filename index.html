@@ -26,6 +26,9 @@
         </div>
     </div>
     
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loading-spinner"></div>
+    
     <!-- Container cho các nút ở góc trên bên trái -->
     <div class="top-left-buttons">
         <a href="HaiGPT/index.html" class="top-button">
@@ -36,11 +39,11 @@
         </a>
     </div>
 
-    <!-- ✅ NEW: User info box ở góc phải -->
+    <!-- User info box ở góc phải -->
     <div class="top-right-user">
         <!-- Khi chưa đăng nhập -->
         <div class="login-prompt" id="loginPrompt">
-            <a href="/login" class="top-button login-button">
+            <a href="/api/auth?action=login" class="top-button login-button">
                 <i class="fas fa-sign-in-alt"></i>
                 <span class="tab-text">ĐĂNG NHẬP</span>
             </a>
@@ -49,7 +52,7 @@
         <!-- Khi đã đăng nhập -->
         <div class="user-info" id="userInfo" style="display: none;">
             <div class="user-avatar">
-                <img id="userAvatar" src="" alt="Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0Nzc0ODEiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxMiIgcj0iNSIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNNiAyNmMwLTUuNTIzIDQuNDc3LTEwIDEwLTEwczEwIDQuNDc3IDEwIDEwdjJINnoiIGZpbGw9IiNGRkYiLz4KPC9zdmc+'">
+                <img id="userAvatar" src="" alt="Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM0Nzc0ODEiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNSIgcj0iNiIgZmlsbD0iI0ZGRiIvPgo8cGF0aCBkPSJNOCAzMmMwLTYuNjI4IDUuMzcyLTEyIDEyLTEyczEyIDUuMzcyIDEyIDEydjJIOHoiIGZpbGw9IiNGRkYiLz4KPC9zdmc+'">
             </div>
             <div class="user-details">
                 <div class="user-name" id="userName">Loading...</div>
@@ -109,5 +112,4 @@
     </noscript>
 
 </body>
-
 </html>
