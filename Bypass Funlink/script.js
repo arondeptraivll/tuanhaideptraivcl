@@ -10,13 +10,27 @@ class TokenManager {
         this.userData = null;
         this.API_BASE = '/api/bypass_funlink';
         this.LOGIN_API = '/api/auth';
+        
+        // Debug logging
+        console.log('=== TokenManager Initialized ===');
+        console.log('Current URL:', window.location.href);
+        console.log('SessionToken in localStorage:', localStorage.getItem('sessionToken'));
+        
         this.initializeElements();
         this.setupEventListeners();
         this.setupSweetAlert();
         this.setupUserMenu();
-        // Luôn load giao diện trước, check login âm thầm
+        
+        // Check URL parameters first (có thể có token từ login redirect)
+        this.checkURLParameters();
+        
+        // Load giao diện trước
         this.loadInterface();
-        this.checkLoginStatusSilently();
+        
+        // Check login sau 500ms để đảm bảo DOM ready
+        setTimeout(() => {
+            this.checkLoginStatusSilently();
+        }, 500);
     }
 
     setupSweetAlert() {
@@ -102,6 +116,29 @@ class TokenManager {
         }
     }
 
+    // Thêm method để check URL parameters (có thể có token từ login)
+    checkURLParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const success = urlParams.get('success');
+        const token = urlParams.get('token');
+        
+        console.log('=== Checking URL Parameters ===');
+        console.log('Success param:', success);
+        console.log('Token param:', token ? 'Present' : 'Not found');
+        
+        if (success === 'true' && token) {
+            console.log('Login success detected in URL, saving token');
+            localStorage.setItem('sessionToken', decodeURIComponent(token));
+            
+            // Clear URL parameters
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+            // Set flag để recheck login
+            this.shouldRecheckLogin = true;
+        }
+    }
+
     // Load giao diện bình thường để bot thấy
     async loadInterface() {
         try {
@@ -122,17 +159,25 @@ class TokenManager {
         }
     }
 
-    // Kiểm tra login âm thầm không block UI
+    // Kiểm tra login âm thầm với debug
     async checkLoginStatusSilently() {
+        console.log('=== Checking Login Status ===');
+        
         try {
             const sessionToken = localStorage.getItem('sessionToken');
+            console.log('SessionToken found:', sessionToken ? 'YES' : 'NO');
+            console.log('Token preview:', sessionToken ? sessionToken.substring(0, 50) + '...' : 'null');
+            
             if (!sessionToken) {
+                console.log('No session token - user not logged in');
                 this.isLoggedIn = false;
                 this.loginChecked = true;
                 this.updateUserInterface();
                 return;
             }
 
+            console.log('Making verify request to:', `${this.LOGIN_API}?action=verify`);
+            
             const response = await fetch(`${this.LOGIN_API}?action=verify`, {
                 method: 'GET',
                 headers: {
@@ -141,94 +186,136 @@ class TokenManager {
                 }
             });
 
+            console.log('Verify response status:', response.status);
+            console.log('Verify response ok:', response.ok);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Verify response data:', data);
+                
                 if (data.valid && data.user) {
+                    console.log('✅ User logged in successfully:', data.user.username);
                     this.isLoggedIn = true;
                     this.userData = data.user;
-                    console.log('User logged in:', data.user.username);
                     this.updateUserInterface();
-                    // Load dữ liệu thật nếu có
+                    // Load dữ liệu thật
                     this.loadRealData();
                 } else {
+                    console.log('❌ Invalid token or user data');
+                    console.log('Data.valid:', data.valid);
+                    console.log('Data.user:', data.user);
                     this.isLoggedIn = false;
                     this.userData = null;
                     localStorage.removeItem('sessionToken');
                     this.updateUserInterface();
                 }
             } else {
+                console.log('❌ Verify request failed');
+                const errorText = await response.text();
+                console.log('Error response:', errorText);
                 this.isLoggedIn = false;
                 this.userData = null;
                 localStorage.removeItem('sessionToken');
                 this.updateUserInterface();
             }
         } catch (error) {
-            console.error('Error checking login status:', error);
+            console.error('❌ Error checking login status:', error);
             this.isLoggedIn = false;
             this.userData = null;
             this.updateUserInterface();
         }
+        
         this.loginChecked = true;
+        console.log('=== Login Check Complete ===');
+        console.log('Final login status:', this.isLoggedIn);
     }
 
-    // Cập nhật giao diện user info
+    // Cập nhật giao diện với debug
     updateUserInterface() {
+        console.log('=== Updating User Interface ===');
+        console.log('isLoggedIn:', this.isLoggedIn);
+        console.log('userData:', this.userData);
+        
         if (this.isLoggedIn && this.userData) {
+            console.log('Showing user info interface');
             // Hiện user info, ẩn login prompt
             if (this.elements.loginPrompt) {
                 this.elements.loginPrompt.style.display = 'none';
+                console.log('Hidden login prompt');
             }
             if (this.elements.userInfo) {
                 this.elements.userInfo.style.display = 'flex';
+                console.log('Shown user info');
             }
             
             // Cập nhật thông tin user
             if (this.elements.userName) {
-                this.elements.userName.textContent = this.userData.globalName || this.userData.username;
+                const displayName = this.userData.globalName || this.userData.username;
+                this.elements.userName.textContent = displayName;
+                console.log('Updated username to:', displayName);
             }
             
             // Cập nhật avatar
-            if (this.elements.userAvatar && this.userData.avatar) {
-                const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
-                this.elements.userAvatar.src = avatarUrl;
-            } else if (this.elements.userAvatar) {
-                // Default avatar nếu không có
-                const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
-                this.elements.userAvatar.src = defaultAvatar;
+            if (this.elements.userAvatar) {
+                if (this.userData.avatar) {
+                    const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
+                    this.elements.userAvatar.src = avatarUrl;
+                    console.log('Updated avatar to:', avatarUrl);
+                } else {
+                    const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
+                    this.elements.userAvatar.src = defaultAvatar;
+                    console.log('Using default avatar:', defaultAvatar);
+                }
             }
         } else {
+            console.log('Showing login prompt interface');
             // Hiện login prompt, ẩn user info
             if (this.elements.loginPrompt) {
                 this.elements.loginPrompt.style.display = 'block';
+                console.log('Shown login prompt');
             }
             if (this.elements.userInfo) {
                 this.elements.userInfo.style.display = 'none';
+                console.log('Hidden user info');
             }
         }
+        console.log('=== Interface Update Complete ===');
     }
 
-    // Load dữ liệu thật cho user đã đăng nhập
+    // Load dữ liệu thật với debug
     async loadRealData() {
+        console.log('=== Loading Real Data ===');
+        
         try {
             const sessionToken = localStorage.getItem('sessionToken');
+            console.log('Making data request to:', this.API_BASE);
+            
             const response = await fetch(this.API_BASE, {
                 headers: {
                     'Authorization': `Bearer ${sessionToken}`
                 }
             });
             
-            if (!response.ok) return;
+            console.log('Data response status:', response.status);
+            
+            if (!response.ok) {
+                console.log('Data request failed');
+                return;
+            }
 
             const data = await response.json();
+            console.log('Data response:', data);
             
             // Update IP thật
             if (data.ip) {
                 this.userIP = data.ip;
                 this.elements.ipDisplay.textContent = this.userIP;
+                console.log('Updated real IP:', this.userIP);
             }
 
             // Load token nếu có
             if (data.has_existing_token && data.token) {
+                console.log('Found existing token');
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
                 this.startTimer(data.time_left_ms);
@@ -242,10 +329,14 @@ class TokenManager {
                     'timerProgressBar': true,
                     'showConfirmButton': false
                 });
+            } else {
+                console.log('No existing token found');
             }
         } catch (error) {
             console.error('Error loading real data:', error);
         }
+        
+        console.log('=== Real Data Load Complete ===');
     }
 
     // Thông báo yêu cầu đăng nhập (cho bot và user chưa login)
