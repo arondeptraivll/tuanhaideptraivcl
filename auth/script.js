@@ -304,3 +304,135 @@ window.requireAuth = function() {
     }
     return true;
 };
+// Thêm vào cuối script.js
+
+function goHome() {
+    Swal.fire({
+        title: 'Quay về trang chủ?',
+        text: 'Bạn sẽ được chuyển hướng về bio',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00d4aa',
+        cancelButtonColor: '#5865f2',
+        confirmButtonText: 'Đi thôi!',
+        cancelButtonText: 'Ở lại',
+        background: '#1a1a1a',
+        color: '#fff'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Chuyển về trang chủ - thay đổi URL này theo trang chủ của bạn
+            window.location.href = '/'; // hoặc '/bio' hoặc trang chủ của bạn
+        }
+    });
+}
+
+async function deleteAccount() {
+    const user = window.checkUserAuth();
+    if (!user) {
+        showError('Không tìm thấy thông tin tài khoản');
+        return;
+    }
+
+    Swal.fire({
+        title: '⚠️ Xóa tài khoản?',
+        html: `
+            <p>Bạn có chắc muốn xóa tài khoản <strong>${user.username}</strong>?</p>
+            <p style="color: #ff6b6b; margin-top: 10px;">⚠️ Hành động này không thể hoàn tác!</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ed4245',
+        cancelButtonColor: '#5865f2',
+        confirmButtonText: 'Xóa tài khoản',
+        cancelButtonText: 'Hủy bỏ',
+        background: '#1a1a1a',
+        color: '#fff',
+        focusCancel: true
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const userIP = await getUserIP();
+                
+                const response = await fetch('/api/auth', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        userId: user.id,
+                        ip: userIP 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Clear local storage
+                    localStorage.removeItem('discordAuth');
+                    
+                    // Show success and redirect to login
+                    Swal.fire({
+                        title: 'Đã xóa tài khoản! 🗑️',
+                        text: 'Tài khoản của bạn đã được xóa khỏi hệ thống',
+                        icon: 'success',
+                        background: '#1a1a1a',
+                        color: '#fff',
+                        confirmButtonColor: '#5865f2',
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        // Reset UI
+                        document.getElementById('userInfo').style.display = 'none';
+                        document.getElementById('loginSection').style.display = 'block';
+                        
+                        // Trigger logout event
+                        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+                    });
+                } else {
+                    showError(data.message || 'Không thể xóa tài khoản');
+                }
+                
+            } catch (error) {
+                console.error('Delete account error:', error);
+                showError('Lỗi kết nối server');
+            }
+        }
+    });
+}
+
+// Update logout function để phù hợp với style mới
+function logout() {
+    Swal.fire({
+        title: 'Đăng xuất? 🚪',
+        text: 'Bạn có chắc muốn đăng xuất không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ffa726',
+        cancelButtonColor: '#5865f2',
+        confirmButtonText: 'Đăng xuất',
+        cancelButtonText: 'Ở lại',
+        background: '#1a1a1a',
+        color: '#fff'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            localStorage.removeItem('discordAuth');
+            
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            
+            // Trigger logout event
+            window.dispatchEvent(new CustomEvent('userLoggedOut'));
+            
+            Swal.fire({
+                title: 'Đã đăng xuất! 👋',
+                text: 'Hẹn gặp lại bạn!',
+                icon: 'success',
+                timer: 2000,
+                background: '#1a1a1a',
+                color: '#fff',
+                confirmButtonColor: '#5865f2',
+                timerProgressBar: true
+            });
+        }
+    });
+}

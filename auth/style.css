@@ -193,3 +193,87 @@ h1 {
 .swal2-content {
     color: #ccc !important;
 }
+/* Thêm vào cuối file style.css */
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.home-btn {
+    background: linear-gradient(45deg, #00d4aa, #01a085);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.home-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 212, 170, 0.4);
+}
+
+.logout-btn {
+    background: linear-gradient(45deg, #ffa726, #ff9800);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 167, 38, 0.4);
+}
+
+.delete-btn {
+    background: linear-gradient(45deg, #ed4245, #c62828);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(237, 66, 69, 0.4);
+    background: linear-gradient(45deg, #c62828, #b71c1c);
+}
+
+/* Responsive cho mobile */
+@media (max-width: 480px) {
+    .action-buttons {
+        gap: 12px;
+    }
+    
+    .home-btn, .logout-btn, .delete-btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+}
