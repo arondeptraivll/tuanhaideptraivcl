@@ -1,1 +1,925 @@
-const _0x3404b1=_0x2249;(function(_0x264a4e,_0x2c86c7){const _0x4dec03=_0x2249,_0x317acc=_0x264a4e();while(!![]){try{const _0x15d4c7=parseInt(_0x4dec03(0x22e))/0x1+-parseInt(_0x4dec03(0x227))/0x2+parseInt(_0x4dec03(0x23d))/0x3+parseInt(_0x4dec03(0x1a6))/0x4*(-parseInt(_0x4dec03(0x1ff))/0x5)+-parseInt(_0x4dec03(0x210))/0x6*(-parseInt(_0x4dec03(0x244))/0x7)+parseInt(_0x4dec03(0x1db))/0x8+parseInt(_0x4dec03(0x22b))/0x9;if(_0x15d4c7===_0x2c86c7)break;else _0x317acc['push'](_0x317acc['shift']());}catch(_0x413a59){_0x317acc['push'](_0x317acc['shift']());}}}(_0x138d,0xddadf));function _0x2249(_0x49764d,_0x1a4df8){const _0x138d58=_0x138d();return _0x2249=function(_0x2249c4,_0x2ec026){_0x2249c4=_0x2249c4-0x179;let _0x9c09dc=_0x138d58[_0x2249c4];return _0x9c09dc;},_0x2249(_0x49764d,_0x1a4df8);}class TokenManager{constructor(){const _0x3e9d96=_0x2249;this[_0x3e9d96(0x241)]=null,this[_0x3e9d96(0x1e5)]=null,this['userIP']=null,this['isLoggedIn']=![],this[_0x3e9d96(0x1f8)]=![],this[_0x3e9d96(0x22d)]=![],this['loginChecked']=![],this[_0x3e9d96(0x1f9)]=null,this[_0x3e9d96(0x217)]=_0x3e9d96(0x22a),this[_0x3e9d96(0x1ba)]=_0x3e9d96(0x1bf),console[_0x3e9d96(0x1d6)]('🚀\x20TokenManager\x20started'),this['initializeElements'](),this[_0x3e9d96(0x17f)](),this[_0x3e9d96(0x190)](),this['setupUserMenu'](),this['loadInterface'](),setTimeout(()=>{this['checkIPSessionFirst']();},0x1f4);}async[_0x3404b1(0x1d4)](){const _0x2de185=_0x3404b1;console['log'](_0x2de185(0x18e));try{const _0x2942c2=await fetch(this[_0x2de185(0x1ba)]+_0x2de185(0x1ca),{'method':'GET','headers':{'Content-Type':_0x2de185(0x17c)}});if(_0x2942c2['ok']){const _0x3a65bf=await _0x2942c2[_0x2de185(0x1cd)]();console[_0x2de185(0x1d6)](_0x2de185(0x229),_0x3a65bf);if(_0x3a65bf['has_session']&&_0x3a65bf[_0x2de185(0x1d5)]){console[_0x2de185(0x1d6)](_0x2de185(0x196)),localStorage['setItem'](_0x2de185(0x1f2),_0x3a65bf['token']),this['isLoggedIn']=!![],this['userData']=_0x3a65bf['user'];_0x3a65bf['ip']&&(this['userIP']=_0x3a65bf['ip'],this['elements']['ipDisplay']['textContent']=_0x3a65bf['ip']);this[_0x2de185(0x20e)](),this[_0x2de185(0x184)](),this[_0x2de185(0x1dc)]=!![];const _0x22d9b9=Swal[_0x2de185(0x1f7)]({'toast':!![],'position':'top-end','showConfirmButton':![],'timer':0xfa0,'timerProgressBar':!![]});_0x22d9b9[_0x2de185(0x1c9)]({'icon':'success','title':_0x2de185(0x1cb),'text':_0x2de185(0x23b)+(_0x3a65bf[_0x2de185(0x1d5)][_0x2de185(0x1e8)]||_0x3a65bf[_0x2de185(0x1d5)][_0x2de185(0x1f4)])});return;}}}catch(_0x593b71){console[_0x2de185(0x18a)](_0x2de185(0x1d7),_0x593b71);}console['log'](_0x2de185(0x1a3)),this[_0x2de185(0x1ce)]();}async['checkLoginStatus'](){const _0x725f7=_0x3404b1;console[_0x725f7(0x1d6)](_0x725f7(0x192));try{const _0x2fdf34=localStorage[_0x725f7(0x1d0)]('sessionToken');if(!_0x2fdf34){console[_0x725f7(0x1d6)](_0x725f7(0x183)),this['isLoggedIn']=![],this[_0x725f7(0x1dc)]=!![],this[_0x725f7(0x20e)]();return;}const _0xf8f085=await fetch(this['LOGIN_API']+_0x725f7(0x214),{'method':_0x725f7(0x18c),'headers':{'Authorization':_0x725f7(0x1f3)+_0x2fdf34,'Content-Type':_0x725f7(0x17c)}});if(_0xf8f085['ok']){const _0x4adf9a=await _0xf8f085['json']();_0x4adf9a[_0x725f7(0x1f5)]&&_0x4adf9a[_0x725f7(0x1d5)]?(console[_0x725f7(0x1d6)](_0x725f7(0x247)),this['isLoggedIn']=!![],this[_0x725f7(0x1f9)]=_0x4adf9a[_0x725f7(0x1d5)],_0x4adf9a['ip']&&(this[_0x725f7(0x1bb)]=_0x4adf9a['ip'],this[_0x725f7(0x236)][_0x725f7(0x21b)]['textContent']=_0x4adf9a['ip']),this[_0x725f7(0x20e)](),this['loadUserData']()):this['handleInvalidLogin']();}else try{const _0x2f93e1=JSON[_0x725f7(0x246)](atob(_0x2fdf34));_0x2f93e1['id']&&_0x2f93e1[_0x725f7(0x1f4)]?(console['log'](_0x725f7(0x204)),this['isLoggedIn']=!![],this[_0x725f7(0x1f9)]=_0x2f93e1,this[_0x725f7(0x20e)](),this[_0x725f7(0x184)]()):this[_0x725f7(0x237)]();}catch(_0x2d6430){this[_0x725f7(0x237)]();}}catch(_0x1bfc12){console[_0x725f7(0x18a)](_0x725f7(0x1b8),_0x1bfc12),this[_0x725f7(0x237)]();}this[_0x725f7(0x1dc)]=!![];}async[_0x3404b1(0x205)](){const _0x5429b9=_0x3404b1,_0x1c8191=await Swal[_0x5429b9(0x1c9)]({'icon':_0x5429b9(0x1b5),'title':_0x5429b9(0x21c),'text':_0x5429b9(0x1a1),'showCancelButton':!![],'confirmButtonText':_0x5429b9(0x1d2),'cancelButtonText':_0x5429b9(0x240),'confirmButtonColor':'#ff4757','cancelButtonColor':'#6c757d'});if(_0x1c8191[_0x5429b9(0x1fa)]){localStorage[_0x5429b9(0x21a)](_0x5429b9(0x1f2));try{await fetch(this['LOGIN_API']+'?action=clear_session',{'method':_0x5429b9(0x189),'headers':{'Content-Type':'application/json'}});}catch(_0x37ccbb){console[_0x5429b9(0x1d6)](_0x5429b9(0x1bd),_0x37ccbb);}this[_0x5429b9(0x225)]=![],this[_0x5429b9(0x1f9)]=null,this['currentToken']=null,this['loginChecked']=![],this[_0x5429b9(0x20e)](),this[_0x5429b9(0x1b3)](),Swal[_0x5429b9(0x1c9)]({'icon':'success','title':'Đã\x20đăng\x20xuất','text':_0x5429b9(0x1dd),'timer':0x7d0,'showConfirmButton':![]});}}[_0x3404b1(0x190)](){const _0x2cef90=_0x3404b1,_0x214e6c='\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.swal2-popup\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20#111\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x202px\x20solid\x20#00ff88\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2015px\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.swal2-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.swal2-content\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#ccc\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.swal2-confirm\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(45deg,\x20#00ff88,\x20#00ccff)\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x20none\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x208px\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.swal2-cancel\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20rgba(255,\x2071,\x2087,\x200.8)\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x20none\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x208px\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.swal2-deny\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20rgba(255,\x20136,\x200,\x200.8)\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x20none\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x208px\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold\x20!important;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20',_0x303dfc=document['createElement'](_0x2cef90(0x1ee));_0x303dfc[_0x2cef90(0x1c5)]=_0x214e6c,document[_0x2cef90(0x186)][_0x2cef90(0x185)](_0x303dfc);}['initializeElements'](){const _0xf27061=_0x3404b1;this[_0xf27061(0x236)]={'ipDisplay':document[_0xf27061(0x1aa)]('ipDisplay'),'initialView':document['getElementById'](_0xf27061(0x1f1)),'tokenView':document[_0xf27061(0x1aa)]('tokenView'),'loadingView':document[_0xf27061(0x1aa)](_0xf27061(0x1af)),'createTokenBtn':document[_0xf27061(0x1aa)](_0xf27061(0x1bc)),'tokenDisplay':document[_0xf27061(0x1aa)](_0xf27061(0x208)),'timerDisplay':document[_0xf27061(0x1aa)](_0xf27061(0x194)),'copyTokenBtn':document[_0xf27061(0x1aa)](_0xf27061(0x199)),'loginPrompt':document[_0xf27061(0x1aa)](_0xf27061(0x1f6)),'userInfo':document[_0xf27061(0x1aa)](_0xf27061(0x1e7)),'userAvatar':document['getElementById']('userAvatar'),'userName':document[_0xf27061(0x1aa)](_0xf27061(0x188)),'userMenuBtn':document[_0xf27061(0x1aa)](_0xf27061(0x1c8)),'dropdownMenu':document[_0xf27061(0x1aa)](_0xf27061(0x1ae)),'logoutBtn':document[_0xf27061(0x1aa)](_0xf27061(0x228))};}[_0x3404b1(0x193)](){const _0x6bba27=_0x3404b1;this[_0x6bba27(0x236)][_0x6bba27(0x1c8)]&&this['elements'][_0x6bba27(0x1c8)][_0x6bba27(0x230)](_0x6bba27(0x1eb),_0x538d90=>{const _0x4267ce=_0x6bba27;_0x538d90[_0x4267ce(0x17b)](),this[_0x4267ce(0x236)][_0x4267ce(0x1ae)][_0x4267ce(0x1d8)][_0x4267ce(0x219)](_0x4267ce(0x1fc));}),document['addEventListener']('click',()=>{const _0x2733a0=_0x6bba27;this[_0x2733a0(0x236)]['dropdownMenu']&&this['elements']['dropdownMenu'][_0x2733a0(0x1d8)][_0x2733a0(0x1a8)](_0x2733a0(0x1fc));}),this[_0x6bba27(0x236)][_0x6bba27(0x228)]&&this[_0x6bba27(0x236)][_0x6bba27(0x228)][_0x6bba27(0x230)](_0x6bba27(0x1eb),()=>{const _0x5c5bef=_0x6bba27;this[_0x5c5bef(0x205)]();});}async[_0x3404b1(0x1d3)](){const _0x29ffa9=_0x3404b1;try{this[_0x29ffa9(0x236)][_0x29ffa9(0x21b)][_0x29ffa9(0x238)]=_0x29ffa9(0x1e6),this[_0x29ffa9(0x223)](),this[_0x29ffa9(0x1b3)]();}catch(_0x137bd1){console[_0x29ffa9(0x18a)](_0x29ffa9(0x181),_0x137bd1),this[_0x29ffa9(0x236)]['ipDisplay']['textContent']=_0x29ffa9(0x198),this[_0x29ffa9(0x1b3)]();}}async[_0x3404b1(0x223)](){const _0x208511=_0x3404b1;try{const _0x4a0727=await fetch(this[_0x208511(0x217)]);if(_0x4a0727['ok']){const _0x414406=await _0x4a0727[_0x208511(0x1cd)]();if(_0x414406['ip']){this['userIP']=_0x414406['ip'],this[_0x208511(0x236)][_0x208511(0x21b)][_0x208511(0x238)]=_0x414406['ip'];return;}}}catch(_0x2a5157){console[_0x208511(0x1d6)]('Main\x20API\x20not\x20available\x20for\x20IP');}const _0x18d941=[_0x208511(0x216),_0x208511(0x218)];for(const _0x1eabfc of _0x18d941){try{const _0x489f88=await fetch(_0x1eabfc),_0x418d1e=await _0x489f88[_0x208511(0x1cd)](),_0x2bf7f3=_0x418d1e['ip']||_0x418d1e[_0x208511(0x1b7)];if(_0x2bf7f3&&typeof _0x2bf7f3===_0x208511(0x182)){this[_0x208511(0x1bb)]=_0x2bf7f3,this['elements'][_0x208511(0x21b)][_0x208511(0x238)]=_0x2bf7f3;return;}}catch(_0x240696){continue;}}this[_0x208511(0x236)]['ipDisplay']['textContent']=_0x208511(0x187);}async[_0x3404b1(0x184)](){const _0x35c512=_0x3404b1;try{const _0x241df8=localStorage[_0x35c512(0x1d0)]('sessionToken'),_0x59691d=await fetch(this[_0x35c512(0x217)],{'headers':{'Authorization':_0x35c512(0x1f3)+_0x241df8}});if(_0x59691d['ok']){const _0x3705b7=await _0x59691d[_0x35c512(0x1cd)]();_0x3705b7['ip']&&_0x3705b7['ip']!==this[_0x35c512(0x1bb)]&&(this[_0x35c512(0x1bb)]=_0x3705b7['ip'],this[_0x35c512(0x236)][_0x35c512(0x21b)][_0x35c512(0x238)]=_0x3705b7['ip']),_0x3705b7[_0x35c512(0x1e9)]&&_0x3705b7['token']&&(this[_0x35c512(0x241)]=_0x3705b7[_0x35c512(0x242)],this[_0x35c512(0x236)][_0x35c512(0x208)]['value']=_0x3705b7[_0x35c512(0x242)],this[_0x35c512(0x21f)](_0x3705b7['time_left_ms']),this[_0x35c512(0x1c1)](),Swal[_0x35c512(0x1c9)]({'icon':_0x35c512(0x197),'title':'Token\x20đã\x20tồn\x20tại','text':_0x35c512(0x179),'timer':0xbb8,'timerProgressBar':!![],'showConfirmButton':![]}));}}catch(_0x42d0be){console[_0x35c512(0x18a)](_0x35c512(0x1ac),_0x42d0be);}}[_0x3404b1(0x237)](){const _0x4e2250=_0x3404b1;console[_0x4e2250(0x1d6)](_0x4e2250(0x23e)),this[_0x4e2250(0x225)]=![],this[_0x4e2250(0x1f9)]=null,localStorage[_0x4e2250(0x21a)](_0x4e2250(0x1f2)),this[_0x4e2250(0x20e)]();}[_0x3404b1(0x20e)](){const _0x404e99=_0x3404b1;console[_0x404e99(0x1d6)]('🎨\x20Updating\x20UI\x20-\x20Logged\x20in:',this[_0x404e99(0x225)]);if(this[_0x404e99(0x225)]&&this[_0x404e99(0x1f9)]){this['elements'][_0x404e99(0x1f6)]&&(this['elements'][_0x404e99(0x1f6)][_0x404e99(0x1ee)][_0x404e99(0x1c7)]=_0x404e99(0x213));this[_0x404e99(0x236)]['userInfo']&&(this[_0x404e99(0x236)][_0x404e99(0x1e7)]['style'][_0x404e99(0x1c7)]=_0x404e99(0x1fe));if(this[_0x404e99(0x236)][_0x404e99(0x188)]){const _0x4c1997=this[_0x404e99(0x1f9)]['globalName']||this[_0x404e99(0x1f9)][_0x404e99(0x1f4)];this[_0x404e99(0x236)][_0x404e99(0x188)][_0x404e99(0x238)]=_0x4c1997;}if(this[_0x404e99(0x236)][_0x404e99(0x206)]){if(this['userData']['avatar']){const _0x16366b=_0x404e99(0x235)+this['userData']['id']+'/'+this['userData'][_0x404e99(0x18b)]+'.png?size=128';this['elements']['userAvatar'][_0x404e99(0x23f)]=_0x16366b;}else{const _0xd3cdac='https://cdn.discordapp.com/embed/avatars/'+(this[_0x404e99(0x1f9)]['discriminator']||0x0)%0x5+_0x404e99(0x1e0);this['elements'][_0x404e99(0x206)][_0x404e99(0x23f)]=_0xd3cdac;}}}else this['elements']['loginPrompt']&&(this[_0x404e99(0x236)]['loginPrompt'][_0x404e99(0x1ee)]['display']=_0x404e99(0x231)),this[_0x404e99(0x236)][_0x404e99(0x1e7)]&&(this['elements'][_0x404e99(0x1e7)]['style'][_0x404e99(0x1c7)]=_0x404e99(0x213));}[_0x3404b1(0x19b)](){const _0x7962bb=_0x3404b1;return Swal[_0x7962bb(0x1c9)]({'icon':_0x7962bb(0x245),'title':_0x7962bb(0x1b0),'html':_0x7962bb(0x18d),'showCancelButton':!![],'confirmButtonText':_0x7962bb(0x1a0),'cancelButtonText':_0x7962bb(0x240),'confirmButtonColor':_0x7962bb(0x215),'cancelButtonColor':_0x7962bb(0x18f)})[_0x7962bb(0x239)](_0x3c5328=>{const _0x118186=_0x7962bb;_0x3c5328[_0x118186(0x1fa)]&&(window[_0x118186(0x1b6)][_0x118186(0x243)]=_0x118186(0x1cf));});}[_0x3404b1(0x17f)](){const _0x372aed=_0x3404b1;this[_0x372aed(0x236)][_0x372aed(0x1bc)]&&this[_0x372aed(0x236)][_0x372aed(0x1bc)][_0x372aed(0x230)](_0x372aed(0x1eb),()=>{const _0x423f86=_0x372aed;this[_0x423f86(0x1cc)]();});this[_0x372aed(0x236)][_0x372aed(0x199)]&&this[_0x372aed(0x236)][_0x372aed(0x199)][_0x372aed(0x230)](_0x372aed(0x1eb),()=>{const _0x54ad8b=_0x372aed;this[_0x54ad8b(0x200)]();});const _0x34e47e=document['querySelector'](_0x372aed(0x1c0));_0x34e47e&&_0x34e47e[_0x372aed(0x230)](_0x372aed(0x1eb),async _0x2b210f=>{const _0x4fee4a=_0x372aed;_0x2b210f[_0x4fee4a(0x1a5)](),await this[_0x4fee4a(0x1e2)]();});}[_0x3404b1(0x1ed)](_0x5eb434){const _0x5b06fe=_0x3404b1,_0xbfb24b=[_0x5b06fe(0x1f1),_0x5b06fe(0x20b),'loadingView'];_0xbfb24b[_0x5b06fe(0x19d)](_0xfaf078=>{const _0x87f057=_0x5b06fe;this[_0x87f057(0x236)][_0xfaf078]&&this[_0x87f057(0x236)][_0xfaf078][_0x87f057(0x1d8)]['add']('hidden');}),this[_0x5b06fe(0x236)][_0x5eb434]&&this[_0x5b06fe(0x236)][_0x5eb434][_0x5b06fe(0x1d8)][_0x5b06fe(0x1a8)](_0x5b06fe(0x1a2));}['showInitialView'](){const _0x27d3ae=_0x3404b1;this['showView'](_0x27d3ae(0x1f1)),this['stopTimer']();}[_0x3404b1(0x1c1)](){const _0x574233=_0x3404b1;this[_0x574233(0x1ed)](_0x574233(0x20b));}[_0x3404b1(0x1b9)](){const _0x1a1d12=_0x3404b1;this[_0x1a1d12(0x1ed)]('loadingView');}async[_0x3404b1(0x1cc)](){const _0x13c075=_0x3404b1;!this['loginChecked']&&await new Promise(_0x5a9621=>{const _0x4291b4=setInterval(()=>{const _0x4a7dee=_0x2249;this[_0x4a7dee(0x1dc)]&&(clearInterval(_0x4291b4),_0x5a9621());},0x64);setTimeout(()=>{clearInterval(_0x4291b4),_0x5a9621();},0x1388);});if(!this[_0x13c075(0x225)]){await this['showLoginRequiredAlert']();return;}if(this[_0x13c075(0x1f8)]){Swal[_0x13c075(0x1c9)]({'icon':_0x13c075(0x245),'title':_0x13c075(0x1e1),'text':'Vui\x20lòng\x20chờ\x20hoàn\x20thành\x20yêu\x20cầu\x20hiện\x20tại.','timer':0x7d0,'showConfirmButton':![]});return;}this['isCreatingToken']=!![],this[_0x13c075(0x1b9)]();try{const _0x5a1861=localStorage[_0x13c075(0x1d0)]('sessionToken'),_0x572bd6=await fetch(this[_0x13c075(0x217)],{'method':_0x13c075(0x189),'headers':{'Content-Type':_0x13c075(0x17c),'Authorization':_0x13c075(0x1f3)+_0x5a1861},'body':JSON[_0x13c075(0x1c6)]({'action':_0x13c075(0x212)})}),_0x3d96f4=await _0x572bd6[_0x13c075(0x1cd)]();if(_0x572bd6[_0x13c075(0x20c)]===0xc9&&_0x3d96f4[_0x13c075(0x1e4)]){this[_0x13c075(0x241)]=_0x3d96f4['token'],this['elements'][_0x13c075(0x208)][_0x13c075(0x233)]=_0x3d96f4[_0x13c075(0x242)],this[_0x13c075(0x21f)](_0x3d96f4['time_left_ms']),this[_0x13c075(0x1c1)](),Swal[_0x13c075(0x1c9)]({'icon':_0x13c075(0x1e4),'title':_0x13c075(0x1c3),'text':_0x13c075(0x1a7),'confirmButtonText':'Tuyệt\x20vời!','timer':0x1388,'timerProgressBar':!![]});return;}throw new Error(_0x3d96f4['message']||_0x3d96f4[_0x13c075(0x18a)]||_0x13c075(0x22f));}catch(_0x1e8ac0){console[_0x13c075(0x18a)](_0x13c075(0x203),_0x1e8ac0),this[_0x13c075(0x1b3)](),Swal['fire']({'icon':_0x13c075(0x18a),'title':'Lỗi\x20tạo\x20token','text':_0x1e8ac0[_0x13c075(0x23a)]||'Lỗi\x20kết\x20nối\x20đến\x20máy\x20chủ.','confirmButtonText':_0x13c075(0x1fb)});}finally{this[_0x13c075(0x1f8)]=![];}}async[_0x3404b1(0x1e2)](){const _0x4558e0=_0x3404b1;!this[_0x4558e0(0x1dc)]&&await new Promise(_0x3f12f2=>{const _0x33f33e=setInterval(()=>{const _0x217f7d=_0x2249;this[_0x217f7d(0x1dc)]&&(clearInterval(_0x33f33e),_0x3f12f2());},0x64);setTimeout(()=>{clearInterval(_0x33f33e),_0x3f12f2();},0x1388);});if(!this['isLoggedIn']){await this[_0x4558e0(0x19b)]();return;}if(this['isCreatingSession']){Swal[_0x4558e0(0x1c9)]({'icon':'warning','title':_0x4558e0(0x1e1),'text':'Vui\x20lòng\x20chờ\x20hoàn\x20thành\x20yêu\x20cầu\x20hiện\x20tại.','timer':0x7d0,'showConfirmButton':![]});return;}this[_0x4558e0(0x22d)]=!![];const _0x3054b5=Swal[_0x4558e0(0x1c9)]({'title':'Đang\x20tạo\x20session...','text':_0x4558e0(0x234),'allowOutsideClick':![],'allowEscapeKey':![],'showConfirmButton':![],'didOpen':()=>{const _0xa34edd=_0x4558e0;Swal[_0xa34edd(0x17e)]();}});try{const _0x310abf=localStorage[_0x4558e0(0x1d0)](_0x4558e0(0x1f2)),_0x27993a=await fetch(this[_0x4558e0(0x217)],{'method':_0x4558e0(0x189),'headers':{'Content-Type':_0x4558e0(0x17c),'Authorization':'Bearer\x20'+_0x310abf},'body':JSON[_0x4558e0(0x1c6)]({'action':_0x4558e0(0x211)})}),_0x28cddf=await _0x27993a[_0x4558e0(0x1cd)]();_0x3054b5['close']();if(_0x27993a['status']===0xc9&&_0x28cddf[_0x4558e0(0x1e4)]){await Swal['fire']({'icon':_0x4558e0(0x1e4),'title':_0x4558e0(0x226),'text':_0x4558e0(0x1ab),'timer':0x7d0,'timerProgressBar':!![],'showConfirmButton':![]});const _0x570dbc=_0x4558e0(0x201);window[_0x4558e0(0x191)](_0x570dbc,_0x4558e0(0x1be)),setTimeout(()=>{const _0x2abea2=_0x4558e0;Swal[_0x2abea2(0x1c9)]({'icon':'warning','title':_0x2abea2(0x1b2),'text':'Vui\x20lòng\x20không\x20dùng\x20bypass\x20nếu\x20ko\x20muốn\x20bị\x20chặn!','confirmButtonText':'Đã\x20hiểu','timer':0x1388,'timerProgressBar':!![]});},0x9c4);return;}if(_0x27993a[_0x4558e0(0x20c)]===0x199||_0x28cddf['error']?.['includes'](_0x4558e0(0x1ad))){const _0x4150df=await Swal[_0x4558e0(0x1c9)]({'icon':_0x4558e0(0x197),'title':_0x4558e0(0x202),'text':_0x4558e0(0x195),'showCancelButton':!![],'showDenyButton':!![],'confirmButtonText':_0x4558e0(0x19a),'denyButtonText':_0x4558e0(0x240),'cancelButtonText':'Giữ\x20session\x20cũ','confirmButtonColor':'#00ff88','denyButtonColor':_0x4558e0(0x221),'cancelButtonColor':'#ff4757'});if(_0x4150df[_0x4558e0(0x1fa)])await this[_0x4558e0(0x180)]();else(_0x4150df[_0x4558e0(0x1df)]||_0x4150df[_0x4558e0(0x1c4)])&&Swal[_0x4558e0(0x1c9)]({'icon':_0x4558e0(0x197),'title':'Đã\x20hủy','text':_0x4558e0(0x1fd),'timer':0x7d0,'showConfirmButton':![]});return;}throw new Error(_0x28cddf[_0x4558e0(0x18a)]||_0x4558e0(0x207));}catch(_0x5e70fc){console[_0x4558e0(0x18a)](_0x4558e0(0x17d),_0x5e70fc),_0x3054b5[_0x4558e0(0x20f)](),Swal['fire']({'icon':_0x4558e0(0x18a),'title':_0x4558e0(0x1b4),'text':_0x5e70fc[_0x4558e0(0x23a)],'confirmButtonText':_0x4558e0(0x1fb)});}finally{this[_0x4558e0(0x22d)]=![];}}async[_0x3404b1(0x180)](){const _0xfb7aa9=_0x3404b1;if(!this[_0xfb7aa9(0x225)]){await this['showLoginRequiredAlert']();return;}const _0xcd3d54=Swal[_0xfb7aa9(0x1c9)]({'title':_0xfb7aa9(0x17a),'text':_0xfb7aa9(0x234),'allowOutsideClick':![],'allowEscapeKey':![],'showConfirmButton':![],'didOpen':()=>{Swal['showLoading']();}});try{const _0x205a4e=localStorage[_0xfb7aa9(0x1d0)](_0xfb7aa9(0x1f2)),_0x37d6bb=await fetch(this[_0xfb7aa9(0x217)],{'method':_0xfb7aa9(0x189),'headers':{'Content-Type':_0xfb7aa9(0x17c),'Authorization':_0xfb7aa9(0x1f3)+_0x205a4e},'body':JSON[_0xfb7aa9(0x1c6)]({'action':'delete_session'})});if(_0x37d6bb['ok'])_0xcd3d54[_0xfb7aa9(0x20f)](),Swal[_0xfb7aa9(0x1c9)]({'icon':'success','title':_0xfb7aa9(0x1b1),'text':_0xfb7aa9(0x1de),'timer':0x5dc,'showConfirmButton':![]}),setTimeout(()=>{this['createDownloadSession']();},0x5dc);else throw new Error('Không\x20thể\x20xóa\x20session\x20cũ');}catch(_0x53c552){_0xcd3d54['close'](),Swal[_0xfb7aa9(0x1c9)]({'icon':'error','title':'Lỗi\x20xóa\x20session','text':_0xfb7aa9(0x20a),'confirmButtonText':'OK'});}}async[_0x3404b1(0x200)](){const _0x278ce8=_0x3404b1;!this[_0x278ce8(0x1dc)]&&await new Promise(_0x39b939=>{const _0x3ba0ee=setInterval(()=>{const _0x325e8e=_0x2249;this[_0x325e8e(0x1dc)]&&(clearInterval(_0x3ba0ee),_0x39b939());},0x64);setTimeout(()=>{clearInterval(_0x3ba0ee),_0x39b939();},0x1388);});if(!this['isLoggedIn']){await this['showLoginRequiredAlert']();return;}try{await navigator[_0x278ce8(0x1c2)]['writeText'](this['currentToken']);const _0x535e78=this[_0x278ce8(0x236)][_0x278ce8(0x199)][_0x278ce8(0x1c5)];this[_0x278ce8(0x236)][_0x278ce8(0x199)]['innerHTML']='<i\x20class=\x22fas\x20fa-check\x22></i>',this['elements'][_0x278ce8(0x199)][_0x278ce8(0x1ee)]['background']=_0x278ce8(0x222),this['elements'][_0x278ce8(0x199)][_0x278ce8(0x1ee)][_0x278ce8(0x209)]=_0x278ce8(0x23c),setTimeout(()=>{const _0x155d15=_0x278ce8;this[_0x155d15(0x236)][_0x155d15(0x199)]['innerHTML']=_0x535e78,this[_0x155d15(0x236)][_0x155d15(0x199)]['style']['background']='',this[_0x155d15(0x236)][_0x155d15(0x199)]['style'][_0x155d15(0x209)]='';},0x5dc);const _0x38c836=Swal['mixin']({'toast':!![],'position':_0x278ce8(0x232),'showConfirmButton':![],'timer':0xbb8,'timerProgressBar':!![],'didOpen':_0x5501e0=>{const _0x2db337=_0x278ce8;_0x5501e0[_0x2db337(0x230)](_0x2db337(0x220),Swal[_0x2db337(0x1d9)]),_0x5501e0[_0x2db337(0x230)](_0x2db337(0x1ea),Swal[_0x2db337(0x19f)]);}});_0x38c836['fire']({'icon':_0x278ce8(0x1e4),'title':_0x278ce8(0x1ec)});}catch(_0x24918c){console[_0x278ce8(0x18a)](_0x278ce8(0x1f0),_0x24918c);this['elements'][_0x278ce8(0x208)]&&(this[_0x278ce8(0x236)][_0x278ce8(0x208)][_0x278ce8(0x21d)](),this[_0x278ce8(0x236)]['tokenDisplay'][_0x278ce8(0x224)](0x0,0x1869f));try{document['execCommand']('copy');const _0x4803f4=Swal[_0x278ce8(0x1f7)]({'toast':!![],'position':_0x278ce8(0x232),'showConfirmButton':![],'timer':0xbb8,'timerProgressBar':!![]});_0x4803f4[_0x278ce8(0x1c9)]({'icon':_0x278ce8(0x1e4),'title':_0x278ce8(0x1ec)});}catch(_0x28e792){Swal['fire']({'icon':_0x278ce8(0x18a),'title':_0x278ce8(0x1da),'text':'Không\x20thể\x20copy\x20token.\x20Vui\x20lòng\x20copy\x20thủ\x20công.','confirmButtonText':'OK'});}}}[_0x3404b1(0x21f)](_0x283c20){const _0x1e8ee7=_0x3404b1;this[_0x1e8ee7(0x1d9)]();let _0xa15aa6=Math[_0x1e8ee7(0x1e3)](_0x283c20/0x3e8);const _0x365a76=()=>{const _0x5d5989=_0x1e8ee7;if(_0xa15aa6<=0x0){this[_0x5d5989(0x236)][_0x5d5989(0x194)]&&(this[_0x5d5989(0x236)]['timerDisplay'][_0x5d5989(0x238)]=_0x5d5989(0x21e));this['stopTimer'](),Swal[_0x5d5989(0x1c9)]({'icon':_0x5d5989(0x245),'title':_0x5d5989(0x1d1),'text':_0x5d5989(0x19e),'confirmButtonText':_0x5d5989(0x22c)})['then'](_0x169134=>{const _0x479cf7=_0x5d5989;_0x169134['isConfirmed']&&this[_0x479cf7(0x1b3)]();});return;}const _0x1c37ef=Math['floor'](_0xa15aa6/0xe10),_0x4f072b=Math['floor'](_0xa15aa6%0xe10/0x3c),_0xad8548=_0xa15aa6%0x3c;this[_0x5d5989(0x236)][_0x5d5989(0x194)]&&(this['elements']['timerDisplay'][_0x5d5989(0x238)]=_0x1c37ef[_0x5d5989(0x1a4)]()[_0x5d5989(0x1ef)](0x2,'0')+':'+_0x4f072b['toString']()[_0x5d5989(0x1ef)](0x2,'0')+':'+_0xad8548[_0x5d5989(0x1a4)]()[_0x5d5989(0x1ef)](0x2,'0'),_0xa15aa6<=0x12c&&(this[_0x5d5989(0x236)][_0x5d5989(0x194)][_0x5d5989(0x1ee)]['animation']=_0x5d5989(0x20d),this[_0x5d5989(0x236)][_0x5d5989(0x194)]['style'][_0x5d5989(0x1a9)]=_0x5d5989(0x19c))),_0xa15aa6--;};_0x365a76(),this[_0x1e8ee7(0x1e5)]=setInterval(_0x365a76,0x3e8);}['stopTimer'](){const _0x26ac12=_0x3404b1;this['timerInterval']&&(clearInterval(this[_0x26ac12(0x1e5)]),this[_0x26ac12(0x1e5)]=null),this['elements'][_0x26ac12(0x194)]&&(this[_0x26ac12(0x236)]['timerDisplay'][_0x26ac12(0x1ee)]['animation']='',this[_0x26ac12(0x236)]['timerDisplay'][_0x26ac12(0x1ee)][_0x26ac12(0x1a9)]=_0x26ac12(0x221));}}function _0x138d(){const _0xe89be2=['Token\x20đã\x20được\x20tạo!','isDismissed','innerHTML','stringify','display','userMenuBtn','fire','?action=check_session','Chào\x20mừng\x20trở\x20lại!','createToken','json','checkLoginStatus','/login','getItem','Token\x20đã\x20hết\x20hạn!','Đăng\x20xuất','loadInterface','checkIPSessionFirst','user','log','Error\x20checking\x20IP\x20session:','classList','stopTimer','Không\x20thể\x20copy','1388264oePpwK','loginChecked','Bạn\x20đã\x20đăng\x20xuất\x20khỏi\x20tất\x20cả\x20thiết\x20bị.','Đang\x20tạo\x20session\x20mới...','isDenied','.png','Đang\x20xử\x20lý','createDownloadSession','floor','success','timerInterval','Đang\x20tải...','userInfo','globalName','has_existing_token','mouseleave','click','Token\x20đã\x20được\x20copy!','showView','style','padStart','Error\x20copying\x20token:','initialView','sessionToken','Bearer\x20','username','valid','loginPrompt','mixin','isCreatingToken','userData','isConfirmed','Thử\x20lại','show','Giữ\x20nguyên\x20session\x20hiện\x20tại.','flex','7040975loQgFj','copyToken','https://link4m.com/n902L','Bạn\x20đã\x20có\x20session!','Error\x20creating\x20token:','🔄\x20Using\x20local\x20token\x20as\x20fallback','logout','userAvatar','Không\x20thể\x20tạo\x20phiên\x20tải\x20xuống','tokenDisplay','transform','Không\x20thể\x20xóa\x20session\x20cũ.\x20Vui\x20lòng\x20thử\x20lại\x20sau.','tokenView','status','pulse\x201s\x20ease-in-out\x20infinite','updateUserInterface','close','6EsBaRl','create_download_session','create_token','none','?action=verify','#00ff88','https://api.ipify.org?format=json','API_BASE','https://httpbin.org/ip','toggle','removeItem','ipDisplay','Xác\x20nhận\x20đăng\x20xuất','select','00:00:00','startTimer','mouseenter','#ff8800','rgba(0,\x20255,\x20136,\x200.5)','getRealIP','setSelectionRange','isLoggedIn','Session\x20đã\x20được\x20tạo!','1987998TXWfKG','logoutBtn','IP\x20session\x20response:','/api/bypass_funlink','5269527AzbSqM','Tạo\x20token\x20mới','isCreatingSession','1136082pOWnZo','Không\x20thể\x20tạo\x20token','addEventListener','block','top-end','value','Vui\x20lòng\x20chờ\x20trong\x20giây\x20lát','https://cdn.discordapp.com/avatars/','elements','handleInvalidLogin','textContent','then','message','Xin\x20chào\x20','scale(1.1)','1032708QLDNvG','🧹\x20Handling\x20invalid\x20login','src','Hủy','currentToken','token','href','7495873NoagZB','warning','parse','✅\x20Token\x20verified\x20successfully','Đã\x20tải\x20lại\x20token\x20hiện\x20tại\x20của\x20bạn.','Đang\x20xóa\x20session\x20cũ...','stopPropagation','application/json','Error\x20creating\x20download\x20session:','showLoading','setupEventListeners','deleteAndCreateSession','Error\x20loading\x20interface:','string','❌\x20No\x20session\x20token','loadUserData','appendChild','head','Không\x20thể\x20lấy\x20IP','userName','POST','error','avatar','GET','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<p>Bạn\x20cần\x20đăng\x20nhập\x20để\x20sử\x20dụng\x20chức\x20năng\x20này</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<p\x20style=\x22font-size:\x200.9em;\x20color:\x20#ccc;\x20margin-top:\x2010px;\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20Bấm\x20nút\x20\x22Đăng\x20nhập\x22\x20ở\x20góc\x20phải\x20để\x20tiếp\x20tục\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</p>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','🔍\x20Checking\x20IP\x20session...','#6c757d','setupSweetAlert','open','🔍\x20Checking\x20localStorage\x20login...','setupUserMenu','timerDisplay','Bạn\x20đã\x20có\x20session\x20tải\x20xuống.\x20Bạn\x20muốn\x20xóa\x20session\x20cũ\x20và\x20tạo\x20mới?','✅\x20Found\x20IP\x20session\x20-\x20auto\x20login','info','Lỗi\x20kết\x20nối','copyTokenBtn','Xóa\x20&\x20Tạo\x20mới','showLoginRequiredAlert','#ff4757','forEach','Token\x20của\x20bạn\x20đã\x20hết\x20hạn.\x20Vui\x20lòng\x20tạo\x20token\x20mới.','resumeTimer','Đăng\x20nhập\x20ngay','Bạn\x20có\x20chắc\x20chắn\x20muốn\x20đăng\x20xuất\x20khỏi\x20tất\x20cả\x20thiết\x20bị?','hidden','🔄\x20No\x20IP\x20session,\x20checking\x20localStorage...','toString','preventDefault','4ntuUPd','Token\x20của\x20bạn\x20đã\x20được\x20tạo\x20thành\x20công\x20và\x20có\x20thời\x20hạn\x203\x20tiếng.','remove','color','getElementById','Đang\x20chuyển\x20hướng\x20đến\x20link\x20tải...','Error\x20loading\x20user\x20data:','đã\x20có\x20session','dropdownMenu','loadingView','Vui\x20lòng\x20đăng\x20nhập','Đã\x20xóa\x20session\x20cũ!','Lưu\x20ý\x20quan\x20trọng!','showInitialView','Lỗi\x20tạo\x20session','question','location','origin','❌\x20Login\x20check\x20error:','showLoadingView','LOGIN_API','userIP','createTokenBtn','Error\x20clearing\x20server\x20session:','_blank','/api/auth','#downloadTrigger','showTokenView','clipboard'];_0x138d=function(){return _0xe89be2;};return _0x138d();}document['addEventListener']('DOMContentLoaded',()=>{new TokenManager();});
+class TokenManager {
+    constructor() {
+        this.currentToken = null;
+        this.timerInterval = null;
+        this.userIP = null;
+        this.isLoggedIn = false;
+        this.isCreatingToken = false;
+        this.isCreatingSession = false;
+        this.loginChecked = false;
+        this.userData = null;
+        
+        // API endpoints
+        this.API_BASE = '/api/bypass_funlink';
+        this.LOGIN_API = '/api/auth';
+        
+        console.log('🚀 TokenManager started');
+        
+        this.initializeElements();
+        this.setupEventListeners();
+        this.setupSweetAlert();
+        this.setupUserMenu();
+        
+        // Load interface
+        this.loadInterface();
+        
+        // ✅ Check IP session trước, nếu không có thì check localStorage
+        setTimeout(() => {
+            this.checkIPSessionFirst();
+        }, 500);
+    }
+
+    // ... existing methods until checkLoginStatus ...
+
+    // ✅ Check IP session trước tiên
+    async checkIPSessionFirst() {
+        console.log('🔍 Checking IP session...');
+        
+        try {
+            const response = await fetch(`${this.LOGIN_API}?action=check_session`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('IP session response:', data);
+
+                if (data.has_session && data.user) {
+                    console.log('✅ Found IP session - auto login');
+                    
+                    // Save token to localStorage for consistency
+                    localStorage.setItem('sessionToken', data.token);
+                    
+                    // Set user data
+                    this.isLoggedIn = true;
+                    this.userData = data.user;
+                    
+                    // Update IP
+                    if (data.ip) {
+                        this.userIP = data.ip;
+                        this.elements.ipDisplay.textContent = data.ip;
+                    }
+                    
+                    this.updateUserInterface();
+                    this.loadUserData();
+                    this.loginChecked = true;
+                    
+                    // Show welcome back message
+                    const toastMixin = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                    
+                    toastMixin.fire({
+                        icon: 'success',
+                        title: 'Chào mừng trở lại!',
+                        text: `Xin chào ${data.user.globalName || data.user.username}`
+                    });
+                    
+                    return; // Exit early - đã login thành công
+                }
+            }
+        } catch (error) {
+            console.error('Error checking IP session:', error);
+        }
+        
+        // Fallback to normal login check nếu không có IP session
+        console.log('🔄 No IP session, checking localStorage...');
+        this.checkLoginStatus();
+    }
+
+    // ✅ Normal login check (như cũ)
+    async checkLoginStatus() {
+        console.log('🔍 Checking localStorage login...');
+        
+        try {
+            const sessionToken = localStorage.getItem('sessionToken');
+            
+            if (!sessionToken) {
+                console.log('❌ No session token');
+                this.isLoggedIn = false;
+                this.loginChecked = true;
+                this.updateUserInterface();
+                return;
+            }
+
+            // Verify với API
+            const response = await fetch(`${this.LOGIN_API}?action=verify`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.valid && data.user) {
+                    console.log('✅ Token verified successfully');
+                    this.isLoggedIn = true;
+                    this.userData = data.user;
+                    
+                    if (data.ip) {
+                        this.userIP = data.ip;
+                        this.elements.ipDisplay.textContent = data.ip;
+                    }
+                    
+                    this.updateUserInterface();
+                    this.loadUserData();
+                } else {
+                    this.handleInvalidLogin();
+                }
+            } else {
+                // Try local token as fallback
+                try {
+                    const tokenData = JSON.parse(atob(sessionToken));
+                    if (tokenData.id && tokenData.username) {
+                        console.log('🔄 Using local token as fallback');
+                        this.isLoggedIn = true;
+                        this.userData = tokenData;
+                        this.updateUserInterface();
+                        this.loadUserData();
+                    } else {
+                        this.handleInvalidLogin();
+                    }
+                } catch (e) {
+                    this.handleInvalidLogin();
+                }
+            }
+        } catch (error) {
+            console.error('❌ Login check error:', error);
+            this.handleInvalidLogin();
+        }
+        
+        this.loginChecked = true;
+    }
+
+    // ✅ Updated logout để clear IP session
+    async logout() {
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Xác nhận đăng xuất',
+            text: 'Bạn có chắc chắn muốn đăng xuất khỏi tất cả thiết bị?',
+            showCancelButton: true,
+            confirmButtonText: 'Đăng xuất',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ff4757',
+            cancelButtonColor: '#6c757d'
+        });
+
+        if (result.isConfirmed) {
+            // Clear localStorage
+            localStorage.removeItem('sessionToken');
+            
+            // ✅ Clear IP session on server
+            try {
+                await fetch(`${this.LOGIN_API}?action=clear_session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (error) {
+                console.log('Error clearing server session:', error);
+            }
+            
+            // Reset states
+            this.isLoggedIn = false;
+            this.userData = null;
+            this.currentToken = null;
+            this.loginChecked = false;
+            
+            this.updateUserInterface();
+            this.showInitialView();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Đã đăng xuất',
+                text: 'Bạn đã đăng xuất khỏi tất cả thiết bị.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    }
+
+    // ... rest of methods remain the same ...
+    
+    setupSweetAlert() {
+        const customStyles = `
+            .swal2-popup {
+                background: #111 !important;
+                border: 2px solid #00ff88 !important;
+                border-radius: 15px !important;
+                color: #fff !important;
+            }
+            .swal2-title {
+                color: #fff !important;
+            }
+            .swal2-content {
+                color: #ccc !important;
+            }
+            .swal2-confirm {
+                background: linear-gradient(45deg, #00ff88, #00ccff) !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+            }
+            .swal2-cancel {
+                background: rgba(255, 71, 87, 0.8) !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+            }
+            .swal2-deny {
+                background: rgba(255, 136, 0, 0.8) !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+            }
+        `;
+        const styleElement = document.createElement('style');
+        styleElement.innerHTML = customStyles;
+        document.head.appendChild(styleElement);
+    }
+
+    initializeElements() {
+        this.elements = {
+            'ipDisplay': document.getElementById('ipDisplay'),
+            'initialView': document.getElementById('initialView'),
+            'tokenView': document.getElementById('tokenView'),
+            'loadingView': document.getElementById('loadingView'),
+            'createTokenBtn': document.getElementById('createTokenBtn'),
+            'tokenDisplay': document.getElementById('tokenDisplay'),
+            'timerDisplay': document.getElementById('timerDisplay'),
+            'copyTokenBtn': document.getElementById('copyTokenBtn'),
+            'loginPrompt': document.getElementById('loginPrompt'),
+            'userInfo': document.getElementById('userInfo'),
+            'userAvatar': document.getElementById('userAvatar'),
+            'userName': document.getElementById('userName'),
+            'userMenuBtn': document.getElementById('userMenuBtn'),
+            'dropdownMenu': document.getElementById('dropdownMenu'),
+            'logoutBtn': document.getElementById('logoutBtn')
+        };
+    }
+
+    setupUserMenu() {
+        if (this.elements.userMenuBtn) {
+            this.elements.userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.elements.dropdownMenu.classList.toggle('show');
+            });
+        }
+
+        document.addEventListener('click', () => {
+            if (this.elements.dropdownMenu) {
+                this.elements.dropdownMenu.classList.remove('show');
+            }
+        });
+
+        if (this.elements.logoutBtn) {
+            this.elements.logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
+    }
+
+    async loadInterface() {
+        try {
+            this.elements.ipDisplay.textContent = 'Đang tải...';
+            this.getRealIP();
+            this.showInitialView();
+        } catch (error) {
+            console.error('Error loading interface:', error);
+            this.elements.ipDisplay.textContent = 'Lỗi kết nối';
+            this.showInitialView();
+        }
+    }
+
+    async getRealIP() {
+        try {
+            // Try main API first
+            const response = await fetch(this.API_BASE);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.ip) {
+                    this.userIP = data.ip;
+                    this.elements.ipDisplay.textContent = data.ip;
+                    return;
+                }
+            }
+        } catch (error) {
+            console.log('Main API not available for IP');
+        }
+
+        // Fallback IP services
+        const ipServices = [
+            'https://api.ipify.org?format=json',
+            'https://httpbin.org/ip'
+        ];
+
+        for (const service of ipServices) {
+            try {
+                const response = await fetch(service);
+                const data = await response.json();
+                
+                const ip = data.ip || data.origin;
+                if (ip && typeof ip === 'string') {
+                    this.userIP = ip;
+                    this.elements.ipDisplay.textContent = ip;
+                    return;
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        
+        this.elements.ipDisplay.textContent = 'Không thể lấy IP';
+    }
+
+    async loadUserData() {
+        try {
+            const sessionToken = localStorage.getItem('sessionToken');
+            const response = await fetch(this.API_BASE, {
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.ip && data.ip !== this.userIP) {
+                    this.userIP = data.ip;
+                    this.elements.ipDisplay.textContent = data.ip;
+                }
+
+                if (data.has_existing_token && data.token) {
+                    this.currentToken = data.token;
+                    this.elements.tokenDisplay.value = data.token;
+                    this.startTimer(data.time_left_ms);
+                    this.showTokenView();
+                    
+                    Swal.fire({
+                        'icon': 'info',
+                        'title': 'Token đã tồn tại',
+                        'text': 'Đã tải lại token hiện tại của bạn.',
+                        'timer': 3000,
+                        'timerProgressBar': true,
+                        'showConfirmButton': false
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading user data:', error);
+        }
+    }
+
+    handleInvalidLogin() {
+        console.log('🧹 Handling invalid login');
+        this.isLoggedIn = false;
+        this.userData = null;
+        localStorage.removeItem('sessionToken');
+        this.updateUserInterface();
+    }
+
+    updateUserInterface() {
+        console.log('🎨 Updating UI - Logged in:', this.isLoggedIn);
+        
+        if (this.isLoggedIn && this.userData) {
+            // Show user info
+            if (this.elements.loginPrompt) {
+                this.elements.loginPrompt.style.display = 'none';
+            }
+            if (this.elements.userInfo) {
+                this.elements.userInfo.style.display = 'flex';
+            }
+            
+            // Update user name
+            if (this.elements.userName) {
+                const displayName = this.userData.globalName || this.userData.username;
+                this.elements.userName.textContent = displayName;
+            }
+            
+            // Update avatar
+            if (this.elements.userAvatar) {
+                if (this.userData.avatar) {
+                    const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
+                    this.elements.userAvatar.src = avatarUrl;
+                } else {
+                    const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
+                    this.elements.userAvatar.src = defaultAvatar;
+                }
+            }
+        } else {
+            // Show login prompt
+            if (this.elements.loginPrompt) {
+                this.elements.loginPrompt.style.display = 'block';
+            }
+            if (this.elements.userInfo) {
+                this.elements.userInfo.style.display = 'none';
+            }
+        }
+    }
+
+    showLoginRequiredAlert() {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'Vui lòng đăng nhập',
+            html: `
+                <p>Bạn cần đăng nhập để sử dụng chức năng này</p>
+                <p style="font-size: 0.9em; color: #ccc; margin-top: 10px;">
+                    Bấm nút "Đăng nhập" ở góc phải để tiếp tục
+                </p>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Đăng nhập ngay',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#00ff88',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/login';
+            }
+        });
+    }
+
+    setupEventListeners() {
+        if (this.elements.createTokenBtn) {
+            this.elements.createTokenBtn.addEventListener('click', () => {
+                this.createToken();
+            });
+        }
+
+        if (this.elements.copyTokenBtn) {
+            this.elements.copyTokenBtn.addEventListener('click', () => {
+                this.copyToken();
+            });
+        }
+
+        const downloadTrigger = document.querySelector('#downloadTrigger');
+        if (downloadTrigger) {
+            downloadTrigger.addEventListener('click', async (event) => {
+                event.preventDefault();
+                await this.createDownloadSession();
+            });
+        }
+    }
+
+    showView(viewName) {
+        const allViews = ['initialView', 'tokenView', 'loadingView'];
+        allViews.forEach(view => {
+            if (this.elements[view]) {
+                this.elements[view].classList.add('hidden');
+            }
+        });
+        
+        if (this.elements[viewName]) {
+            this.elements[viewName].classList.remove('hidden');
+        }
+    }
+
+    showInitialView() {
+        this.showView('initialView');
+        this.stopTimer();
+    }
+
+    showTokenView() {
+        this.showView('tokenView');
+    }
+
+    showLoadingView() {
+        this.showView('loadingView');
+    }
+
+    async createToken() {
+        if (!this.loginChecked) {
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (this.loginChecked) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        if (!this.isLoggedIn) {
+            await this.showLoginRequiredAlert();
+            return;
+        }
+
+        if (this.isCreatingToken) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Đang xử lý',
+                text: 'Vui lòng chờ hoàn thành yêu cầu hiện tại.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            return;
+        }
+
+        this.isCreatingToken = true;
+        this.showLoadingView();
+        
+        try {
+            const sessionToken = localStorage.getItem('sessionToken');
+            const response = await fetch(this.API_BASE, {
+                'method': 'POST',
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionToken}`
+                },
+                'body': JSON.stringify({
+                    'action': 'create_token'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.status === 201 && data.success) {
+                this.currentToken = data.token;
+                this.elements.tokenDisplay.value = data.token;
+                this.startTimer(data.time_left_ms);
+                this.showTokenView();
+                
+                Swal.fire({
+                    'icon': 'success',
+                    'title': 'Token đã được tạo!',
+                    'text': 'Token của bạn đã được tạo thành công và có thời hạn 3 tiếng.',
+                    'confirmButtonText': 'Tuyệt vời!',
+                    'timer': 5000,
+                    'timerProgressBar': true
+                });
+                return;
+            }
+
+            throw new Error(data.message || data.error || 'Không thể tạo token');
+        } catch (error) {
+            console.error('Error creating token:', error);
+            this.showInitialView();
+            
+            Swal.fire({
+                'icon': 'error',
+                'title': 'Lỗi tạo token',
+                'text': error.message || 'Lỗi kết nối đến máy chủ.',
+                'confirmButtonText': 'Thử lại'
+            });
+        } finally {
+            this.isCreatingToken = false;
+        }
+    }
+
+    async createDownloadSession() {
+        if (!this.loginChecked) {
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (this.loginChecked) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        if (!this.isLoggedIn) {
+            await this.showLoginRequiredAlert();
+            return;
+        }
+
+        if (this.isCreatingSession) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Đang xử lý',
+                text: 'Vui lòng chờ hoàn thành yêu cầu hiện tại.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            return;
+        }
+
+        this.isCreatingSession = true;
+
+        const loadingAlert = Swal.fire({
+            'title': 'Đang tạo session...',
+            'text': 'Vui lòng chờ trong giây lát',
+            'allowOutsideClick': false,
+            'allowEscapeKey': false,
+            'showConfirmButton': false,
+            'didOpen': () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const sessionToken = localStorage.getItem('sessionToken');
+            const response = await fetch(this.API_BASE, {
+                'method': 'POST',
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionToken}`
+                },
+                'body': JSON.stringify({
+                    'action': 'create_download_session'
+                })
+            });
+
+            const data = await response.json();
+            loadingAlert.close();
+
+            if (response.status === 201 && data.success) {
+                await Swal.fire({
+                    'icon': 'success',
+                    'title': 'Session đã được tạo!',
+                    'text': 'Đang chuyển hướng đến link tải...',
+                    'timer': 2000,
+                    'timerProgressBar': true,
+                    'showConfirmButton': false
+                });
+
+                const downloadUrl = 'https://link4m.com/n902L';
+                window.open(downloadUrl, '_blank');
+
+                setTimeout(() => {
+                    Swal.fire({
+                        'icon': 'warning',
+                        'title': 'Lưu ý quan trọng!',
+                        'text': 'Vui lòng không dùng bypass nếu ko muốn bị chặn!',
+                        'confirmButtonText': 'Đã hiểu',
+                        'timer': 5000,
+                        'timerProgressBar': true
+                    });
+                }, 2500);
+                return;
+            }
+
+            if (response.status === 409 || data.error?.includes('đã có session')) {
+                const result = await Swal.fire({
+                    'icon': 'info',
+                    'title': 'Bạn đã có session!',
+                    'text': 'Bạn đã có session tải xuống. Bạn muốn xóa session cũ và tạo mới?',
+                    'showCancelButton': true,
+                    'showDenyButton': true,
+                    'confirmButtonText': 'Xóa & Tạo mới',
+                    'denyButtonText': 'Hủy',
+                    'cancelButtonText': 'Giữ session cũ',
+                    'confirmButtonColor': '#00ff88',
+                    'denyButtonColor': '#ff8800',
+                    'cancelButtonColor': '#ff4757'
+                });
+
+                if (result.isConfirmed) {
+                    await this.deleteAndCreateSession();
+                } else if (result.isDenied || result.isDismissed) {
+                    Swal.fire({
+                        'icon': 'info',
+                        'title': 'Đã hủy',
+                        'text': 'Giữ nguyên session hiện tại.',
+                        'timer': 2000,
+                        'showConfirmButton': false
+                    });
+                }
+                return;
+            }
+
+            throw new Error(data.error || 'Không thể tạo phiên tải xuống');
+        } catch (error) {
+            console.error('Error creating download session:', error);
+            loadingAlert.close();
+            
+            Swal.fire({
+                'icon': 'error',
+                'title': 'Lỗi tạo session',
+                'text': error.message,
+                'confirmButtonText': 'Thử lại'
+            });
+        } finally {
+            this.isCreatingSession = false;
+        }
+    }
+
+    async deleteAndCreateSession() {
+        if (!this.isLoggedIn) {
+            await this.showLoginRequiredAlert();
+            return;
+        }
+
+        const loadingAlert = Swal.fire({
+            'title': 'Đang xóa session cũ...',
+            'text': 'Vui lòng chờ trong giây lát',
+            'allowOutsideClick': false,
+            'allowEscapeKey': false,
+            'showConfirmButton': false,
+            'didOpen': () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const sessionToken = localStorage.getItem('sessionToken');
+            const response = await fetch(this.API_BASE, {
+                'method': 'POST',
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionToken}`
+                },
+                'body': JSON.stringify({
+                    'action': 'delete_session'
+                })
+            });
+
+            if (response.ok) {
+                loadingAlert.close();
+                
+                Swal.fire({
+                    'icon': 'success',
+                    'title': 'Đã xóa session cũ!',
+                    'text': 'Đang tạo session mới...',
+                    'timer': 1500,
+                    'showConfirmButton': false
+                });
+
+                setTimeout(() => {
+                    this.createDownloadSession();
+                }, 1500);
+            } else {
+                throw new Error('Không thể xóa session cũ');
+            }
+        } catch (error) {
+            loadingAlert.close();
+            
+            Swal.fire({
+                'icon': 'error',
+                'title': 'Lỗi xóa session',
+                'text': 'Không thể xóa session cũ. Vui lòng thử lại sau.',
+                'confirmButtonText': 'OK'
+            });
+        }
+    }
+
+    async copyToken() {
+        if (!this.loginChecked) {
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (this.loginChecked) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        if (!this.isLoggedIn) {
+            await this.showLoginRequiredAlert();
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(this.currentToken);
+            
+            const originalContent = this.elements.copyTokenBtn.innerHTML;
+            this.elements.copyTokenBtn.innerHTML = '<i class="fas fa-check"></i>';
+            this.elements.copyTokenBtn.style.background = 'rgba(0, 255, 136, 0.5)';
+            this.elements.copyTokenBtn.style.transform = 'scale(1.1)';
+
+            setTimeout(() => {
+                this.elements.copyTokenBtn.innerHTML = originalContent;
+                this.elements.copyTokenBtn.style.background = '';
+                this.elements.copyTokenBtn.style.transform = '';
+            }, 1500);
+
+            const toastMixin = Swal.mixin({
+                'toast': true,
+                'position': 'top-end',
+                'showConfirmButton': false,
+                'timer': 3000,
+                'timerProgressBar': true,
+                'didOpen': (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
+            toastMixin.fire({
+                'icon': 'success',
+                'title': 'Token đã được copy!'
+            });
+        } catch (error) {
+            console.error('Error copying token:', error);
+            
+            if (this.elements.tokenDisplay) {
+                this.elements.tokenDisplay.select();
+                this.elements.tokenDisplay.setSelectionRange(0, 99999);
+            }
+            
+            try {
+                document.execCommand('copy');
+                const toastMixin = Swal.mixin({
+                    'toast': true,
+                    'position': 'top-end',
+                    'showConfirmButton': false,
+                    'timer': 3000,
+                    'timerProgressBar': true
+                });
+                
+                toastMixin.fire({
+                    'icon': 'success',
+                    'title': 'Token đã được copy!'
+                });
+            } catch (fallbackError) {
+                Swal.fire({
+                    'icon': 'error',
+                    'title': 'Không thể copy',
+                    'text': 'Không thể copy token. Vui lòng copy thủ công.',
+                    'confirmButtonText': 'OK'
+                });
+            }
+        }
+    }
+
+    startTimer(timeLeftMs) {
+        this.stopTimer();
+        let secondsLeft = Math.floor(timeLeftMs / 1000);
+
+        const updateTimer = () => {
+            if (secondsLeft <= 0) {
+                if (this.elements.timerDisplay) {
+                    this.elements.timerDisplay.textContent = '00:00:00';
+                }
+                this.stopTimer();
+                
+                Swal.fire({
+                    'icon': 'warning',
+                    'title': 'Token đã hết hạn!',
+                    'text': 'Token của bạn đã hết hạn. Vui lòng tạo token mới.',
+                    'confirmButtonText': 'Tạo token mới'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.showInitialView();
+                    }
+                });
+                return;
+            }
+
+            const hours = Math.floor(secondsLeft / 3600);
+            const minutes = Math.floor((secondsLeft % 3600) / 60);
+            const seconds = secondsLeft % 60;
+
+            if (this.elements.timerDisplay) {
+                this.elements.timerDisplay.textContent = 
+                    hours.toString().padStart(2, '0') + ':' +
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
+
+                if (secondsLeft <= 300) {
+                    this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
+                    this.elements.timerDisplay.style.color = '#ff4757';
+                }
+            }
+
+            secondsLeft--;
+        };
+
+        updateTimer();
+        this.timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        
+        if (this.elements.timerDisplay) {
+            this.elements.timerDisplay.style.animation = '';
+            this.elements.timerDisplay.style.color = '#ff8800';
+        }
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new TokenManager();
+});
