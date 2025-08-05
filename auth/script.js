@@ -21,38 +21,50 @@ function checkRateLimit(ip) {
 }
 
 async function loginWithDiscord() {
-    // Check rate limit
-    const userIP = await getUserIP();
-    if (!checkRateLimit(userIP)) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Quá nhiều lần thử!',
-            text: 'Vui lòng đợi 1 phút trước khi thử lại',
-            background: '#1a1a1a',
-            color: '#fff',
-            confirmButtonColor: '#5865f2'
-        });
-        return;
-    }
-
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('loading').style.display = 'block';
-    
-    // Redirect đến Discord OAuth
-    const REDIRECT_URI = encodeURIComponent(window.location.origin);
-    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${await getClientId()}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.members.read`;
-    
-    window.location.href = discordAuthUrl;
-}
-
-async function getClientId() {
     try {
-        const response = await fetch('/api/config');
-        const data = await response.json();
-        return data.clientId;
+        // Check rate limit
+        const userIP = await getUserIP();
+        if (!checkRateLimit(userIP)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Quá nhiều lần thử!',
+                text: 'Vui lòng đợi 1 phút trước khi thử lại',
+                background: '#1a1a1a',
+                color: '#fff',
+                confirmButtonColor: '#5865f2'
+            });
+            return;
+        }
+
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+        
+        // Lấy config từ backend
+        const configResponse = await fetch('/api/config');
+        if (!configResponse.ok) {
+            throw new Error('Không thể lấy config từ server');
+        }
+        
+        const config = await configResponse.json();
+        
+        // Tạo Discord OAuth URL
+        const params = new URLSearchParams({
+            client_id: config.clientId,
+            redirect_uri: config.redirectUri,
+            response_type: 'code',
+            scope: 'identify guilds.members.read'
+        });
+        
+        const discordAuthUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
+        
+        console.log('Redirecting to:', discordAuthUrl);
+        console.log('Config:', config);
+        
+        window.location.href = discordAuthUrl;
+        
     } catch (error) {
-        console.error('Error getting client ID:', error);
-        return null;
+        console.error('Login error:', error);
+        showError('Không thể kết nối đến Discord. Vui lòng thử lại!');
     }
 }
 
@@ -62,6 +74,7 @@ async function getUserIP() {
         const data = await response.json();
         return data.ip;
     } catch (error) {
+        console.warn('Cannot get IP:', error);
         return 'unknown';
     }
 }
@@ -71,69 +84,107 @@ window.addEventListener('load', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
+    const errorDescription = urlParams.get('error_description');
     
+    // Xử lý lỗi từ Discord
     if (error) {
-        showError('Đăng nhập bị hủy bởi người dùng');
+        let errorMessage = 'Đăng nhập thất bại';
+        
+        switch (error) {
+            case 'access_denied':
+                errorMessage = 'Bạn đã từ chối quyền truy cập';
+                break;
+            case 'invalid_request':
+                errorMessage = 'Yêu cầu không hợp lệ';
+                break;
+            case 'unauthorized_client':
+                errorMessage = 'Ứng dụng không được phép';
+                break;
+            case 'unsupported_response_type':
+                errorMessage = 'Lỗi cấu hình OAuth';
+                break;
+            default:
+                errorMessage = errorDescription || 'Lỗi không xác định từ Discord';
+        }
+        
+        showError(errorMessage);
+        // Xóa error params khỏi URL
+        window.history.replaceState({}, document.title, window.location.pathname);
         return;
     }
     
     if (code) {
-        try {
-            const userIP = await getUserIP();
-            
-            const response = await fetch('/api/auth', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    code: code,
-                    ip: userIP 
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showUserInfo(data.user);
-                
-                // Save login state
-                localStorage.setItem('discordAuth', JSON.stringify({
-                    user: data.user,
-                    timestamp: Date.now()
-                }));
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Đăng nhập thành công! 🎉',
-                    text: `Chào mừng ${data.user.username}!`,
-                    background: '#1a1a1a',
-                    color: '#fff',
-                    confirmButtonColor: '#5865f2',
-                    timer: 3000,
-                    timerProgressBar: true
-                });
-            } else {
-                if (data.message === 'User not in server') {
-                    showError('Tài khoản bạn không tồn tại trong server chúng tôi');
-                } else if (data.message === 'Rate limited') {
-                    showError('Quá nhiều yêu cầu, vui lòng thử lại sau');
-                } else {
-                    showError(data.message || 'Có lỗi xảy ra khi đăng nhập');
-                }
-            }
-        } catch (error) {
-            console.error('Auth error:', error);
-            showError('Có lỗi xảy ra khi đăng nhập');
-        }
-        
-        // Xóa code khỏi URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+        await handleDiscordCallback(code);
     } else {
         // Check if user already logged in
         checkExistingLogin();
     }
 });
+
+async function handleDiscordCallback(code) {
+    try {
+        const userIP = await getUserIP();
+        
+        const response = await fetch('/api/auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                code: code,
+                ip: userIP 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showUserInfo(data.user);
+            
+            // Save login state
+            localStorage.setItem('discordAuth', JSON.stringify({
+                user: data.user,
+                timestamp: Date.now()
+            }));
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Đăng nhập thành công! 🎉',
+                text: `Chào mừng ${data.user.username}!`,
+                background: '#1a1a1a',
+                color: '#fff',
+                confirmButtonColor: '#5865f2',
+                timer: 3000,
+                timerProgressBar: true
+            });
+            
+        } else {
+            // Xử lý các loại lỗi khác nhau
+            let errorMessage = 'Có lỗi xảy ra khi đăng nhập';
+            
+            if (data.message === 'User not in server') {
+                errorMessage = 'Tài khoản bạn không tồn tại trong server chúng tôi';
+            } else if (data.message === 'Rate limited') {
+                errorMessage = 'Quá nhiều yêu cầu, vui lòng thử lại sau';
+            } else if (data.message === 'Invalid code') {
+                errorMessage = 'Mã xác thực không hợp lệ hoặc đã hết hạn';
+            } else if (data.message === 'Discord API error') {
+                errorMessage = 'Lỗi kết nối đến Discord, vui lòng thử lại';
+            } else if (data.message) {
+                errorMessage = data.message;
+            }
+            
+            showError(errorMessage);
+        }
+        
+    } catch (error) {
+        console.error('Auth callback error:', error);
+        showError('Lỗi kết nối server, vui lòng thử lại');
+    }
+    
+    // Xóa code khỏi URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
 
 function checkExistingLogin() {
     const savedAuth = localStorage.getItem('discordAuth');
