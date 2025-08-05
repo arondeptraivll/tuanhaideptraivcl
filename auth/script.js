@@ -82,6 +82,8 @@ async function getUserIP() {
 
 // Main load event handler
 window.addEventListener('load', async () => {
+    console.log('Page loaded, starting auth check...');
+    
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
@@ -89,6 +91,7 @@ window.addEventListener('load', async () => {
     
     // Xử lý lỗi từ Discord
     if (error) {
+        console.log('Discord error detected:', error);
         let errorMessage = 'Đăng nhập thất bại';
         
         switch (error) {
@@ -115,20 +118,27 @@ window.addEventListener('load', async () => {
     }
     
     if (code) {
+        console.log('Discord code detected, processing callback...');
         // Có code từ Discord callback
         await handleDiscordCallback(code);
     } else {
-        // Không có code, check existing login (bao gồm cả IP check)
+        console.log('No code, checking existing login...');
+        // Không có code, check existing login
         await checkExistingLogin();
     }
 });
 
 async function handleDiscordCallback(code) {
     try {
+        console.log('Processing Discord callback with code:', code);
+        
         document.getElementById('loading').style.display = 'block';
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('userInfo').style.display = 'none';
         document.querySelector('#loading p').textContent = 'Đang xác thực với Discord';
         
         const userIP = await getUserIP();
+        console.log('User IP:', userIP);
         
         const response = await fetch('/api/auth', {
             method: 'POST',
@@ -142,8 +152,10 @@ async function handleDiscordCallback(code) {
         });
         
         const data = await response.json();
+        console.log('Auth response:', data);
         
         if (response.ok && data.success) {
+            console.log('Login successful');
             showUserInfo(data.user);
             
             // Save login state
@@ -164,6 +176,7 @@ async function handleDiscordCallback(code) {
             });
             
         } else {
+            console.log('Login failed:', data);
             // Xử lý các loại lỗi khác nhau
             let errorMessage = 'Có lỗi xảy ra khi đăng nhập';
             
@@ -193,23 +206,29 @@ async function handleDiscordCallback(code) {
 
 async function checkExistingLogin() {
     try {
+        console.log('Checking existing login...');
+        
         // Hiển thị loading khi check
         document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('userInfo').style.display = 'none';
         document.getElementById('loading').style.display = 'block';
         document.querySelector('#loading p').textContent = 'Đang kiểm tra tài khoản';
         
         // Check localStorage trước
         const savedAuth = localStorage.getItem('discordAuth');
         if (savedAuth) {
+            console.log('Found saved auth in localStorage');
             try {
                 const authData = JSON.parse(savedAuth);
                 const oneHour = 60 * 60 * 1000;
                 
                 // Check if login is still valid (1 hour)
                 if (Date.now() - authData.timestamp < oneHour) {
+                    console.log('LocalStorage auth still valid, showing user info');
                     showUserInfo(authData.user);
                     return;
                 }
+                console.log('LocalStorage auth expired');
             } catch (error) {
                 console.error('Error parsing saved auth:', error);
             }
@@ -219,7 +238,9 @@ async function checkExistingLogin() {
         }
 
         // Check IP trên server
+        console.log('Checking IP on server...');
         const userIP = await getUserIP();
+        console.log('Checking server for IP:', userIP);
         
         const response = await fetch('/api/check-ip', {
             method: 'POST',
@@ -229,9 +250,16 @@ async function checkExistingLogin() {
             body: JSON.stringify({ ip: userIP })
         });
         
+        if (!response.ok) {
+            console.error('IP check response not ok:', response.status);
+            throw new Error(`Server returned ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('IP check response:', data);
         
         if (data.success && data.user) {
+            console.log('IP check successful, auto logging in');
             // Auto login thành công
             showUserInfo(data.user);
             
@@ -256,6 +284,7 @@ async function checkExistingLogin() {
                 showConfirmButton: false
             });
         } else {
+            console.log('No user found for this IP, showing login form');
             // Không có user nào với IP này, hiển thị form login
             document.getElementById('loading').style.display = 'none';
             document.getElementById('loginSection').style.display = 'block';
@@ -267,10 +296,17 @@ async function checkExistingLogin() {
         // Lỗi thì hiển thị form login bình thường
         document.getElementById('loading').style.display = 'none';
         document.getElementById('loginSection').style.display = 'block';
+        
+        // Hiển thị lỗi debug cho dev
+        if (error.message.includes('fetch')) {
+            console.error('API endpoint /api/check-ip không tồn tại hoặc lỗi server');
+        }
     }
 }
 
 function showUserInfo(user) {
+    console.log('Showing user info for:', user);
+    
     document.getElementById('loading').style.display = 'none';
     document.getElementById('loginSection').style.display = 'none';
     
@@ -286,7 +322,10 @@ function showUserInfo(user) {
 }
 
 function showError(message) {
+    console.log('Showing error:', message);
+    
     document.getElementById('loading').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'none';
     document.getElementById('loginSection').style.display = 'block';
     
     Swal.fire({
@@ -313,8 +352,8 @@ function goHome() {
         color: '#fff'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Chuyển về trang chủ - thay đổi URL này theo trang chủ của bạn
-            window.location.href = '/'; // hoặc '/bio' hoặc trang chủ của bạn
+            // Chỉ chuyển khi user bấm confirm
+            window.location.href = '/';
         }
     });
 }
