@@ -1,119 +1,101 @@
-// script.js - Discord Auth Handler
-class DiscordAuth {
-    constructor() {
-        this.initializeElements();
-        this.bindEvents();
-        this.checkAuthResult();
-        this.checkExistingLogin();
+// login/script.js - Simplified Discord Auth
+console.log('Script loaded');
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM ready');
+    
+    // Get elements safely
+    const loginBtn = document.getElementById('loginBtn');
+    const loading = document.getElementById('loading');
+    const loginBox = document.getElementById('loginBox');
+    const profileBox = document.getElementById('profileBox');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    console.log('Elements found:', {
+        loginBtn: !!loginBtn,
+        loading: !!loading,
+        loginBox: !!loginBox,
+        profileBox: !!profileBox,
+        logoutBtn: !!logoutBtn
+    });
+
+    // Check URL for auth result first
+    checkAuthResult();
+    
+    // Check if already logged in
+    checkExistingLogin();
+    
+    // Bind events
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleLogin);
+    }
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
     }
 
-    initializeElements() {
-        // Safely get elements with null checks
-        this.loginBtn = document.getElementById('loginBtn');
-        this.loading = document.getElementById('loading');
-        this.loginBox = document.getElementById('loginBox');
-        this.profileBox = document.getElementById('profileBox');
-        this.logoutBtn = document.getElementById('logoutBtn');
+    function handleLogin() {
+        console.log('Login button clicked');
+        showLoading(true);
+        window.location.href = '/api/auth?action=login';
+    }
+
+    function handleLogout() {
+        if (confirm('Bạn có chắc muốn đăng xuất không?')) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('discord_user');
+            window.location.reload();
+        }
+    }
+
+    function showLoading(show) {
+        if (!loginBtn || !loading) return;
         
-        // Profile elements
-        this.userAvatar = document.getElementById('userAvatar');
-        this.userName = document.getElementById('userName');
-        this.daysInServer = document.getElementById('daysInServer');
-        this.joinDate = document.getElementById('joinDate');
-
-        // Check if essential elements exist
-        if (!this.loginBtn || !this.loginBox || !this.profileBox) {
-            console.error('Essential DOM elements not found');
-            return;
-        }
-    }
-
-    bindEvents() {
-        if (this.loginBtn) {
-            this.loginBtn.addEventListener('click', () => this.handleLogin());
-        }
-        
-        if (this.logoutBtn) {
-            this.logoutBtn.addEventListener('click', () => this.handleLogout());
-        }
-    }
-
-    async handleLogin() {
-        try {
-            this.showLoading(true);
-            
-            // Redirect to Discord OAuth
-            window.location.href = '/api/auth?action=login';
-            
-        } catch (error) {
-            this.showLoading(false);
-            this.showError('Có lỗi xảy ra khi đăng nhập');
-            console.error('Login error:', error);
-        }
-    }
-
-    handleLogout() {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Đăng xuất?',
-                text: "Bạn có chắc muốn đăng xuất không?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Đăng xuất',
-                cancelButtonText: 'Hủy',
-                background: '#1a1a1a',
-                color: '#ffffff'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.logout();
-                }
-            });
+        if (show) {
+            loginBtn.style.display = 'none';
+            loading.style.display = 'flex';
         } else {
-            if (confirm('Bạn có chắc muốn đăng xuất không?')) {
-                this.logout();
-            }
+            loginBtn.style.display = 'flex';
+            loading.style.display = 'none';
         }
     }
 
-    checkExistingLogin() {
-        if (this.isLoggedIn()) {
-            const userData = this.getUserData();
-            if (userData) {
-                this.showProfile(userData);
-            }
-        }
-    }
-
-    checkAuthResult() {
+    function checkAuthResult() {
         const urlParams = new URLSearchParams(window.location.search);
+        console.log('URL params:', Object.fromEntries(urlParams));
         
         if (urlParams.get('success') === 'true') {
             const token = urlParams.get('token');
+            console.log('Success with token:', !!token);
+            
             if (token) {
-                this.handleLoginSuccess(token);
+                handleLoginSuccess(token);
             }
         } else if (urlParams.get('error')) {
-            this.handleLoginError(urlParams.get('error'));
+            const error = urlParams.get('error');
+            console.log('Auth error:', error);
+            showError(error);
         }
         
-        // Clear URL parameters
+        // Clean URL
         if (urlParams.get('success') || urlParams.get('error')) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }
 
-    handleLoginSuccess(token) {
+    function handleLoginSuccess(token) {
+        console.log('Processing login success');
+        
         try {
-            // Decode user data from token
             const userData = JSON.parse(atob(token));
+            console.log('User data decoded:', userData);
             
-            // Save to localStorage
             localStorage.setItem('discord_user', JSON.stringify(userData));
             localStorage.setItem('auth_token', token);
             
-            // Show success message
+            showProfile(userData);
+            
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
@@ -124,127 +106,139 @@ class DiscordAuth {
                     confirmButtonColor: '#5865f2',
                     timer: 2000,
                     showConfirmButton: false
-                }).then(() => {
-                    this.showProfile(userData);
                 });
-            } else {
-                alert(`Đăng nhập thành công! Chào mừng ${userData.globalName || userData.username}!`);
-                this.showProfile(userData);
             }
             
         } catch (error) {
             console.error('Error parsing login data:', error);
-            this.showError('Có lỗi khi xử lý thông tin đăng nhập');
+            showError('Có lỗi khi xử lý thông tin đăng nhập');
         }
     }
 
-    showProfile(userData) {
-        if (!this.loginBox || !this.profileBox) return;
+    function checkExistingLogin() {
+        console.log('Checking existing login');
         
-        // Hide login box, show profile box
-        this.loginBox.style.display = 'none';
-        this.profileBox.style.display = 'block';
+        const token = localStorage.getItem('auth_token');
+        const userDataStr = localStorage.getItem('discord_user');
         
-        // Update user information
-        this.updateUserAvatar(userData);
-        this.updateUserName(userData);
-        this.updateDaysInServer(userData);
-        this.updateJoinDate(userData);
-    }
-
-    updateUserAvatar(userData) {
-        if (!this.userAvatar) return;
-        
-        if (userData.avatar) {
-            this.userAvatar.src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=256`;
-        } else {
-            // Default avatar
-            const discriminator = userData.discriminator || '0';
-            this.userAvatar.src = `https://cdn.discordapp.com/embed/avatars/${discriminator % 5}.png`;
+        if (!token || !userDataStr) {
+            console.log('No existing login found');
+            return;
         }
         
-        this.userAvatar.onerror = () => {
-            this.userAvatar.src = `https://cdn.discordapp.com/embed/avatars/0.png`;
-        };
-    }
-
-    updateUserName(userData) {
-        if (!this.userName) return;
-        
-        let displayName = userData.globalName || userData.username;
-        if (userData.discriminator && userData.discriminator !== '0') {
-            displayName += `#${userData.discriminator}`;
-        }
-        
-        this.userName.textContent = displayName;
-    }
-
-    updateDaysInServer(userData) {
-        if (!this.daysInServer) return;
-        
-        if (userData.daysInServer !== undefined && userData.daysInServer !== null) {
-            this.daysInServer.textContent = `${userData.daysInServer} ngày`;
-        } else {
-            this.daysInServer.textContent = 'Không xác định';
-        }
-    }
-
-    updateJoinDate(userData) {
-        if (!this.joinDate) return;
-        
-        if (userData.joinedAt) {
-            try {
-                const joinDateTime = new Date(userData.joinedAt);
-                this.joinDate.textContent = joinDateTime.toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            } catch (error) {
-                console.error('Error formatting join date:', error);
-                this.joinDate.textContent = 'Không xác định';
+        try {
+            const userData = JSON.parse(userDataStr);
+            const tokenAge = Date.now() - userData.timestamp;
+            
+            // Check if token is still valid (24 hours)
+            if (tokenAge < 24 * 60 * 60 * 1000) {
+                console.log('Existing login is valid, showing profile');
+                showProfile(userData);
+            } else {
+                console.log('Existing login expired');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('discord_user');
             }
-        } else {
-            this.joinDate.textContent = 'Không xác định';
+        } catch (error) {
+            console.error('Error checking existing login:', error);
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('discord_user');
         }
     }
 
-    hideProfile() {
-        if (!this.loginBox || !this.profileBox) return;
+    function showProfile(userData) {
+        console.log('Showing profile for:', userData.username);
         
-        this.profileBox.style.display = 'none';
-        this.loginBox.style.display = 'block';
+        if (!loginBox || !profileBox) {
+            console.error('Login/Profile boxes not found');
+            return;
+        }
+        
+        // Hide login, show profile
+        loginBox.style.display = 'none';
+        profileBox.style.display = 'block';
+        
+        // Update profile info
+        updateProfileInfo(userData);
     }
 
-    handleLoginError(error) {
-        let errorMessage = 'Có lỗi xảy ra khi đăng nhập';
+    function updateProfileInfo(userData) {
+        console.log('Updating profile info');
+        
+        // Update avatar
+        const userAvatar = document.getElementById('userAvatar');
+        if (userAvatar) {
+            if (userData.avatar) {
+                userAvatar.src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=256`;
+            } else {
+                userAvatar.src = `https://cdn.discordapp.com/embed/avatars/0.png`;
+            }
+            
+            userAvatar.onerror = function() {
+                this.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+            };
+        }
+        
+        // Update username
+        const userName = document.getElementById('userName');
+        if (userName) {
+            let displayName = userData.globalName || userData.username;
+            if (userData.discriminator && userData.discriminator !== '0') {
+                displayName += `#${userData.discriminator}`;
+            }
+            userName.textContent = displayName;
+        }
+        
+        // Update days in server
+        const daysInServer = document.getElementById('daysInServer');
+        if (daysInServer) {
+            if (userData.daysInServer !== undefined && userData.daysInServer !== null) {
+                daysInServer.textContent = `${userData.daysInServer} ngày`;
+            } else {
+                daysInServer.textContent = 'Không xác định';
+            }
+        }
+        
+        // Update join date
+        const joinDate = document.getElementById('joinDate');
+        if (joinDate) {
+            if (userData.joinedAt) {
+                try {
+                    const date = new Date(userData.joinedAt);
+                    joinDate.textContent = date.toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } catch (error) {
+                    joinDate.textContent = 'Không xác định';
+                }
+            } else {
+                joinDate.textContent = 'Không xác định';
+            }
+        }
+        
+        console.log('Profile info updated');
+    }
+
+    function showError(error) {
+        let message = 'Có lỗi xảy ra khi đăng nhập';
         
         switch (error) {
             case 'no_code':
-                errorMessage = 'Không nhận được mã xác thực từ Discord';
+                message = 'Không nhận được mã xác thực từ Discord';
                 break;
             case 'token_error':
-                errorMessage = 'Có lỗi khi xử lý token từ Discord';
+                message = 'Có lỗi khi xử lý token từ Discord';
                 break;
             case 'not_in_server':
-                errorMessage = 'Bạn cần tham gia server Discord để đăng nhập';
+                message = 'Bạn cần tham gia server Discord để đăng nhập';
                 break;
             case 'auth_failed':
-                errorMessage = 'Xác thực thất bại, vui lòng thử lại';
+                message = 'Xác thực thất bại, vui lòng thử lại';
                 break;
-            case 'user_fetch_failed':
-                errorMessage = 'Không thể lấy thông tin người dùng từ Discord';
-                break;
-            default:
-                if (error.startsWith('discord_')) {
-                    errorMessage = `Lỗi Discord: ${error.replace('discord_', '')}`;
-                }
         }
         
-        this.showError(errorMessage);
-    }
-
-    showError(message) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 icon: 'error',
@@ -255,64 +249,7 @@ class DiscordAuth {
                 confirmButtonColor: '#5865f2',
             });
         } else {
-            alert(`Lỗi: ${message}`);
+            alert('Lỗi: ' + message);
         }
-    }
-
-    showLoading(show) {
-        if (!this.loginBtn || !this.loading) return;
-        
-        if (show) {
-            this.loginBtn.style.display = 'none';
-            this.loading.style.display = 'flex';
-        } else {
-            this.loginBtn.style.display = 'flex';
-            this.loading.style.display = 'none';
-        }
-    }
-
-    // Static utility methods
-    isLoggedIn() {
-        const token = localStorage.getItem('auth_token');
-        const userData = localStorage.getItem('discord_user');
-        
-        if (!token || !userData) return false;
-        
-        try {
-            const user = JSON.parse(userData);
-            // Check if token is still valid (24 hours)
-            const tokenAge = Date.now() - user.timestamp;
-            return tokenAge < 24 * 60 * 60 * 1000;
-        } catch {
-            return false;
-        }
-    }
-
-    getUserData() {
-        if (!this.isLoggedIn()) return null;
-        
-        try {
-            return JSON.parse(localStorage.getItem('discord_user'));
-        } catch {
-            return null;
-        }
-    }
-
-    logout() {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('discord_user');
-        window.location.reload();
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        new DiscordAuth();
-    } catch (error) {
-        console.error('Failed to initialize Discord Auth:', error);
     }
 });
-
-// Expose for global access
-window.DiscordAuth = DiscordAuth;
