@@ -1,238 +1,133 @@
-// admin/script.js
-class AdminDashboard {
+// admin/script.js - Ultimate Admin Dashboard
+class GemloginAdmin {
     constructor() {
-        this.adminPassword = null;
+        this.password = 'TuanHai45191';
         this.users = [];
         this.filteredUsers = [];
-        this.correctPassword = 'TuanHai45191'; // 🔑 HARDCODED PASSWORD
+        this.currentPage = 'users';
         this.init();
     }
 
     init() {
-        console.log('🚀 Initializing Admin Dashboard...');
-        console.log('🔑 Expected Password:', this.correctPassword);
+        console.log('🚀 Gemlogin Admin Panel Loading...');
         this.bindEvents();
-        this.checkAdminAuth();
+        this.checkAuth();
     }
 
     bindEvents() {
-        // Login form
+        // Login
         const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
-        }
+        loginForm?.addEventListener('submit', (e) => this.handleLogin(e));
 
-        // Quick login button
-        const quickLoginBtn = document.getElementById('quickLoginBtn');
-        if (quickLoginBtn) {
-            quickLoginBtn.addEventListener('click', () => this.quickLogin());
-        }
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => this.handleNavigation(e));
+        });
 
-        // Admin logout
-        const adminLogout = document.getElementById('adminLogout');
-        if (adminLogout) {
-            adminLogout.addEventListener('click', () => this.handleLogout());
-        }
+        // Logout
+        document.getElementById('adminLogout')?.addEventListener('click', () => this.logout());
 
         // Search
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
-        }
+        document.getElementById('searchInput')?.addEventListener('input', (e) => this.search(e.target.value));
 
-        // Control buttons
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.loadUsers());
-        }
-
-        const exportBtn = document.getElementById('exportBtn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.exportUsers());
-        }
-
-        const clearAllBtn = document.getElementById('clearAllBtn');
-        if (clearAllBtn) {
-            clearAllBtn.addEventListener('click', () => this.clearAllUsers());
-        }
+        // Controls
+        document.getElementById('refreshBtn')?.addEventListener('click', () => this.loadUsers());
+        document.getElementById('exportBtn')?.addEventListener('click', () => this.exportData());
+        document.getElementById('clearAllBtn')?.addEventListener('click', () => this.clearAll());
     }
 
-    quickLogin() {
-        const passwordInput = document.getElementById('adminPassword');
-        if (passwordInput) {
-            passwordInput.value = this.correctPassword;
-            passwordInput.focus();
-            
-            // Auto submit after 1 second
-            setTimeout(() => {
-                const loginForm = document.getElementById('loginForm');
-                if (loginForm) {
-                    loginForm.dispatchEvent(new Event('submit'));
-                }
-            }, 500);
-        }
-    }
-
-    checkAdminAuth() {
-        const savedPassword = localStorage.getItem('admin_auth');
-        if (savedPassword === this.correctPassword) {
-            console.log('✅ Found valid saved auth');
-            this.adminPassword = savedPassword;
+    checkAuth() {
+        const saved = localStorage.getItem('gemlogin_admin_auth');
+        if (saved === this.password) {
             this.showDashboard();
-        } else {
-            console.log('❌ No valid saved auth found');
-            localStorage.removeItem('admin_auth'); // Clear invalid auth
         }
     }
 
     async handleLogin(e) {
         e.preventDefault();
         const password = document.getElementById('adminPassword').value;
-        const submitBtn = document.getElementById('loginSubmitBtn');
-        const btnText = document.getElementById('loginBtnText');
 
-        if (!password) {
-            this.showError('Vui lòng nhập mật khẩu!');
+        if (password !== this.password) {
+            this.showAlert('error', 'Invalid Password', 'Access denied. Check your credentials.');
             return;
         }
 
-        // Show loading
-        submitBtn.disabled = true;
-        btnText.textContent = 'Đang xác thực...';
-
-        console.log('🔐 Attempting login with password:', password);
-
-        // 🔑 CHECK PASSWORD FIRST
-        if (password !== this.correctPassword) {
-            console.log('❌ Password mismatch');
-            submitBtn.disabled = false;
-            btnText.textContent = 'Đăng nhập Admin';
-            this.showError(`Mật khẩu không đúng! Mật khẩu đúng là: ${this.correctPassword}`);
-            return;
-        }
-
-        console.log('✅ Password correct, testing API...');
-
-        try {
-            // Test API connection
-            const response = await fetch('/api/admin', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${password}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log('API Response Status:', response.status);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ API Response:', data);
-                
-                this.adminPassword = password;
-                localStorage.setItem('admin_auth', password);
-                this.showSuccess('Đăng nhập admin thành công!');
-                setTimeout(() => this.showDashboard(), 1000);
-            } else {
-                const errorData = await response.json();
-                console.log('⚠️ API Error, but password is correct - using offline mode');
-                console.error('API Error Details:', errorData);
-                
-                // Still allow login since password is correct
-                this.adminPassword = password;
-                localStorage.setItem('admin_auth', password);
-                this.showSuccess('Đăng nhập thành công! (Chế độ offline)');
-                setTimeout(() => this.showDashboard(), 1000);
-            }
-        } catch (error) {
-            console.log('⚠️ API Connection failed, using offline mode');
-            console.error('Connection Error:', error);
-            
-            // Allow login in offline mode since password is correct
-            this.adminPassword = password;
-            localStorage.setItem('admin_auth', password);
-            this.showSuccess('Đăng nhập thành công! (Chế độ offline)');
-            setTimeout(() => this.showDashboard(), 1000);
-        } finally {
-            submitBtn.disabled = false;
-            btnText.textContent = 'Đăng nhập Admin';
-        }
-    }
-
-    handleLogout() {
-        Swal.fire({
-            title: '🚪 Đăng xuất Admin?',
-            text: "Bạn có chắc muốn đăng xuất khỏi panel admin không?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: '✅ Đăng xuất',
-            cancelButtonText: '❌ Hủy',
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-            color: '#ffffff'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                localStorage.removeItem('admin_auth');
-                this.adminPassword = null;
-                this.showLogin();
-                this.showSuccess('Đã đăng xuất thành công!');
-            }
-        });
+        localStorage.setItem('gemlogin_admin_auth', password);
+        this.showAlert('success', 'Access Granted', 'Welcome to Gemlogin Admin Panel');
+        setTimeout(() => this.showDashboard(), 1000);
     }
 
     showDashboard() {
-        console.log('📊 Showing dashboard...');
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminDashboard').style.display = 'flex';
         this.loadUsers();
+        this.updateStats();
     }
 
-    showLogin() {
-        document.getElementById('adminDashboard').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('adminPassword').value = '';
+    handleNavigation(e) {
+        e.preventDefault();
+        const page = e.currentTarget.dataset.page;
+        
+        // Update active nav
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        // Hide all pages
+        document.querySelectorAll('.page-content').forEach(page => page.style.display = 'none');
+
+        // Show selected page
+        document.getElementById(page + 'Page').style.display = 'block';
+
+        // Update page title
+        const titles = {
+            users: { title: 'User Management', subtitle: 'Manage Discord users and sessions' },
+            analytics: { title: 'Analytics', subtitle: 'View usage statistics and trends' },
+            settings: { title: 'Settings', subtitle: 'Configure admin panel preferences' }
+        };
+
+        if (titles[page]) {
+            document.getElementById('pageTitle').textContent = titles[page].title;
+            document.getElementById('pageSubtitle').textContent = titles[page].subtitle;
+        }
+
+        this.currentPage = page;
     }
 
     async loadUsers() {
-        console.log('📊 Loading users...');
         this.showLoading(true);
-
+        
         try {
-            // Try API first
-            const response = await fetch('/api/admin', {
-                headers: {
-                    'Authorization': `Bearer ${this.adminPassword}`,
-                    'Content-Type': 'application/json'
+            // Get from localStorage first
+            this.users = this.getStoredUsers();
+            
+            // Try API if available
+            try {
+                const response = await fetch('/api/admin', {
+                    headers: { 'Authorization': `Bearer ${this.password}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.users) this.users = data.users;
                 }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Users from API:', data);
-                this.users = data.users || [];
-            } else {
-                console.log('⚠️ API failed, using localStorage');
-                this.users = this.getUsersFromLocalStorage();
+            } catch (error) {
+                console.log('API not available, using localStorage');
             }
-        } catch (error) {
-            console.log('⚠️ API connection failed, using localStorage');
-            this.users = this.getUsersFromLocalStorage();
-        }
 
-        this.filteredUsers = [...this.users];
-        this.renderUsers();
-        this.updateStats();
-        this.showLoading(false);
+            this.filteredUsers = [...this.users];
+            this.renderUsers();
+            this.updateStats();
+        } catch (error) {
+            console.error('Error loading users:', error);
+        } finally {
+            this.showLoading(false);
+        }
     }
 
-    getUsersFromLocalStorage() {
+    getStoredUsers() {
         try {
-            const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-            console.log('📦 Users from localStorage:', savedUsers.length);
-            return savedUsers;
+            const stored = localStorage.getItem('admin_users');
+            return stored ? JSON.parse(stored) : [];
         } catch (error) {
-            console.error('❌ Error loading from localStorage:', error);
             return [];
         }
     }
@@ -248,63 +143,62 @@ class AdminDashboard {
         }
 
         emptyState.style.display = 'none';
+        tbody.innerHTML = this.filteredUsers.map(user => this.renderUserRow(user)).join('');
+    }
 
-        tbody.innerHTML = this.filteredUsers.map(user => `
-            <tr class="user-row" data-user-id="${user.discord_id || user.id}">
-                <td>
-                    <img src="${this.getAvatarUrl(user)}" alt="Avatar" class="user-avatar" 
-                         onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
-                </td>
+    renderUserRow(user) {
+        const avatar = this.getAvatarUrl(user);
+        const name = this.getDisplayName(user);
+        const id = user.discord_id || user.id || 'N/A';
+        const joinDate = this.formatDate(user.joined_at || user.joinedAt);
+        const relativeTime = this.getRelativeTime(user.joined_at || user.joinedAt);
+        const days = user.days_in_server || user.daysInServer || 0;
+        const status = this.getStatus(user);
+        const lastSeen = this.getLastSeen(user);
+
+        return `
+            <tr data-user-id="${id}">
                 <td>
                     <div class="user-info">
-                        <div class="user-name">${this.getDisplayName(user)}</div>
-                        <div class="user-id-small">${this.truncateId(user.discord_id || user.id)}</div>
+                        <img src="${avatar}" alt="Avatar" class="user-avatar" 
+                             onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                        <div class="user-details">
+                            <div class="user-name">${name}</div>
+                            <div class="user-id">${this.truncateId(id)}</div>
+                        </div>
                     </div>
                 </td>
                 <td>
-                    <code class="discord-id">
-                        ${user.discord_id || user.id || 'N/A'}
-                    </code>
+                    <code class="discord-id">${id}</code>
                 </td>
                 <td>
-                    <div class="date-info">
-                        <div class="join-date">${this.formatDate(user.joined_at || user.joinedAt)}</div>
-                        <div class="relative-time">${this.getRelativeTime(user.joined_at || user.joinedAt)}</div>
-                    </div>
+                    <div class="join-date">${joinDate}</div>
+                    <div class="relative-time">${relativeTime}</div>
                 </td>
                 <td>
-                    <span class="days-badge ${this.getDaysBadgeClass(user.days_in_server || user.daysInServer)}">
-                        <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
-                        </svg>
-                        ${user.days_in_server || user.daysInServer || 0} ngày
+                    <span class="days-badge ${this.getDaysBadgeClass(days)}">
+                        ${days} days
                     </span>
                 </td>
                 <td>
-                    <div class="status-info">
-                        <span class="status-badge ${this.getStatusClass(user)}">
-                            <span class="status-dot"></span>
-                            ${this.getStatusText(user)}
-                        </span>
-                        <div class="last-seen">${this.getLastSeen(user)}</div>
+                    <div class="status-badge ${status.class}">
+                        <span class="status-dot"></span>
+                        ${status.text}
                     </div>
+                    <div class="last-seen">${lastSeen}</div>
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="action-btn view-btn" onclick="adminDashboard.viewUser('${user.discord_id || user.id}')" title="Xem chi tiết">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
-                            </svg>
+                        <button class="action-btn" onclick="gemloginAdmin.viewUser('${id}')" title="View Details">
+                            👁️
                         </button>
-                        <button class="action-btn delete-btn" onclick="adminDashboard.deleteUser('${user.discord_id || user.id}')" title="Xóa user">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/>
-                            </svg>
+                        <button class="action-btn delete-btn" onclick="gemloginAdmin.deleteUser('${id}')" title="Delete User">
+                            🗑️
                         </button>
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `;
     }
 
     getAvatarUrl(user) {
@@ -323,235 +217,142 @@ class AdminDashboard {
     }
 
     truncateId(id) {
-        if (!id) return 'N/A';
-        return id.length > 8 ? id.substring(0, 8) + '...' : id;
+        if (!id || id === 'N/A') return 'N/A';
+        return id.length > 12 ? id.substring(0, 12) + '...' : id;
     }
 
     formatDate(dateString) {
         if (!dateString) return 'N/A';
-        
         try {
             const date = new Date(typeof dateString === 'number' ? dateString : dateString);
-            return date.toLocaleDateString('vi-VN', {
+            return date.toLocaleDateString('en-US', {
                 year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
+                month: 'short',
+                day: 'numeric'
             });
         } catch (e) {
-            return 'Invalid Date';
+            return 'Invalid';
         }
     }
 
     getRelativeTime(dateString) {
         if (!dateString) return '';
-        
         try {
             const date = new Date(typeof dateString === 'number' ? dateString : dateString);
             const now = new Date();
             const diffTime = Math.abs(now - date);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-            if (diffDays === 1) return '1 ngày trước';
-            if (diffDays < 30) return `${diffDays} ngày trước`;
-            if (diffDays < 365) return `${Math.floor(diffDays / 30)} tháng trước`;
-            return `${Math.floor(diffDays / 365)} năm trước`;
+            if (diffDays === 1) return '1 day ago';
+            if (diffDays < 30) return `${diffDays} days ago`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+            return `${Math.floor(diffDays / 365)} years ago`;
         } catch (e) {
             return '';
         }
     }
 
     getDaysBadgeClass(days) {
-        if (!days || days === 0) return 'low';
-        if (days >= 90) return 'legendary';
-        if (days >= 30) return 'high';
-        if (days >= 7) return 'medium';
+        if (days >= 365) return 'legendary';
+        if (days >= 90) return 'high';
+        if (days >= 30) return 'medium';
         return 'low';
     }
 
-    getStatusClass(user) {
+    getStatus(user) {
         const lastLogin = user.last_login || user.timestamp;
-        if (!lastLogin) return 'offline';
+        if (!lastLogin) return { class: 'offline', text: 'Offline' };
         
         const loginTime = new Date(typeof lastLogin === 'number' ? lastLogin : lastLogin);
         const now = new Date();
         const diffMinutes = (now - loginTime) / (1000 * 60);
         
-        if (diffMinutes < 5) return 'online';
-        if (diffMinutes < 30) return 'away';
-        return 'offline';
-    }
-
-    getStatusText(user) {
-        const statusClass = this.getStatusClass(user);
-        switch (statusClass) {
-            case 'online': return 'Online';
-            case 'away': return 'Away';
-            default: return 'Offline';
-        }
+        if (diffMinutes < 5) return { class: 'online', text: 'Online' };
+        if (diffMinutes < 30) return { class: 'away', text: 'Away' };
+        return { class: 'offline', text: 'Offline' };
     }
 
     getLastSeen(user) {
         const lastLogin = user.last_login || user.timestamp;
-        if (!lastLogin) return 'Chưa từng';
+        if (!lastLogin) return 'Never';
         
         const loginTime = new Date(typeof lastLogin === 'number' ? lastLogin : lastLogin);
         const now = new Date();
         const diffMinutes = Math.floor((now - loginTime) / (1000 * 60));
         
-        if (diffMinutes < 1) return 'Vừa xong';
-        if (diffMinutes < 60) return `${diffMinutes} phút trước`;
-        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)} giờ trước`;
-        return `${Math.floor(diffMinutes / 1440)} ngày trước`;
+        if (diffMinutes < 1) return 'Just now';
+        if (diffMinutes < 60) return `${diffMinutes}m ago`;
+        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
+        return `${Math.floor(diffMinutes / 1440)}d ago`;
     }
 
     async viewUser(userId) {
         const user = this.users.find(u => (u.discord_id || u.id) === userId);
         if (!user) return;
 
-        const loginCount = user.login_count || 1;
-        const status = this.getStatusText(user);
-        const lastSeen = this.getLastSeen(user);
+        const html = `
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <img src="${this.getAvatarUrl(user)}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #2563eb; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: #1f2937;">${this.getDisplayName(user)}</h3>
+            </div>
+            <div style="text-align: left; line-height: 1.8;">
+                <p><strong>Discord ID:</strong> <code>${user.discord_id || user.id}</code></p>
+                <p><strong>Username:</strong> ${user.username || 'N/A'}</p>
+                <p><strong>Display Name:</strong> ${user.global_name || user.globalName || 'N/A'}</p>
+                <p><strong>Join Date:</strong> ${this.formatDate(user.joined_at || user.joinedAt)}</p>
+                <p><strong>Days in Server:</strong> ${user.days_in_server || user.daysInServer || 0}</p>
+                <p><strong>Login Count:</strong> ${user.login_count || 1}</p>
+                <p><strong>Status:</strong> ${this.getStatus(user).text}</p>
+                <p><strong>Last Seen:</strong> ${this.getLastSeen(user)}</p>
+            </div>
+        `;
 
-        Swal.fire({
-            title: `👤 ${this.getDisplayName(user)}`,
-            html: `
-                <div style="text-align: left; margin: 20px 0;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="${this.getAvatarUrl(user)}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #3b82f6;">
-                    </div>
-                    <p><strong>🆔 Discord ID:</strong> <code>${user.discord_id || user.id}</code></p>
-                    <p><strong>📝 Username:</strong> ${user.username || 'N/A'}</p>
-                    <p><strong>🎭 Display Name:</strong> ${user.global_name || user.globalName || 'N/A'}</p>
-                    <p><strong>📅 Ngày tham gia:</strong> ${this.formatDate(user.joined_at || user.joinedAt)}</p>
-                    <p><strong>⏰ Số ngày trong server:</strong> ${user.days_in_server || user.daysInServer || 0} ngày</p>
-                    <p><strong>🔢 Số lần đăng nhập:</strong> ${loginCount}</p>
-                    <p><strong>🌐 Status:</strong> <span style="color: ${status === 'Online' ? '#10b981' : status === 'Away' ? '#f59e0b' : '#ef4444'}">${status}</span></p>
-                    <p><strong>👁️ Lần cuối:</strong> ${lastSeen}</p>
-                    <p><strong>🎮 Số server:</strong> ${user.guilds_count || user.guilds || 'N/A'}</p>
-                </div>
-            `,
-            width: 500,
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-            color: '#ffffff',
-            confirmButtonColor: '#3b82f6',
-            confirmButtonText: '👍 OK'
-        });
+        this.showAlert('info', `User: ${this.getDisplayName(user)}`, html);
     }
 
     async deleteUser(userId) {
         const user = this.users.find(u => (u.discord_id || u.id) === userId);
         if (!user) return;
 
-        const result = await Swal.fire({
-            title: '⚠️ Xóa người dùng?',
-            html: `
-                <div style="text-align: center; margin: 20px 0;">
-                    <img src="${this.getAvatarUrl(user)}" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #ef4444; margin-bottom: 10px;">
-                    <p>Bạn có chắc muốn xóa user <strong>${this.getDisplayName(user)}</strong> không?</p>
-                    <p style="color: #ef4444; font-size: 14px;">Hành động này không thể hoàn tác!</p>
-                </div>
-            `,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: '🗑️ Xóa',
-            cancelButtonText: '❌ Hủy',
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-            color: '#ffffff'
-        });
+        const result = await this.showConfirm(
+            'Delete User',
+            `Are you sure you want to delete ${this.getDisplayName(user)}?`,
+            'This action cannot be undone.'
+        );
 
         if (result.isConfirmed) {
-            try {
-                // Try API first
-                const response = await fetch(`/api/admin?userId=${userId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${this.adminPassword}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    console.log('API delete failed, using localStorage');
-                }
-            } catch (error) {
-                console.log('API not available, using localStorage');
-            }
-
-            // Remove from localStorage anyway
-            this.users = this.users.filter(user => 
-                (user.discord_id || user.id) !== userId
-            );
-            this.filteredUsers = [...this.users];
-            this.saveUsersToLocalStorage();
+            this.users = this.users.filter(u => (u.discord_id || u.id) !== userId);
+            this.filteredUsers = this.filteredUsers.filter(u => (u.discord_id || u.id) !== userId);
+            this.saveUsers();
             this.renderUsers();
             this.updateStats();
-            this.showSuccess('Đã xóa user thành công!');
+            this.showAlert('success', 'Deleted', 'User has been removed successfully.');
         }
     }
 
-    async clearAllUsers() {
-        const result = await Swal.fire({
-            title: '🚨 XÓA TẤT CẢ?',
-            html: `
-                <p style="color: #ef4444; font-weight: 600; font-size: 18px;">⚠️ CẢNH BÁO NGHIÊM TRỌNG!</p>
-                <p>Bạn sắp xóa <strong>${this.users.length}</strong> người dùng.</p>
-                <p style="color: #ef4444;">Hành động này KHÔNG THỂ HOÀN TÁC!</p>
-                <br>
-                <p>Để xác nhận, hãy nhập: <strong style="color: #3b82f6;">XÓA TẤT CẢ</strong></p>
-            `,
-            input: 'text',
-            inputPlaceholder: 'Nhập "XÓA TẤT CẢ" để xác nhận',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: '🗑️ XÓA TẤT CẢ',
-            cancelButtonText: '❌ HỦY',
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-            color: '#ffffff',
-            inputValidator: (value) => {
-                if (value !== 'XÓA TẤT CẢ') {
-                    return 'Vui lòng nhập chính xác "XÓA TẤT CẢ"';
-                }
-            }
-        });
+    async clearAll() {
+        if (this.users.length === 0) {
+            this.showAlert('info', 'No Data', 'There are no users to delete.');
+            return;
+        }
+
+        const result = await this.showConfirm(
+            'Clear All Users',
+            `Delete all ${this.users.length} users?`,
+            'This will permanently remove all user data.'
+        );
 
         if (result.isConfirmed) {
-            // Show progress
-            Swal.fire({
-                title: '🔄 Đang xóa tất cả...',
-                html: 'Vui lòng đợi trong giây lát...',
-                background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                color: '#ffffff',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            setTimeout(() => {
-                this.users = [];
-                this.filteredUsers = [];
-                this.saveUsersToLocalStorage();
-                this.renderUsers();
-                this.updateStats();
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: '✅ Đã xóa tất cả!',
-                    text: 'Tất cả người dùng đã được xóa khỏi hệ thống.',
-                    background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                    color: '#ffffff',
-                    confirmButtonColor: '#10b981',
-                    timer: 3000
-                });
-            }, 2000);
+            this.users = [];
+            this.filteredUsers = [];
+            this.saveUsers();
+            this.renderUsers();
+            this.updateStats();
+            this.showAlert('success', 'Cleared', 'All users have been removed.');
         }
     }
 
-    handleSearch(query) {
+    search(query) {
         if (!query.trim()) {
             this.filteredUsers = [...this.users];
         } else {
@@ -566,52 +367,45 @@ class AdminDashboard {
         this.renderUsers();
     }
 
-    exportUsers() {
+    exportData() {
         if (this.users.length === 0) {
-            this.showError('Không có dữ liệu để export!');
+            this.showAlert('info', 'No Data', 'There are no users to export.');
             return;
         }
 
-        const csvContent = this.generateCSV();
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
+        const csv = this.generateCSV();
+        const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `gemlogin_users_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showSuccess(`Đã export ${this.users.length} users thành công!`);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gemlogin-users-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        this.showAlert('success', 'Exported', `${this.users.length} users exported to CSV.`);
     }
 
     generateCSV() {
-        const headers = ['Tên hiển thị', 'Username', 'Discord ID', 'Avatar URL', 'Ngày join', 'Số ngày', 'Lần login cuối', 'Số lần login', 'Status'];
+        const headers = ['Name', 'Username', 'Discord ID', 'Join Date', 'Days in Server', 'Last Login', 'Status'];
         const rows = this.users.map(user => [
             this.getDisplayName(user),
             user.username || '',
             user.discord_id || user.id || '',
-            this.getAvatarUrl(user),
             this.formatDate(user.joined_at || user.joinedAt),
             user.days_in_server || user.daysInServer || 0,
             this.getLastSeen(user),
-            user.login_count || 1,
-            this.getStatusText(user)
+            this.getStatus(user).text
         ]);
 
-        return [headers, ...rows].map(row => 
-            row.map(field => `"${field}"`).join(',')
-        ).join('\n');
+        return [headers, ...rows]
+            .map(row => row.map(field => `"${field}"`).join(','))
+            .join('\n');
     }
 
     updateStats() {
-        const totalUsers = this.users.length;
-        const onlineUsers = this.users.filter(user => this.getStatusClass(user) === 'online').length;
+        const total = this.users.length;
+        const online = this.users.filter(user => this.getStatus(user).class === 'online').length;
         
-        // Today logins
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayLogins = this.users.filter(user => {
@@ -621,91 +415,79 @@ class AdminDashboard {
             return loginDate >= today;
         }).length;
 
-        document.getElementById('totalUsers').textContent = totalUsers;
-        document.getElementById('onlineUsers').textContent = onlineUsers;
+        document.getElementById('totalUsers').textContent = total;
+        document.getElementById('onlineUsers').textContent = online;
         document.getElementById('todayLogins').textContent = todayLogins;
     }
 
-    saveUsersToLocalStorage() {
+    saveUsers() {
         localStorage.setItem('admin_users', JSON.stringify(this.users));
     }
 
+    logout() {
+        localStorage.removeItem('gemlogin_admin_auth');
+        location.reload();
+    }
+
     showLoading(show) {
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        if (loadingIndicator) {
-            loadingIndicator.style.display = show ? 'flex' : 'none';
+        const indicator = document.getElementById('loadingIndicator');
+        if (indicator) {
+            indicator.style.display = show ? 'flex' : 'none';
         }
     }
 
-    showSuccess(message) {
+    showAlert(icon, title, text) {
         Swal.fire({
-            icon: 'success',
-            title: '✅ Thành công!',
-            text: message,
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+            icon,
+            title,
+            html: text,
+            background: '#1e293b',
             color: '#ffffff',
-            confirmButtonColor: '#10b981',
-            timer: 3000,
-            timerProgressBar: true
+            confirmButtonColor: '#2563eb',
+            customClass: {
+                popup: 'swal-dark'
+            }
         });
     }
 
-    showError(message) {
-        Swal.fire({
-            icon: 'error',
-            title: '❌ Lỗi!',
-            text: message,
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-            color: '#ffffff',
-            confirmButtonColor: '#ef4444'
+    showConfirm(title, text, footer) {
+        return Swal.fire({
+            title,
+            text,
+            footer,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete',
+            cancelButtonText: 'Cancel',
+            background: '#1e293b',
+            color: '#ffffff'
         });
     }
 }
 
-// Initialize dashboard
-const adminDashboard = new AdminDashboard();
+// Initialize
+const gemloginAdmin = new GemloginAdmin();
 
-// 🔧 DEBUG FUNCTIONS
-window.debugAdminData = function() {
-    const adminUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-    console.table(adminUsers);
-    console.log(`📊 Total users: ${adminUsers.length}`);
-    return adminUsers;
-};
-
-window.clearAdminData = function() {
-    localStorage.removeItem('admin_users');
-    console.log('✅ Admin data cleared');
-    if (window.adminDashboard) {
-        adminDashboard.loadUsers();
-    }
-};
-
-window.addTestUser = function() {
+// Global functions for easy debugging
+window.gemloginAdmin = gemloginAdmin;
+window.debugUsers = () => console.table(gemloginAdmin.users);
+window.addTestUser = () => {
     const testUser = {
-        discord_id: '123456789' + Date.now(),
-        username: 'testuser' + Math.floor(Math.random() * 1000),
-        global_name: 'Test User ' + Math.floor(Math.random() * 1000),
-        avatar: '7d36ea95b06f80ae68ddce119654012',
-        joined_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-        days_in_server: Math.floor(Math.random() * 365),
-        last_login: Date.now() - Math.random() * 24 * 60 * 60 * 1000,
-        login_count: Math.floor(Math.random() * 20) + 1,
-        status: 'online',
-        created_at: Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
-        updated_at: Date.now()
+        discord_id: '999' + Date.now(),
+        username: 'testuser',
+        global_name: 'Test User',
+        avatar: null,
+        joined_at: new Date().toISOString(),
+        days_in_server: Math.floor(Math.random() * 100),
+        last_login: Date.now(),
+        login_count: Math.floor(Math.random() * 10) + 1
     };
-    
-    const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-    savedUsers.push(testUser);
-    localStorage.setItem('admin_users', JSON.stringify(savedUsers));
-    
-    console.log('✅ Test user added:', testUser.username);
-    if (window.adminDashboard) {
-        adminDashboard.loadUsers();
-    }
+    gemloginAdmin.users.push(testUser);
+    gemloginAdmin.saveUsers();
+    gemloginAdmin.loadUsers();
 };
 
-console.log('🚀 Gemlogin Admin Dashboard Loaded');
-console.log('🔑 Password: TuanHai45191');
-console.log('🧪 Debug commands: debugAdminData(), clearAdminData(), addTestUser()');
+console.log('🚀 Gemlogin Admin Panel Ready');
+console.log('Password: TuanHai45191');
