@@ -19,35 +19,6 @@ export default async function handler(req, res) {
                   '127.0.0.1';
 
   const PRODUCTION_URL = 'https://tuanhaideptraivcl.vercel.app';
-  const BLACKLIST_URL = 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/blacklist.txt';
-
-  // ✅ Helper function to check blacklist
-  async function isUserBlacklisted(userId) {
-    try {
-      const response = await fetch(BLACKLIST_URL);
-      if (!response.ok) {
-        console.error('Failed to fetch blacklist:', response.status);
-        return false; // Fail open - don't block if can't check
-      }
-      
-      const blacklistText = await response.text();
-      const blacklistedIds = blacklistText
-        .split('\n')
-        .map(id => id.trim())
-        .filter(id => id.length > 0);
-      
-      const isBlocked = blacklistedIds.includes(userId);
-      
-      if (isBlocked) {
-        console.log(`🚫 User ${userId} is blacklisted`);
-      }
-      
-      return isBlocked;
-    } catch (error) {
-      console.error('Error checking blacklist:', error);
-      return false; // Fail open
-    }
-  }
 
   if (method === 'GET') {
     // ✅ Token verification endpoint
@@ -68,17 +39,6 @@ export default async function handler(req, res) {
       try {
         const tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
         console.log('Token decoded:', { id: tokenData.id, username: tokenData.username });
-
-        // Check if user is blacklisted
-        if (await isUserBlacklisted(tokenData.id)) {
-          console.log('Token belongs to blacklisted user');
-          clearIPSession(clientIP);
-          return res.status(403).json({ 
-            valid: false, 
-            error: 'User is blacklisted',
-            blacklisted: true 
-          });
-        }
 
         // Check token age (7 days max)
         if (tokenData.timestamp) {
@@ -131,17 +91,6 @@ export default async function handler(req, res) {
       const session = getIPSession(clientIP);
       
       if (session && session.valid) {
-        // Check if user is blacklisted
-        if (await isUserBlacklisted(session.user.id)) {
-          console.log('Session belongs to blacklisted user');
-          clearIPSession(clientIP);
-          return res.status(200).json({
-            has_session: false,
-            blacklisted: true,
-            ip: clientIP
-          });
-        }
-        
         console.log('✅ Found valid IP session for:', session.user.username);
         return res.status(200).json({
           has_session: true,
@@ -186,12 +135,12 @@ export default async function handler(req, res) {
       
       if (discordError) {
         console.error('Discord OAuth Error:', discordError);
-        return res.redirect(`/login?error=discord_${discordError}`);
+        return res.redirect(`${PRODUCTION_URL}/login?error=discord_${discordError}`);
       }
       
       if (!code) {
         console.error('No authorization code received');
-        return res.redirect('/login?error=no_code');
+        return res.redirect(`${PRODUCTION_URL}/login?error=no_code`);
       }
 
       try {
@@ -216,7 +165,7 @@ export default async function handler(req, res) {
         
         if (!tokenResponse.ok || !tokenData.access_token) {
           console.error('Token exchange failed:', tokenData);
-          return res.redirect('/login?error=token_error');
+          return res.redirect(`${PRODUCTION_URL}/login?error=token_error`);
         }
 
         // Get user data
@@ -228,18 +177,11 @@ export default async function handler(req, res) {
 
         if (!userResponse.ok) {
           console.error('Failed to fetch user data:', userResponse.status);
-          return res.redirect('/login?error=user_fetch_failed');
+          return res.redirect(`${PRODUCTION_URL}/login?error=user_fetch_failed`);
         }
 
         const userData = await userResponse.json();
         console.log('User logged in:', { id: userData.id, username: userData.username });
-
-        // ✅ CHECK BLACKLIST
-        if (await isUserBlacklisted(userData.id)) {
-          console.log('🚫 BLOCKED USER ATTEMPTED LOGIN:', userData.id, userData.username);
-          // Redirect to home with blacklisted flag
-          return res.redirect(`${PRODUCTION_URL}/?blacklisted=true&user=${encodeURIComponent(userData.username)}`);
-        }
 
         // Check guild membership (optional)
         const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
@@ -257,7 +199,7 @@ export default async function handler(req, res) {
             const isInServer = guilds.some(guild => guild.id === process.env.SERVER_ID);
             if (!isInServer) {
               console.log('User not in required server');
-              return res.redirect('/login?error=not_in_server');
+              return res.redirect(`${PRODUCTION_URL}/login?error=not_in_server`);
             }
           }
         }
@@ -279,16 +221,24 @@ export default async function handler(req, res) {
         // Save IP session
         saveIPSession(clientIP, sessionToken, sessionData);
 
-        // Redirect về trang chủ với welcome message
-        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&welcome=${encodeURIComponent(sessionData.globalName || sessionData.username)}`;
-        console.log('=== LOGIN SUCCESS - REDIRECTING ===');
+        console.log('=== LOGIN SUCCESS ===');
+        console.log('Session saved for IP:', clientIP);
+        console.log('User data:', {
+          id: sessionData.id,
+          username: sessionData.username,
+          globalName: sessionData.globalName
+        });
+
+        // Chuyển hướng về trang chủ với thông tin session
+        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&user_id=${sessionData.id}&username=${encodeURIComponent(sessionData.globalName || sessionData.username)}`;
+        console.log('Redirecting to:', redirectUrl);
         
         return res.redirect(redirectUrl);
 
       } catch (error) {
         console.error('=== OAUTH ERROR ===');
         console.error('Error details:', error);
-        return res.redirect('/login?error=auth_failed');
+        return res.redirect(`${PRODUCTION_URL}/login?error=auth_failed`);
       }
     }
 
@@ -333,12 +283,14 @@ function saveIPSession(ip, token, userData) {
   console.log('✅ IP session saved for:', ip);
   console.log('👤 User:', userData.globalName || userData.username);
   console.log('📊 Total sessions:', ipSessions.size);
+  console.log('🔑 Session token length:', token.length);
 }
 
 function getIPSession(ip) {
   const session = ipSessions.get(ip);
   
   if (!session) {
+    console.log('❌ No session found for IP:', ip);
     return null;
   }
   
@@ -352,6 +304,7 @@ function getIPSession(ip) {
     return null;
   }
   
+  console.log('✅ Session found for IP:', ip, 'User:', session.user.username);
   return session;
 }
 
