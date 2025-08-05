@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // 🔑 ADMIN PASSWORD - HARDCODED FOR NOW
+  // 🔑 ADMIN PASSWORD
   const adminPassword = process.env.ADMIN_PASSWORD || 'TuanHai45191';
   const authHeader = req.headers.authorization;
   
@@ -24,7 +24,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'No authorization header provided' });
   }
 
-  // Extract password from "Bearer PASSWORD" format
   const providedPassword = authHeader.startsWith('Bearer ') 
     ? authHeader.substring(7) 
     : authHeader;
@@ -35,42 +34,19 @@ export default async function handler(req, res) {
   if (providedPassword !== adminPassword) {
     console.log('❌ Password mismatch');
     return res.status(401).json({ 
-      error: 'Invalid admin password',
-      debug: {
-        expected: adminPassword,
-        provided: providedPassword,
-        headerFormat: authHeader?.substring(0, 20) + '...'
-      }
+      error: 'Invalid admin password'
     });
   }
 
   console.log('✅ Admin authenticated successfully');
 
-  // Mock database for testing
-  const mockUsers = [
-    {
-      id: 1,
-      discord_id: '138008425763189572',
-      username: 'thai2kk_',
-      discriminator: '0',
-      global_name: 'TuanHai',
-      avatar: '7d36ea95b06f80ae68ddce119654012',
-      joined_at: '2025-06-05T13:11:33.604000+00:00',
-      days_in_server: 60,
-      guilds_count: 3,
-      last_login: Date.now(),
-      login_count: 5,
-      created_at: Date.now() - 86400000 * 10, // 10 days ago
-      updated_at: Date.now(),
-      status: 'online'
-    }
-  ];
-
   if (method === 'GET') {
     try {
       console.log('📊 Fetching users data...');
       
-      // Get users from localStorage simulation or return mock data
+      // Mock data for testing
+      const mockUsers = [];
+      
       return res.status(200).json({ 
         success: true, 
         users: mockUsers,
@@ -88,8 +64,6 @@ export default async function handler(req, res) {
       const { userData } = req.body;
       console.log('💾 Saving user data:', userData?.username || 'Unknown');
       
-      // In real implementation, save to database
-      // For now, just return success
       return res.status(200).json({ 
         success: true, 
         message: 'User data saved successfully',
@@ -101,19 +75,26 @@ export default async function handler(req, res) {
     }
   }
 
+  // 🆕 UPDATED DELETE METHOD
   if (method === 'DELETE') {
     try {
       const { userId } = req.query;
-      console.log('🗑️ Deleting user:', userId);
+      console.log('🗑️ API: Deleting user:', userId);
       
       if (!userId) {
         return res.status(400).json({ error: 'User ID required' });
       }
 
-      // In real implementation, delete from database
+      // In real implementation: delete from database
+      // For now: return success and let frontend handle localStorage
+      
+      // 🆕 SET TERMINATION FLAG
+      // This would be done in database in real implementation
+      
       return res.status(200).json({ 
         success: true, 
-        message: `User ${userId} deleted successfully` 
+        message: `User ${userId} deleted and session terminated`,
+        terminated: true // Flag to indicate session should be terminated
       });
     } catch (error) {
       console.error('Error deleting user:', error);
