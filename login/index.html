@@ -602,7 +602,7 @@
                     <div class="brand-text">GEMLOGIN</div>
                 </div>
                 <p class="subtitle">Chào mừng đến với Gemlogin Tool</p>
-                <div class="server-info">TuanHaiDz Quá Mấy Ae<div>
+                <div class="server-info">Giao diện Gemlogin Tool server của tôi!</div>
             </div>
             
             <button class="btn discord-btn" id="loginBtn">
@@ -704,6 +704,8 @@
     
     <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Gemlogin Tool khởi động...');
+    
     const loginBtn = document.getElementById('loginBtn');
     const loading = document.getElementById('loading');
     const loginBox = document.getElementById('loginBox');
@@ -711,205 +713,120 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     const deleteBtn = document.getElementById('deleteBtn');
 
-    // Kiểm tra URL có thông tin đăng nhập không
+    // Kiểm tra URL có success params không
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
+        console.log('✅ Có success params, đang xử lý...');
         const token = params.get('token');
         if (token) {
-            try {
-                const userData = JSON.parse(atob(token));
-                localStorage.setItem('discord_user', JSON.stringify(userData));
-                localStorage.setItem('auth_token', token);
-                
-                // 🆕 Save user data for admin dashboard
-                saveUserToAdmin(userData);
-                
-                showProfile(userData);
-                
-                // Enhanced success notification
-                Swal.fire({
-                    icon: 'success',
-                    title: '🎉 Kết nối thành công!',
-                    text: `Chào mừng ${userData.globalName || userData.username} đến với Gemlogin Tool!`,
-                    background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                    color: '#ffffff',
-                    confirmButtonColor: '#3b82f6',
-                    confirmButtonText: 'Tuyệt vời!',
-                    timer: 3000,
-                    timerProgressBar: true,
-                    showClass: {
-                        popup: 'animate__animated animate__bounceIn'
-                    },
-                    hideClass: {
-                        popup: 'animate__animated animate__bounceOut'
-                    }
-                });
-            } catch (e) {
-                console.error('Token error:', e);
-                showErrorAlert('Có lỗi khi xử lý thông tin đăng nhập!');
-            }
+            handleLoginSuccess(token);
         }
+        // Clear URL
         window.history.replaceState({}, '', window.location.pathname);
     }
 
-    // Kiểm tra đã đăng nhập chưa
-    const existingUser = localStorage.getItem('discord_user');
-    const existingToken = localStorage.getItem('auth_token');
-    if (existingUser && existingToken) {
-        try {
-            const userData = JSON.parse(existingUser);
-            const age = Date.now() - userData.timestamp;
-            if (age < 24 * 60 * 60 * 1000) {
-                showProfile(userData);
-                // 🆕 Update last login time for admin
-                updateUserLastLogin(userData);
-            } else {
-                localStorage.clear();
-                // 🆕 Clear user from admin data if expired
-                removeUserFromAdmin(userData.id);
-            }
-        } catch (e) {
-            localStorage.clear();
-        }
-    }
+    // Kiểm tra user đã login chưa
+    checkExistingLogin();
 
-    // Event listeners
+    // Bind events
     if (loginBtn) {
-        loginBtn.addEventListener('click', function() {
-            loginBtn.style.display = 'none';
-            loading.style.display = 'flex';
-            
-            // Add loading effect
-            loading.innerHTML = `
-                <div class="spinner"></div>
-                <p>Đang kết nối với Discord...</p>
-                <p style="font-size: 12px; color: #64748b; margin-top: 8px;">Vui lòng đợi...</p>
-            `;
-            
-            setTimeout(() => {
-                window.location.href = '/api/auth?action=login';
-            }, 1000);
-        });
+        loginBtn.addEventListener('click', handleLogin);
     }
 
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
-            Swal.fire({
-                title: '🚪 Đăng xuất?',
-                text: "Bạn có chắc muốn đăng xuất khỏi Gemlogin Tool không?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: '✅ Đăng xuất',
-                cancelButtonText: '❌ Hủy',
-                background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                color: '#ffffff',
-                customClass: {
-                    popup: 'custom-swal-popup'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
-                    
-                    // 🆕 Update user logout time for admin
-                    updateUserLogoutTime(userData.id);
-                    
-                    localStorage.clear();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Đã đăng xuất!',
-                        text: 'Hẹn gặp lại bạn!',
-                        background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                        color: '#ffffff',
-                        confirmButtonColor: '#3b82f6',
-                        timer: 2000
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        });
+        logoutBtn.addEventListener('click', handleLogout);
     }
 
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', function() {
+        deleteBtn.addEventListener('click', handleDeleteAccount);
+    }
+
+    function handleLogin() {
+        console.log('🔄 Bắt đầu đăng nhập...');
+        showLoading(true);
+        setTimeout(() => {
+            window.location.href = '/api/auth?action=login';
+        }, 1000);
+    }
+
+    function handleLoginSuccess(token) {
+        console.log('🎉 Xử lý login thành công...');
+        try {
+            const userData = JSON.parse(atob(token));
+            console.log('User data:', userData);
+            
+            // Save to localStorage
+            localStorage.setItem('discord_user', JSON.stringify(userData));
+            localStorage.setItem('auth_token', token);
+            
+            // Save to admin (nếu có)
+            saveUserToAdmin(userData);
+            
+            // Show profile
+            showProfile(userData);
+            
+            // Success notification
             Swal.fire({
-                title: '⚠️ Xóa tài khoản?',
-                html: `
-                    <p>Hành động này sẽ:</p>
-                    <ul style="text-align: left; margin: 16px 0; color: #ef4444;">
-                        <li>🗑️ Xóa hoàn toàn dữ liệu của bạn</li>
-                        <li>💾 Làm sạch database</li>
-                        <li>🚫 Không thể khôi phục</li>
-                    </ul>
-                    <p><strong>Bạn có chắc chắn muốn tiếp tục?</strong></p>
-                `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: '🗑️ Xóa vĩnh viễn',
-                cancelButtonText: '❌ Hủy bỏ',
+                icon: 'success',
+                title: '🎉 Kết nối thành công!',
+                text: `Chào mừng ${userData.globalName || userData.username}!`,
                 background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
                 color: '#ffffff',
-                customClass: {
-                    popup: 'custom-swal-popup'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
-                    
-                    // Simulate account deletion
-                    Swal.fire({
-                        title: '🔄 Đang xóa...',
-                        text: 'Vui lòng đợi trong giây lát',
-                        background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                        color: '#ffffff',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    setTimeout(() => {
-                        // 🆕 Remove user from admin database
-                        removeUserFromAdmin(userData.id);
-                        
-                        localStorage.clear();
-                        Swal.fire({
-                            icon: 'success',
-                            title: '✅ Đã xóa thành công!',
-                            text: 'Tài khoản của bạn đã được xóa khỏi database',
-                            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-                            color: '#ffffff',
-                            confirmButtonColor: '#10b981',
-                            timer: 3000
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    }, 2000);
-                }
+                confirmButtonColor: '#3b82f6',
+                timer: 3000,
+                timerProgressBar: true
             });
-        });
+        } catch (error) {
+            console.error('❌ Lỗi xử lý token:', error);
+            showError('Có lỗi khi xử lý thông tin đăng nhập!');
+        }
+    }
+
+    function checkExistingLogin() {
+        const existingUser = localStorage.getItem('discord_user');
+        const existingToken = localStorage.getItem('auth_token');
+        
+        if (existingUser && existingToken) {
+            try {
+                const userData = JSON.parse(existingUser);
+                const age = Date.now() - (userData.timestamp || 0);
+                
+                if (age < 24 * 60 * 60 * 1000) { // 24 hours
+                    console.log('✅ User đã login, hiển thị profile');
+                    showProfile(userData);
+                } else {
+                    console.log('⏰ Session đã hết hạn');
+                    localStorage.clear();
+                }
+            } catch (error) {
+                console.error('❌ Lỗi check existing login:', error);
+                localStorage.clear();
+            }
+        }
     }
 
     function showProfile(userData) {
+        console.log('📱 Hiển thị profile...');
+        
         loginBox.style.display = 'none';
         profileBox.style.display = 'block';
 
         // Update avatar
         const avatar = document.getElementById('userAvatar');
-        if (avatar) {
+        if (avatar && userData) {
             avatar.src = userData.avatar 
                 ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=256`
                 : 'https://cdn.discordapp.com/embed/avatars/0.png';
+            
+            avatar.onerror = function() {
+                this.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+            };
         }
 
         // Update name
         const name = document.getElementById('userName');
-        if (name) {
-            let displayName = userData.globalName || userData.username;
+        if (name && userData) {
+            let displayName = userData.globalName || userData.username || 'Unknown';
             if (userData.discriminator && userData.discriminator !== '0') {
                 displayName += `#${userData.discriminator}`;
             }
@@ -918,20 +835,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update days in server
         const days = document.getElementById('daysInServer');
-        if (days) {
-            if (userData.daysInServer !== undefined) {
-                days.textContent = `${userData.daysInServer} ngày`;
-                days.style.color = userData.daysInServer > 30 ? '#10b981' : 
-                                   userData.daysInServer > 7 ? '#f59e0b' : '#ef4444';
+        if (days && userData) {
+            const daysCount = userData.daysInServer || 0;
+            days.textContent = `${daysCount} ngày`;
+            
+            // Color coding
+            if (daysCount > 30) {
+                days.style.color = '#10b981';
+            } else if (daysCount > 7) {
+                days.style.color = '#f59e0b';
             } else {
-                days.textContent = 'Không xác định';
-                days.style.color = '#6b7280';
+                days.style.color = '#ef4444';
             }
         }
 
         // Update join date
         const joinDate = document.getElementById('joinDate');
-        if (joinDate) {
+        if (joinDate && userData) {
             if (userData.joinedAt) {
                 try {
                     const date = new Date(userData.joinedAt);
@@ -940,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         month: 'long',
                         day: 'numeric'
                     });
-                } catch (e) {
+                } catch (error) {
                     joinDate.textContent = 'Không xác định';
                 }
             } else {
@@ -949,23 +869,104 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showErrorAlert(message) {
+    function handleLogout() {
         Swal.fire({
-            icon: 'error',
-            title: '❌ Có lỗi xảy ra!',
-            text: message,
-            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
-            color: '#ffffff',
+            title: '🚪 Đăng xuất?',
+            text: "Bạn có chắc muốn đăng xuất không?",
+            icon: 'question',
+            showCancelButton: true,
             confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '✅ Đăng xuất',
+            cancelButtonText: '❌ Hủy',
+            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+            color: '#ffffff'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                localStorage.clear();
+                location.reload();
+            }
         });
     }
 
-    // 🆕 ADMIN INTEGRATION FUNCTIONS
+    function handleDeleteAccount() {
+        Swal.fire({
+            title: '⚠️ Xóa tài khoản?',
+            html: `
+                <p>Hành động này sẽ:</p>
+                <ul style="text-align: left; margin: 16px 0; color: #ef4444;">
+                    <li>🗑️ Xóa hoàn toàn dữ liệu của bạn</li>
+                    <li>💾 Làm sạch database</li>
+                    <li>🚫 Không thể khôi phục</li>
+                </ul>
+                <p><strong>Bạn có chắc chắn muốn tiếp tục?</strong></p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '🗑️ Xóa vĩnh viễn',
+            cancelButtonText: '❌ Hủy bỏ',
+            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+            color: '#ffffff'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: '🔄 Đang xóa...',
+                    text: 'Vui lòng đợi...',
+                    background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                    color: '#ffffff',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                setTimeout(() => {
+                    localStorage.clear();
+                    Swal.fire({
+                        icon: 'success',
+                        title: '✅ Đã xóa thành công!',
+                        text: 'Tài khoản đã được xóa khỏi database',
+                        background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+                        color: '#ffffff',
+                        confirmButtonColor: '#10b981',
+                        timer: 3000
+                    }).then(() => {
+                        location.reload();
+                    });
+                }, 2000);
+            }
+        });
+    }
+
+    function showLoading(show) {
+        if (loginBtn && loading) {
+            if (show) {
+                loginBtn.style.display = 'none';
+                loading.style.display = 'flex';
+            } else {
+                loginBtn.style.display = 'flex';
+                loading.style.display = 'none';
+            }
+        }
+    }
+
+    function showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: '❌ Lỗi!',
+            text: message,
+            background: 'linear-gradient(135deg, #0f0f19, #1a1a2e)',
+            color: '#ffffff',
+            confirmButtonColor: '#ef4444'
+        });
+    }
+
     function saveUserToAdmin(userData) {
         try {
             const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-            
-            // Check if user already exists
             const existingIndex = savedUsers.findIndex(user => 
                 (user.discord_id || user.id) === userData.id
             );
@@ -993,134 +994,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             localStorage.setItem('admin_users', JSON.stringify(savedUsers));
-            
-            // Also try to call API if available
-            callAdminAPI('POST', { userData: userRecord });
-            
-            console.log('✅ User data saved to admin dashboard');
+            console.log('✅ User saved to admin database');
         } catch (error) {
-            console.error('❌ Error saving user to admin:', error);
+            console.error('❌ Error saving to admin:', error);
         }
     }
-
-    function updateUserLastLogin(userData) {
-        try {
-            const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-            const userIndex = savedUsers.findIndex(user => 
-                (user.discord_id || user.id) === userData.id
-            );
-
-            if (userIndex !== -1) {
-                savedUsers[userIndex].last_login = Date.now();
-                savedUsers[userIndex].updated_at = Date.now();
-                savedUsers[userIndex].status = 'online';
-                localStorage.setItem('admin_users', JSON.stringify(savedUsers));
-            }
-        } catch (error) {
-            console.error('❌ Error updating user last login:', error);
-        }
-    }
-
-    function updateUserLogoutTime(userId) {
-        try {
-            const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-            const userIndex = savedUsers.findIndex(user => 
-                (user.discord_id || user.id) === userId
-            );
-
-            if (userIndex !== -1) {
-                savedUsers[userIndex].last_logout = Date.now();
-                savedUsers[userIndex].updated_at = Date.now();
-                savedUsers[userIndex].status = 'offline';
-                localStorage.setItem('admin_users', JSON.stringify(savedUsers));
-            }
-        } catch (error) {
-            console.error('❌ Error updating user logout time:', error);
-        }
-    }
-
-    function removeUserFromAdmin(userId) {
-        try {
-            let savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-            savedUsers = savedUsers.filter(user => 
-                (user.discord_id || user.id) !== userId
-            );
-            localStorage.setItem('admin_users', JSON.stringify(savedUsers));
-            
-            // Also try to call API if available
-            callAdminAPI('DELETE', null, userId);
-            
-            console.log('✅ User removed from admin dashboard');
-        } catch (error) {
-            console.error('❌ Error removing user from admin:', error);
-        }
-    }
-
-    async function callAdminAPI(method, data = null, userId = null) {
-        try {
-            const adminPassword = localStorage.getItem('admin_auth');
-            if (!adminPassword) return;
-
-            let url = '/api/admin';
-            if (method === 'DELETE' && userId) {
-                url += `?userId=${userId}`;
-            }
-
-            const options = {
-                method: method,
-                headers: {
-                    'Authorization': `Bearer ${adminPassword}`,
-                    'Content-Type': 'application/json'
-                }
-            };
-
-            if (data && (method === 'POST' || method === 'PUT')) {
-                options.body = JSON.stringify(data);
-            }
-
-            const response = await fetch(url, options);
-            
-            if (response.ok) {
-                console.log('✅ Admin API call successful');
-            } else {
-                console.log('⚠️ Admin API not available, using localStorage');
-            }
-        } catch (error) {
-            console.log('⚠️ Admin API not available, using localStorage fallback');
-        }
-    }
-
-    // 🆕 ADMIN DASHBOARD INTEGRATION
-    // Auto-sync user data every 5 minutes
-    setInterval(() => {
-        const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
-        if (userData.id) {
-            updateUserLastLogin(userData);
-        }
-    }, 5 * 60 * 1000); // 5 minutes
-
-    // Mark user as offline when page unloads
-    window.addEventListener('beforeunload', () => {
-        const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
-        if (userData.id) {
-            updateUserLogoutTime(userData.id);
-        }
-    });
-
-    // Handle visibility change (tab switching)
-    document.addEventListener('visibilitychange', () => {
-        const userData = JSON.parse(localStorage.getItem('discord_user') || '{}');
-        if (userData.id) {
-            if (document.hidden) {
-                updateUserLogoutTime(userData.id);
-            } else {
-                updateUserLastLogin(userData);
-            }
-        }
-    });
 });
 
-// Global function for bio button
+// Global functions
 function goToBio() {
     Swal.fire({
         icon: 'info',
@@ -1132,58 +1013,18 @@ function goToBio() {
         timer: 1500,
         timerProgressBar: true
     }).then(() => {
-        // Change this URL to your bio page
-        window.location.href = '/bio'; // hoặc URL trang bio của bạn
+        window.location.href = '/bio';
     });
 }
 
-// 🆕 EXPOSE GLOBAL FUNCTIONS FOR ADMIN DASHBOARD
-window.saveUserToAdmin = function(userData) {
-    const savedUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
-    const existingIndex = savedUsers.findIndex(user => 
-        (user.discord_id || user.id) === userData.id
-    );
-
-    const userRecord = {
-        discord_id: userData.id,
-        username: userData.username,
-        discriminator: userData.discriminator,
-        global_name: userData.globalName,
-        avatar: userData.avatar,
-        joined_at: userData.joinedAt,
-        days_in_server: userData.daysInServer,
-        guilds_count: userData.guilds,
-        last_login: Date.now(),
-        login_count: existingIndex !== -1 ? (savedUsers[existingIndex].login_count || 0) + 1 : 1,
-        created_at: existingIndex === -1 ? Date.now() : savedUsers[existingIndex].created_at,
-        updated_at: Date.now(),
-        status: 'online',
-        user_agent: navigator.userAgent,
-        ip_address: 'N/A' // Would need server-side to get real IP
-    };
-
-    if (existingIndex !== -1) {
-        savedUsers[existingIndex] = userRecord;
-    } else {
-        savedUsers.push(userRecord);
-    }
-
-    localStorage.setItem('admin_users', JSON.stringify(savedUsers));
-};
-
-// 🆕 DEBUG FUNCTIONS (Remove in production)
+// Debug functions
 window.debugAdminData = function() {
     const adminUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
     console.table(adminUsers);
     return adminUsers;
 };
 
-window.clearAdminData = function() {
-    localStorage.removeItem('admin_users');
-    console.log('✅ Admin data cleared');
-};
-
-console.log('🚀 Gemlogin Tool loaded with Admin integration');
-</script>
+console.log('✅ Gemlogin Tool loaded successfully!');
+    </script>
 </body>
 </html>
