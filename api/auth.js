@@ -18,11 +18,10 @@ export default async function handler(req, res) {
                   req.socket.remoteAddress ||
                   '127.0.0.1';
 
-  // HARD-CODE Production URL
   const PRODUCTION_URL = 'https://tuanhaideptraivcl.vercel.app';
 
   if (method === 'GET') {
-    // ✅ NEW: Handle token verification
+    // ✅ Token verification endpoint
     if (query.action === 'verify') {
       console.log('=== TOKEN VERIFICATION REQUEST ===');
       console.log('Client IP:', clientIP);
@@ -35,11 +34,9 @@ export default async function handler(req, res) {
         });
       }
 
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-      console.log('Token received for verification');
+      const token = authHeader.substring(7);
 
       try {
-        // Decode and validate token
         const tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
         console.log('Token decoded:', { id: tokenData.id, username: tokenData.username });
 
@@ -50,6 +47,7 @@ export default async function handler(req, res) {
           
           if (tokenAge > maxAge) {
             console.log('Token expired');
+            clearIPSession(clientIP); // Clear expired session
             return res.status(401).json({ 
               valid: false, 
               error: 'Token expired' 
@@ -57,7 +55,6 @@ export default async function handler(req, res) {
           }
         }
 
-        // Validate required fields
         if (!tokenData.id || !tokenData.username) {
           console.log('Invalid token data');
           return res.status(401).json({ 
@@ -66,8 +63,8 @@ export default async function handler(req, res) {
           });
         }
 
-        // ✅ Update last access for this IP
-        updateUserAccess(clientIP, tokenData);
+        // ✅ Update session for this IP
+        updateIPSession(clientIP, tokenData);
 
         console.log('✅ Token verification successful');
         return res.status(200).json({
@@ -86,6 +83,32 @@ export default async function handler(req, res) {
       }
     }
 
+    // ✅ Check IP session endpoint
+    if (query.action === 'check_session') {
+      console.log('=== IP SESSION CHECK ===');
+      console.log('Client IP:', clientIP);
+      
+      const session = getIPSession(clientIP);
+      
+      if (session && session.valid) {
+        console.log('✅ Found valid IP session for:', session.user.username);
+        return res.status(200).json({
+          has_session: true,
+          user: session.user,
+          token: session.token,
+          ip: clientIP,
+          login_time: session.loginTime,
+          last_access: session.lastAccess
+        });
+      } else {
+        console.log('❌ No valid IP session found');
+        return res.status(200).json({
+          has_session: false,
+          ip: clientIP
+        });
+      }
+    }
+
     // Handle login request
     if (query.action === 'login') {
       const discordClientId = process.env.DISCORD_CLIENT_ID;
@@ -99,13 +122,9 @@ export default async function handler(req, res) {
       
       console.log('=== LOGIN REQUEST ===');
       console.log('Client IP:', clientIP);
-      console.log('Production URL:', PRODUCTION_URL);
       console.log('Redirect URI:', redirectUri);
-      console.log('Discord Client ID:', discordClientId);
       
       const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${discordClientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds`;
-      
-      console.log('Discord Auth URL:', discordAuthUrl);
       
       return res.redirect(discordAuthUrl);
     }
@@ -117,9 +136,7 @@ export default async function handler(req, res) {
       console.log('=== CALLBACK RECEIVED ===');
       console.log('Client IP:', clientIP);
       console.log('Code:', code ? 'Present' : 'Missing');
-      console.log('Discord Error:', discordError);
       
-      // Kiểm tra Discord error
       if (discordError) {
         console.error('Discord OAuth Error:', discordError);
         return res.redirect(`/login?error=discord_${discordError}`);
@@ -131,9 +148,7 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Step 1: Exchange authorization code for access token
-        console.log('=== EXCHANGING CODE FOR TOKEN ===');
-        
+        // Exchange code for token
         const tokenPayload = {
           client_id: process.env.DISCORD_CLIENT_ID,
           client_secret: process.env.DISCORD_CLIENT_SECRET,
@@ -141,8 +156,6 @@ export default async function handler(req, res) {
           code: code,
           redirect_uri: `${PRODUCTION_URL}/api/auth?action=callback`,
         };
-
-        console.log('Token payload:', { ...tokenPayload, client_secret: '[HIDDEN]' });
 
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
           method: 'POST',
@@ -154,17 +167,12 @@ export default async function handler(req, res) {
 
         const tokenData = await tokenResponse.json();
         
-        console.log('Token response status:', tokenResponse.status);
-        console.log('Token data:', { ...tokenData, access_token: tokenData.access_token ? '[PRESENT]' : '[MISSING]' });
-
         if (!tokenResponse.ok || !tokenData.access_token) {
           console.error('Token exchange failed:', tokenData);
           return res.redirect('/login?error=token_error');
         }
 
-        // Step 2: Lấy thông tin user từ Discord
-        console.log('=== FETCHING USER DATA ===');
-        
+        // Get user data
         const userResponse = await fetch('https://discord.com/api/users/@me', {
           headers: {
             Authorization: `Bearer ${tokenData.access_token}`,
@@ -179,9 +187,7 @@ export default async function handler(req, res) {
         const userData = await userResponse.json();
         console.log('User data:', { id: userData.id, username: userData.username });
 
-        // Step 3: Lấy danh sách guilds để kiểm tra membership
-        console.log('=== CHECKING GUILD MEMBERSHIP ===');
-        
+        // Check guild membership
         const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
           headers: {
             Authorization: `Bearer ${tokenData.access_token}`,
@@ -193,28 +199,22 @@ export default async function handler(req, res) {
         
         if (guildsResponse.ok) {
           guilds = await guildsResponse.json();
-          console.log('User guilds count:', guilds.length);
           
           if (process.env.SERVER_ID) {
             isInServer = guilds.some(guild => guild.id === process.env.SERVER_ID);
-            console.log('Is in required server:', isInServer);
             
             if (!isInServer) {
-              console.log('User not in required server:', process.env.SERVER_ID);
+              console.log('User not in required server');
               return res.redirect('/login?error=not_in_server');
             }
           }
-        } else {
-          console.warn('Failed to fetch guilds:', guildsResponse.status);
         }
 
-        // Step 4: Lấy thông tin chi tiết member từ server
+        // Get member data
         let memberData = null;
         let daysInServer = 0;
         
         if (process.env.SERVER_ID && process.env.DISCORD_TOKEN && isInServer) {
-          console.log('=== FETCHING MEMBER DATA ===');
-          
           try {
             const memberResponse = await fetch(
               `https://discord.com/api/guilds/${process.env.SERVER_ID}/members/${userData.id}`,
@@ -227,25 +227,19 @@ export default async function handler(req, res) {
 
             if (memberResponse.ok) {
               memberData = await memberResponse.json();
-              console.log('Member data received:', { joined_at: memberData.joined_at });
               
               if (memberData.joined_at) {
                 const joinDate = new Date(memberData.joined_at);
                 const now = new Date();
                 daysInServer = Math.floor((now - joinDate) / (1000 * 60 * 60 * 24));
-                console.log('Days in server calculated:', daysInServer);
               }
-            } else {
-              console.warn('Failed to fetch member data:', memberResponse.status, await memberResponse.text());
             }
           } catch (memberError) {
             console.error('Error fetching member data:', memberError);
           }
         }
 
-        // Step 5: Tạo session token với IP tracking
-        console.log('=== CREATING SESSION TOKEN ===');
-        
+        // Create session data
         const sessionData = {
           id: userData.id,
           username: userData.username,
@@ -256,21 +250,18 @@ export default async function handler(req, res) {
           daysInServer: daysInServer,
           timestamp: Date.now(),
           guilds: guilds.length,
-          // ✅ IP tracking info
           loginIP: clientIP,
           userAgent: req.headers['user-agent'] || 'Unknown'
         };
 
-        console.log('Session data:', { ...sessionData, id: '[PRESENT]', loginIP: clientIP });
-
         const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
-        // ✅ Save login session with IP
-        saveLoginSession(clientIP, sessionData);
+        // ✅ Save IP session cho lần truy cập sau
+        saveIPSession(clientIP, sessionToken, sessionData);
 
-        // ✅ Step 6: Redirect về tool page với success
-        const redirectUrl = `/Bypass%20Funlink/index.html?success=true&token=${encodeURIComponent(sessionToken)}`;
-        console.log('=== REDIRECTING TO SUCCESS ===');
+        // ✅ Redirect về trang chủ với thông báo success
+        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&welcome=${encodeURIComponent(sessionData.globalName || sessionData.username)}`;
+        console.log('=== REDIRECTING TO HOME ===');
         console.log('Redirect URL:', redirectUrl);
         
         return res.redirect(redirectUrl);
@@ -278,61 +269,85 @@ export default async function handler(req, res) {
       } catch (error) {
         console.error('=== OAUTH ERROR ===');
         console.error('Error details:', error);
-        console.error('Error stack:', error.stack);
         return res.redirect('/login?error=auth_failed');
       }
     }
 
-    console.log('Invalid action:', query.action);
     return res.status(400).json({ error: 'Invalid action parameter' });
   }
 
-  console.log('Invalid method:', method);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-// ✅ In-memory storage for login sessions (replace with database in production)
-const loginSessions = new Map();
+// ✅ In-memory IP session storage
+const ipSessions = new Map();
 
-function saveLoginSession(ip, userData) {
+function saveIPSession(ip, token, userData) {
   const sessionInfo = {
+    token: token,
     user: userData,
     loginTime: Date.now(),
     lastAccess: Date.now(),
-    loginCount: (loginSessions.get(ip)?.loginCount || 0) + 1,
-    userAgent: userData.userAgent
+    loginCount: (ipSessions.get(ip)?.loginCount || 0) + 1,
+    userAgent: userData.userAgent,
+    valid: true
   };
   
-  loginSessions.set(ip, sessionInfo);
+  ipSessions.set(ip, sessionInfo);
   
-  console.log('✅ Login session saved for IP:', ip);
+  console.log('✅ IP session saved for:', ip);
   console.log('👤 User:', userData.globalName || userData.username);
-  console.log('📊 Total login sessions:', loginSessions.size);
-  console.log('🔄 Login count for this IP:', sessionInfo.loginCount);
+  console.log('📊 Total sessions:', ipSessions.size);
 }
 
-function updateUserAccess(ip, userData) {
-  const existingSession = loginSessions.get(ip);
+function getIPSession(ip) {
+  const session = ipSessions.get(ip);
   
-  if (existingSession) {
-    existingSession.lastAccess = Date.now();
-    existingSession.user = userData; // Update user data
-    loginSessions.set(ip, existingSession);
-    console.log('🔄 Updated access time for IP:', ip);
+  if (!session) {
+    return null;
+  }
+  
+  // Check if session expired (7 days)
+  const sessionAge = Date.now() - session.loginTime;
+  const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+  
+  if (sessionAge > maxAge) {
+    ipSessions.delete(ip);
+    console.log('🕐 Session expired for IP:', ip);
+    return null;
+  }
+  
+  return session;
+}
+
+function updateIPSession(ip, userData) {
+  const session = ipSessions.get(ip);
+  
+  if (session) {
+    session.lastAccess = Date.now();
+    session.user = userData;
+    ipSessions.set(ip, session);
+    console.log('🔄 Updated session for IP:', ip);
   } else {
     // Create new session if not exists
-    saveLoginSession(ip, userData);
+    const token = Buffer.from(JSON.stringify(userData)).toString('base64');
+    saveIPSession(ip, token, userData);
   }
 }
 
-// ✅ Export function to get login sessions (for admin/debugging)
-export function getLoginSessions() {
-  return Array.from(loginSessions.entries()).map(([ip, data]) => ({
+function clearIPSession(ip) {
+  const deleted = ipSessions.delete(ip);
+  console.log(`🗑️ Session cleared for IP ${ip}:`, deleted ? 'Success' : 'Not found');
+  return deleted;
+}
+
+// Export for debugging
+export function getActiveSessions() {
+  return Array.from(ipSessions.entries()).map(([ip, data]) => ({
     ip,
     user: data.user.globalName || data.user.username,
     loginTime: new Date(data.loginTime).toISOString(),
     lastAccess: new Date(data.lastAccess).toISOString(),
-    loginCount: data.loginCount,
-    userAgent: data.userAgent
+    loginCount: data.loginCount
   }));
 }
