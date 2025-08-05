@@ -6,12 +6,15 @@ class TokenManager {
         this.isLoggedIn = false;
         this.isCreatingToken = false;
         this.isCreatingSession = false;
+        this.loginChecked = false;
         this.API_BASE = '/api/bypass_funlink';
-        this.LOGIN_API = '/api/auth'; // API endpoint để check login
+        this.LOGIN_API = '/api/auth';
         this.initializeElements();
         this.setupEventListeners();
         this.setupSweetAlert();
-        this.checkLoginStatus();
+        // Luôn load giao diện trước, check login âm thầm
+        this.loadInterface();
+        this.checkLoginStatusSilently();
     }
 
     setupSweetAlert() {
@@ -65,18 +68,36 @@ class TokenManager {
         };
     }
 
-    // Kiểm tra trạng thái đăng nhập khi load trang
-    async checkLoginStatus() {
+    // Load giao diện bình thường để bot thấy
+    async loadInterface() {
         try {
-            // Kiểm tra từ localStorage trước (faster)
+            // Hiện IP giả hoặc thật (không quan trọng)
+            this.elements.ipDisplay.textContent = 'Đang tải...';
+            
+            // Giả lập load IP
+            setTimeout(() => {
+                this.elements.ipDisplay.textContent = '103.90.227.117'; // IP giả để bot thấy
+            }, 1000);
+
+            // Luôn hiện initial view
+            this.showInitialView();
+        } catch (error) {
+            console.error('Error loading interface:', error);
+            this.elements.ipDisplay.textContent = 'Lỗi kết nối';
+            this.showInitialView();
+        }
+    }
+
+    // Kiểm tra login âm thầm không block UI
+    async checkLoginStatusSilently() {
+        try {
             const sessionToken = localStorage.getItem('sessionToken');
             if (!sessionToken) {
                 this.isLoggedIn = false;
-                this.handleNotLoggedIn();
+                this.loginChecked = true;
                 return;
             }
 
-            // Verify token với server
             const response = await fetch(`${this.LOGIN_API}?action=verify`, {
                 method: 'GET',
                 headers: {
@@ -90,86 +111,44 @@ class TokenManager {
                 if (data.valid && data.user) {
                     this.isLoggedIn = true;
                     console.log('User logged in:', data.user.username);
-                    // Load nội dung bình thường
-                    this.checkExistingTokenOnLoad();
+                    // Load token thật nếu có
+                    this.loadRealData();
                 } else {
                     this.isLoggedIn = false;
-                    localStorage.removeItem('sessionToken'); // Clear invalid token
-                    this.handleNotLoggedIn();
+                    localStorage.removeItem('sessionToken');
                 }
             } else {
                 this.isLoggedIn = false;
-                localStorage.removeItem('sessionToken'); // Clear invalid token  
-                this.handleNotLoggedIn();
+                localStorage.removeItem('sessionToken');
             }
         } catch (error) {
             console.error('Error checking login status:', error);
             this.isLoggedIn = false;
-            this.handleNotLoggedIn();
         }
+        this.loginChecked = true;
     }
 
-    // Xử lý khi user chưa đăng nhập
-    handleNotLoggedIn() {
-        // Ẩn toàn bộ nội dung
-        this.hideAllContent();
-        
-        // Hiện thông báo đăng nhập
-        Swal.fire({
-            icon: 'warning',
-            title: 'Vui lòng đăng nhập',
-            text: 'Hãy đăng nhập để xem nội dung sau',
-            confirmButtonText: 'OK',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showCloseButton: true
-        }).then((result) => {
-            if (result.isConfirmed || result.isDismissed) {
-                // Redirect về trang login
-                window.location.href = '/login';
-            }
-        });
-    }
-
-    // Ẩn nội dung khi chưa đăng nhập
-    hideAllContent() {
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            mainContent.style.display = 'none';
-        }
-    }
-
-    // Hiện thông báo yêu cầu đăng nhập cho các action
-    showLoginRequiredAlert() {
-        return Swal.fire({
-            icon: 'error',
-            title: 'Vui lòng đăng nhập',
-            text: 'Hãy đăng nhập để xem nội dung sau',
-            confirmButtonText: 'OK',
-            showCloseButton: true
-        });
-    }
-
-    async checkExistingTokenOnLoad() {
-        // Chỉ load nếu đã đăng nhập
-        if (!this.isLoggedIn) {
-            return;
-        }
-
+    // Load dữ liệu thật cho user đã đăng nhập
+    async loadRealData() {
         try {
-            const response = await fetch(this.API_BASE);
-            if (!response.ok) throw new Error('Lỗi kết nối');
+            const sessionToken = localStorage.getItem('sessionToken');
+            const response = await fetch(this.API_BASE, {
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`
+                }
+            });
+            
+            if (!response.ok) return;
 
             const data = await response.json();
             
+            // Update IP thật
             if (data.ip) {
                 this.userIP = data.ip;
                 this.elements.ipDisplay.textContent = this.userIP;
-            } else {
-                this.elements.ipDisplay.textContent = 'Không thể lấy IP';
-                this.elements.ipDisplay.style.color = '#ff4757';
             }
 
+            // Load token nếu có
             if (data.has_existing_token && data.token) {
                 this.currentToken = data.token;
                 this.elements.tokenDisplay.value = data.token;
@@ -184,22 +163,26 @@ class TokenManager {
                     'timerProgressBar': true,
                     'showConfirmButton': false
                 });
-            } else {
-                this.showInitialView();
             }
         } catch (error) {
-            console.error('Error during initial load:', error);
-            this.elements.ipDisplay.textContent = 'Lỗi kết nối';
-            this.elements.ipDisplay.style.color = '#ff4757';
-            this.showInitialView();
-            
-            Swal.fire({
-                'icon': 'error',
-                'title': 'Lỗi kết nối',
-                'text': 'Lỗi kết nối đến máy chủ.',
-                'confirmButtonText': 'Thử lại'
-            });
+            console.error('Error loading real data:', error);
         }
+    }
+
+    // Thông báo yêu cầu đăng nhập (cho bot và user chưa login)
+    showLoginRequiredAlert() {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'Vui lòng đăng nhập',
+            text: 'Hãy đăng nhập để xem nội dung sau',
+            confirmButtonText: 'OK',
+            showCloseButton: true,
+            allowOutsideClick: true,
+            allowEscapeKey: true
+        }).then((result) => {
+            // Không redirect để bot không biết bị chặn
+            console.log('Login required - blocked request');
+        });
     }
 
     setupEventListeners() {
@@ -247,13 +230,25 @@ class TokenManager {
     }
 
     async createToken() {
-        // Kiểm tra đăng nhập trước khi tạo token
+        // Đợi check login xong
+        if (!this.loginChecked) {
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (this.loginChecked) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+
+        // Chặn nếu chưa đăng nhập - hiện thông báo cho bot
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
         }
 
-        // Prevent double-click spam
+        // Prevent spam clicking
         if (this.isCreatingToken) {
             Swal.fire({
                 icon: 'warning',
@@ -318,13 +313,25 @@ class TokenManager {
     }
 
     async createDownloadSession() {
-        // Kiểm tra đăng nhập trước khi tạo session
+        // Đợi check login xong
+        if (!this.loginChecked) {
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (this.loginChecked) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+
+        // Chặn nếu chưa đăng nhập - hiện thông báo cho bot
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
         }
 
-        // Prevent double-click spam
+        // Prevent spam clicking
         if (this.isCreatingSession) {
             Swal.fire({
                 icon: 'warning',
@@ -437,7 +444,6 @@ class TokenManager {
     }
 
     async deleteAndCreateSession() {
-        // Kiểm tra đăng nhập
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
@@ -527,7 +533,7 @@ class TokenManager {
                 minutes.toString().padStart(2, '0') + ':' +
                 seconds.toString().padStart(2, '0');
 
-            if (secondsLeft <= 300) { // 5 phút cuối
+            if (secondsLeft <= 300) {
                 this.elements.timerDisplay.style.animation = 'pulse 1s ease-in-out infinite';
                 this.elements.timerDisplay.style.color = '#ff4757';
             }
@@ -552,7 +558,17 @@ class TokenManager {
     }
 
     async copyToken() {
-        // Kiểm tra đăng nhập trước khi copy
+        if (!this.loginChecked) {
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (this.loginChecked) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+
         if (!this.isLoggedIn) {
             await this.showLoginRequiredAlert();
             return;
@@ -591,7 +607,6 @@ class TokenManager {
         } catch (error) {
             console.error('Error copying token:', error);
             
-            // Fallback: select text and try to copy with execCommand
             this.elements.tokenDisplay.select();
             this.elements.tokenDisplay.setSelectionRange(0, 99999);
             
