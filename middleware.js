@@ -1,4 +1,4 @@
-// middleware.js - Version hoàn chỉnh với Vietnam IP từ GitHub
+// middleware.js - Version cuối cùng với giao diện đẹp
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -359,6 +359,315 @@ async function logSecurityEvent(supabase, ip, eventType, severity = 'LOW', metad
   }
 }
 
+function createBlockedResponse(statusCode, reason, details = {}) {
+  const html = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truy cập bị từ chối</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+            background-size: 300% 300%;
+            animation: gradient 3s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .emoji {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .status-code {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .reason {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .details {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #007bff;
+        }
+        
+        .details-title {
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .details-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .details-item:last-child {
+            border-bottom: none;
+        }
+        
+        .retry-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 1rem;
+            border-radius: 10px;
+            color: #856404;
+            margin-bottom: 1rem;
+        }
+        
+        .footer {
+            color: #777;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.3);
+        }
+        
+        @media (max-width: 480px) {
+            .title { font-size: 2rem; }
+            .container { padding: 1.5rem; }
+            .emoji { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">${getEmojiForStatus(statusCode)}</div>
+        <h1 class="title">Bạn đã bị chặn :v</h1>
+        <div class="status-code">ERROR ${statusCode}</div>
+        <div class="reason">${reason}</div>
+        
+        ${details && Object.keys(details).length > 0 ? `
+        <div class="details">
+            <div class="details-title">📋 Chi tiết:</div>
+            ${Object.entries(details).map(([key, value]) => `
+                <div class="details-item">
+                    <span>${key}:</span>
+                    <strong>${value}</strong>
+                </div>
+            `).join('')}
+        </div>
+        ` : ''}
+        
+        ${statusCode === 429 ? `
+        <div class="retry-info">
+            ⏱️ <strong>Rate limit exceeded!</strong><br>
+            Vui lòng chờ 60 giây trước khi thử lại.
+        </div>
+        ` : ''}
+        
+        ${statusCode === 403 && reason.includes('Vietnam') ? `
+        <div class="retry-info">
+            🇻🇳 <strong>Chỉ cho phép truy cập từ Việt Nam</strong><br>
+            Nếu bạn đang ở VN, hãy thử tắt VPN/Proxy.
+        </div>
+        ` : ''}
+        
+        <button class="refresh-btn" onclick="window.location.reload()">
+            🔄 Thử lại
+        </button>
+        
+        <div class="footer">
+            <p>🛡️ Đừng có ddos em ạ, ko đủ cảnh</p>
+            <p>Timestamp: ${new Date().toLocaleString('vi-VN')}</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto refresh sau 60s nếu là rate limit
+        ${statusCode === 429 ? `
+        let countdown = 60;
+        const btn = document.querySelector('.refresh-btn');
+        const interval = setInterval(() => {
+            countdown--;
+            btn.textContent = \`🔄 Thử lại (\${countdown}s)\`;
+            if (countdown <= 0) {
+                clearInterval(interval);
+                window.location.reload();
+            }
+        }, 1000);
+        ` : ''}
+        
+        // Easter egg - Konami code
+        let konamiCode = [];
+        const konami = [38,38,40,40,37,39,37,39,66,65];
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.keyCode);
+            if (konamiCode.length > 10) konamiCode.shift();
+            if (konamiCode.join(',') === konami.join(',')) {
+                document.body.style.animation = 'rainbow 1s infinite';
+                setTimeout(() => document.body.style.animation = '', 3000);
+            }
+        });
+    </script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: statusCode,
+    headers: { 
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'X-Block-Reason': reason
+    }
+  });
+}
+
+function getEmojiForStatus(statusCode) {
+  switch(statusCode) {
+    case 403: return '🚫';
+    case 429: return '⏱️';
+    case 503: return '🔧';
+    default: return '❌';
+  }
+}
+
+function getDetailedReason(type, metadata = {}) {
+  const reasons = {
+    'BLOCKED_NO_IP': {
+      reason: 'Không thể xác định địa chỉ IP thực của bạn',
+      details: {
+        'Nguyên nhân': 'IP headers không hợp lệ hoặc bị thiếu',
+        'Giải pháp': 'Tắt proxy/VPN và thử lại'
+      }
+    },
+    'BLOCKED_COUNTRY': {
+      reason: 'Truy cập từ quốc gia không được phép',
+      details: {
+        'Quốc gia': metadata.country || 'Unknown',
+        'Chính sách': 'Chỉ cho phép truy cập từ Việt Nam'
+      }
+    },
+    'BLOCKED_SUSPICIOUS_FOREIGN': {
+      reason: 'Phát hiện hoạt động đáng nghi từ IP nước ngoài',
+      details: {
+        'Loại': 'Suspicious User Agent + Foreign IP',
+        'Mức độ': 'Nguy hiểm cao'
+      }
+    },
+    'BLOCKED_BANNED': {
+      reason: 'IP của bạn đã bị cấm truy cập',
+      details: {
+        'Thời gian ban': '24 giờ',
+        'Nguyên nhân': 'Vi phạm rate limit nhiều lần'
+      }
+    },
+    'RATE_LIMIT_EXCEEDED': {
+      reason: 'Bạn đã gửi quá nhiều request trong thời gian ngắn',
+      details: {
+        'Số request': metadata.count || 'N/A',
+        'Giới hạn': metadata.isVN ? '30/phút' : '3/phút',
+        'Thời gian reset': '60 giây'
+      }
+    },
+    'BLOCKED_FOREIGN': {
+      reason: 'Truy cập từ IP nước ngoài không được phép',
+      details: {
+        'IP': metadata.ip || 'Hidden',
+        'Chính sách': 'Vietnam Only'
+      }
+    }
+  };
+
+  return reasons[type] || {
+    reason: 'Truy cập bị từ chối',
+    details: { 'Lý do': 'Không xác định' }
+  };
+}
+
 export default async function middleware(request) {
   const startTime = Date.now()
   
@@ -371,33 +680,25 @@ export default async function middleware(request) {
       return
     }
     
-    // Extract và validate IP
     const ip = getClientIP(request)
     
     // FAIL-SECURE: Block nếu không thể xác định IP thật
     if (!ip) {
       logSecurity('BLOCKED_NO_IP', 'unknown', { path })
-      return new Response('Access Denied', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' }
-      })
+      const reasonData = getDetailedReason('BLOCKED_NO_IP')
+      return createBlockedResponse(403, reasonData.reason, reasonData.details)
     }
     
     const userAgent = request.headers.get('user-agent') || ''
     const country = request.headers.get('cf-ipcountry') || ''
     const method = request.method
     
-    logSecurity('REQUEST', ip, { 
-      path, 
-      method, 
-      country 
-    })
+    logSecurity('REQUEST', ip, { path, method, country })
     
-    // Country-based blocking (Cloudflare header)
+    // Country-based blocking
     if (country && country !== 'VN' && country !== 'XX' && country !== '') {
       logSecurity('BLOCKED_COUNTRY', ip, { country, path })
       
-      // Log security event if DB available
       if (supabaseUrl && supabaseKey) {
         const supabase = createClient(supabaseUrl, supabaseKey, {
           auth: { persistSession: false }
@@ -407,21 +708,17 @@ export default async function middleware(request) {
         })
       }
       
-      return new Response('Access Denied - Vietnam Only', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' }
-      })
+      const reasonData = getDetailedReason('BLOCKED_COUNTRY', { country })
+      return createBlockedResponse(403, reasonData.reason, reasonData.details)
     }
     
-    // Suspicious User Agent check
     const isSuspiciousUA = SUSPICIOUS_UAS.some(ua => 
       userAgent.toLowerCase().includes(ua)
     )
     
-    // Vietnam IP validation
     const isVN = await isVietnamIP(ip)
     
-    // Block suspicious foreign requests immediately
+    // Block suspicious foreign requests
     if (!isVN && isSuspiciousUA) {
       logSecurity('BLOCKED_SUSPICIOUS_FOREIGN', ip, { 
         suspicious: true,
@@ -437,10 +734,11 @@ export default async function middleware(request) {
         })
       }
       
-      return new Response('Forbidden', { status: 403 })
+      const reasonData = getDetailedReason('BLOCKED_SUSPICIOUS_FOREIGN')
+      return createBlockedResponse(403, reasonData.reason, reasonData.details)
     }
     
-    // Rate limiting với Supabase
+    // Rate limiting
     if (supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey, {
         auth: { persistSession: false },
@@ -454,7 +752,9 @@ export default async function middleware(request) {
         await logSecurityEvent(supabase, ip, 'BANNED_ACCESS', 'HIGH', {
           path, country, userAgent: userAgent.substring(0, 100)
         })
-        return new Response('IP Banned', { status: 403 })
+        
+        const reasonData = getDetailedReason('BLOCKED_BANNED')
+        return createBlockedResponse(403, reasonData.reason, reasonData.details)
       }
       
       if (!rateLimitResult.allowed) {
@@ -468,20 +768,15 @@ export default async function middleware(request) {
           violations: rateLimitResult.violations
         })
         
-        return new Response(JSON.stringify({
-          error: 'Rate Limit Exceeded',
-          retryAfter: 60
-        }), {
-          status: 429,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Retry-After': '60'
-          }
+        const reasonData = getDetailedReason('RATE_LIMIT_EXCEEDED', {
+          count: rateLimitResult.count,
+          isVN: isVN
         })
+        return createBlockedResponse(429, reasonData.reason, reasonData.details)
       }
     }
     
-    // Final foreign IP block (sau khi đã count request)
+    // Final foreign IP block
     if (!isVN) {
       logSecurity('BLOCKED_FOREIGN', ip, { path })
       
@@ -494,10 +789,8 @@ export default async function middleware(request) {
         })
       }
       
-      return new Response('Access Denied - Vietnam Only', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' }
-      })
+      const reasonData = getDetailedReason('BLOCKED_FOREIGN', { ip })
+      return createBlockedResponse(403, reasonData.reason, reasonData.details)
     }
     
     // Allow request
@@ -510,10 +803,10 @@ export default async function middleware(request) {
   } catch (error) {
     console.error('Middleware critical error:', error.message)
     
-    // FAIL-SECURE: Block request khi có lỗi
-    return new Response('Service Temporarily Unavailable', { 
-      status: 503,
-      headers: { 'Content-Type': 'text/plain' }
+    const reasonData = getDetailedReason('SERVICE_ERROR', { error: error.message })
+    return createBlockedResponse(503, 'Dịch vụ tạm thời không khả dụng', {
+      'Lỗi': 'Internal Server Error',
+      'Thời gian': new Date().toLocaleTimeString('vi-VN')
     })
   }
 }
