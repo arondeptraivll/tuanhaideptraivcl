@@ -1,12 +1,12 @@
-// middleware.js - Version cuối cùng với giao diện đẹp
+// middleware.js - Version cuối cùng với rate limit nhẹ nhàng hơn cho VN
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Security configs
-const RATE_LIMIT_VN = 30
-const RATE_LIMIT_FOREIGN = 3
+// Security configs - Giảm rate limit cho VN
+const RATE_LIMIT_VN = 20          // Giảm từ 30 xuống 20
+const RATE_LIMIT_FOREIGN = 3      // Giữ nguyên chặn mạnh
 const WINDOW_MS = 60 * 1000
 const BAN_DURATION = 24 * 60 * 60 * 1000
 
@@ -317,14 +317,12 @@ async function checkRateLimit(supabase, ip, isVN, country, userAgent) {
   try {
     const uaHash = await hashUserAgent(userAgent)
     
-    const { data: result, error } = await supabase.rpc('handle_rate_limit', {
-      input_ip: ip,
-      input_limit: isVN ? RATE_LIMIT_VN : RATE_LIMIT_FOREIGN,
-      input_window_ms: WINDOW_MS,
-      input_ban_duration: BAN_DURATION,
-      input_is_vn: isVN,
-      input_country: country,
-      input_ua_hash: uaHash
+    const { data: result, error } = await supabase.rpc('handle_rate_limit_v2', {
+      p_ip: ip,
+      p_limit: isVN ? RATE_LIMIT_VN : RATE_LIMIT_FOREIGN,
+      p_window_ms: WINDOW_MS,
+      p_ban_duration: BAN_DURATION,
+      p_is_vn: isVN
     })
     
     if (error) throw error
@@ -649,7 +647,7 @@ function getDetailedReason(type, metadata = {}) {
       reason: 'Bạn đã gửi quá nhiều request trong thời gian ngắn',
       details: {
         'Số request': metadata.count || 'N/A',
-        'Giới hạn': metadata.isVN ? '30/phút' : '3/phút',
+        'Giới hạn': metadata.isVN ? '20/phút' : '3/phút',  // Cập nhật hiển thị
         'Thời gian reset': '60 giây'
       }
     },
