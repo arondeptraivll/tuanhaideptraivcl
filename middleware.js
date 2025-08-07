@@ -1,12 +1,12 @@
-// middleware.js - Version cuối cùng với rate limit nhẹ nhàng hơn cho VN
+// middleware.js - Version đã sửa lỗi header
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // Security configs - Giảm rate limit cho VN
-const RATE_LIMIT_VN = 20          // Giảm từ 30 xuống 20
-const RATE_LIMIT_FOREIGN = 3      // Giữ nguyên chặn mạnh
+const RATE_LIMIT_VN = 20          
+const RATE_LIMIT_FOREIGN = 3      
 const WINDOW_MS = 60 * 1000
 const BAN_DURATION = 24 * 60 * 60 * 1000
 
@@ -357,7 +357,21 @@ async function logSecurityEvent(supabase, ip, eventType, severity = 'LOW', metad
   }
 }
 
-function createBlockedResponse(statusCode, reason, details = {}) {
+// Hàm tạo ASCII-safe block reason cho header
+function createBlockReason(type) {
+  const reasons = {
+    'BLOCKED_NO_IP': 'NO_IP_DETECTED',
+    'BLOCKED_COUNTRY': 'FOREIGN_COUNTRY',
+    'BLOCKED_SUSPICIOUS_FOREIGN': 'SUSPICIOUS_FOREIGN',
+    'BLOCKED_BANNED': 'IP_BANNED',
+    'RATE_LIMIT_EXCEEDED': 'RATE_LIMIT',
+    'BLOCKED_FOREIGN': 'FOREIGN_IP',
+    'SERVICE_ERROR': 'SERVICE_ERROR'
+  }
+  return reasons[type] || 'ACCESS_DENIED'
+}
+
+function createBlockedResponse(statusCode, reason, details = {}, blockType = '') {
   const html = `
 <!DOCTYPE html>
 <html lang="vi">
@@ -599,7 +613,8 @@ function createBlockedResponse(statusCode, reason, details = {}) {
     headers: { 
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'X-Block-Reason': reason
+      'X-Block-Type': createBlockReason(blockType), // Sử dụng ASCII-safe reason
+      'X-Block-Time': new Date().toISOString()
     }
   });
 }
@@ -647,7 +662,7 @@ function getDetailedReason(type, metadata = {}) {
       reason: 'Bạn đã gửi quá nhiều request trong thời gian ngắn',
       details: {
         'Số request': metadata.count || 'N/A',
-        'Giới hạn': metadata.isVN ? '20/phút' : '3/phút',  // Cập nhật hiển thị
+        'Giới hạn': metadata.isVN ? '20/phút' : '3/phút',
         'Thời gian reset': '60 giây'
       }
     },
@@ -684,7 +699,7 @@ export default async function middleware(request) {
     if (!ip) {
       logSecurity('BLOCKED_NO_IP', 'unknown', { path })
       const reasonData = getDetailedReason('BLOCKED_NO_IP')
-      return createBlockedResponse(403, reasonData.reason, reasonData.details)
+      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_NO_IP')
     }
     
     const userAgent = request.headers.get('user-agent') || ''
@@ -707,7 +722,7 @@ export default async function middleware(request) {
       }
       
       const reasonData = getDetailedReason('BLOCKED_COUNTRY', { country })
-      return createBlockedResponse(403, reasonData.reason, reasonData.details)
+      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_COUNTRY')
     }
     
     const isSuspiciousUA = SUSPICIOUS_UAS.some(ua => 
@@ -733,7 +748,7 @@ export default async function middleware(request) {
       }
       
       const reasonData = getDetailedReason('BLOCKED_SUSPICIOUS_FOREIGN')
-      return createBlockedResponse(403, reasonData.reason, reasonData.details)
+      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_SUSPICIOUS_FOREIGN')
     }
     
     // Rate limiting
@@ -752,7 +767,7 @@ export default async function middleware(request) {
         })
         
         const reasonData = getDetailedReason('BLOCKED_BANNED')
-        return createBlockedResponse(403, reasonData.reason, reasonData.details)
+        return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_BANNED')
       }
       
       if (!rateLimitResult.allowed) {
@@ -770,7 +785,7 @@ export default async function middleware(request) {
           count: rateLimitResult.count,
           isVN: isVN
         })
-        return createBlockedResponse(429, reasonData.reason, reasonData.details)
+        return createBlockedResponse(429, reasonData.reason, reasonData.details, 'RATE_LIMIT_EXCEEDED')
       }
     }
     
@@ -788,7 +803,7 @@ export default async function middleware(request) {
       }
       
       const reasonData = getDetailedReason('BLOCKED_FOREIGN', { ip })
-      return createBlockedResponse(403, reasonData.reason, reasonData.details)
+      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_FOREIGN')
     }
     
     // Allow request
@@ -805,7 +820,7 @@ export default async function middleware(request) {
     return createBlockedResponse(503, 'Dịch vụ tạm thời không khả dụng', {
       'Lỗi': 'Internal Server Error',
       'Thời gian': new Date().toLocaleTimeString('vi-VN')
-    })
+    }, 'SERVICE_ERROR')
   }
 }
 
