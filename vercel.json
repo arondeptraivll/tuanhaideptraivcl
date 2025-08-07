@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "api/protection.js": {
+      "runtime": "edge"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/protection?originalPath=/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/api/protection?originalPath=/$1"
+    }
+  ]
+}
