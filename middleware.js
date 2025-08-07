@@ -1,4 +1,3 @@
-// middleware.js
 const rateLimit = new Map()
 
 const RATE_LIMIT = 20
@@ -10,7 +9,6 @@ function getClientIP(request) {
   const forwarded = request.headers.get('x-forwarded-for')
   const realIP = request.headers.get('x-real-ip')
   const cfConnectingIP = request.headers.get('cf-connecting-ip')
-  
   return cfConnectingIP || realIP || forwarded?.split(',')[0] || 'unknown'
 }
 
@@ -20,12 +18,22 @@ function logActivity(message, ip, extra) {
 }
 
 export default async function middleware(request) {
+  // Dọn dẹp IP cũ
+  for (const [ip, record] of rateLimit) {
+    if (
+      (!record.isBanned && Date.now() > record.resetTime + 60 * 1000) ||
+      (record.isBanned && record.bannedUntil && Date.now() > record.bannedUntil + 60 * 1000)
+    ) {
+      rateLimit.delete(ip)
+    }
+  }
+
   const ip = getClientIP(request)
   const now = Date.now()
   const url = new URL(request.url)
   const path = url.pathname
 
-  // Lấy hoặc tạo record cho IP
+  // Tạo record nếu chưa có
   if (!rateLimit.has(ip)) {
     rateLimit.set(ip, {
       count: 0,
@@ -37,10 +45,10 @@ export default async function middleware(request) {
 
   const record = rateLimit.get(ip)
 
-  // Kiểm tra nếu IP đã bị ban
+  // Kiểm tra ban
   if (record.isBanned) {
     if (record.bannedUntil && now > record.bannedUntil) {
-      // Hết thời gian ban, reset
+      // Hết ban, reset
       record.isBanned = false
       record.violations = 0
       record.count = 0
@@ -53,31 +61,33 @@ export default async function middleware(request) {
         userAgent: request.headers.get('user-agent'),
         bannedUntil: record.bannedUntil ? new Date(record.bannedUntil).toISOString() : 'permanent'
       })
-      
       return new Response('IP Banned - Too many violations', {
         status: 403,
         headers: {
           'X-Ban-Reason': 'Exceeded violation limit',
-          'X-Ban-Until': record.bannedUntil ? new Date(record.bannedUntil).toISOString() : 'permanent'
+          'X-Ban-Until': record.bannedUntil ? new Date(record.bannedUntil).toISOString() : 'permanent',
+          'X-RateLimit-Limit': RATE_LIMIT.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(record.resetTime).toISOString(),
+          'X-Violations': record.violations.toString(),
+          'X-Violations-Limit': MAX_VIOLATIONS.toString()
         }
       })
     }
   }
 
-  // Reset counter nếu hết window
+  // Reset window nếu hết hạn
   if (now > record.resetTime) {
     record.count = 1
     record.resetTime = now + WINDOW_MS
-    return new Response('OK')
+    // Không return ở đây, để xuống cuối trả header
+  } else {
+    record.count++
   }
-
-  // Tăng counter
-  record.count++
 
   // Kiểm tra rate limit
   if (record.count > RATE_LIMIT) {
     record.violations++
-    
     logActivity('RATE LIMIT EXCEEDED', ip, {
       path,
       count: record.count,
@@ -86,11 +96,10 @@ export default async function middleware(request) {
       userAgent: request.headers.get('user-agent')
     })
 
-    // Kiểm tra nếu đạt ngưỡng ban
+    // Ban nếu quá số lần vi phạm
     if (record.violations >= MAX_VIOLATIONS) {
       record.isBanned = true
       record.bannedUntil = now + BAN_DURATION
-      
       logActivity('🚨 IP BANNED - Exceeded violation limit', ip, {
         totalViolations: record.violations,
         maxViolations: MAX_VIOLATIONS,
@@ -98,13 +107,16 @@ export default async function middleware(request) {
         userAgent: request.headers.get('user-agent'),
         lastPath: path
       })
-
       return new Response('IP Banned - Too many violations', {
         status: 403,
         headers: {
           'X-Ban-Reason': 'Exceeded violation limit',
           'X-Ban-Until': new Date(record.bannedUntil).toISOString(),
-          'X-Violations': record.violations.toString()
+          'X-Violations': record.violations.toString(),
+          'X-Violations-Limit': MAX_VIOLATIONS.toString(),
+          'X-RateLimit-Limit': RATE_LIMIT.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(record.resetTime).toISOString()
         }
       })
     }
@@ -122,12 +134,14 @@ export default async function middleware(request) {
     })
   }
 
+  // Trả về OK kèm header
   return new Response('OK', {
     headers: {
       'X-RateLimit-Limit': RATE_LIMIT.toString(),
       'X-RateLimit-Remaining': (RATE_LIMIT - record.count).toString(),
       'X-RateLimit-Reset': new Date(record.resetTime).toISOString(),
-      'X-Violations': record.violations.toString()
+      'X-Violations': record.violations.toString(),
+      'X-Violations-Limit': MAX_VIOLATIONS.toString()
     }
   })
 }
