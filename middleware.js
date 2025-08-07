@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // Security configs - Giảm rate limit cho VN
-const RATE_LIMIT_VN = 20          
+const RATE_LIMIT_VN = 50          
 const RATE_LIMIT_FOREIGN = 3      
 const WINDOW_MS = 60 * 1000
 const BAN_DURATION = 24 * 60 * 60 * 1000
