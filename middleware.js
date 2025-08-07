@@ -1,44 +1,216 @@
-// middleware.js - Version đã sửa lỗi header
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Security configs - Giảm rate limit cho VN
 const RATE_LIMIT_VN = 50          
 const RATE_LIMIT_FOREIGN = 3      
 const WINDOW_MS = 60 * 1000
 const BAN_DURATION = 24 * 60 * 60 * 1000
 
-// Trusted proxy IPs (Vercel, Cloudflare, etc.)
-const TRUSTED_PROXIES = [
-  '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
-  '104.16.0.0/13', '108.162.192.0/18', '131.0.72.0/22',
-  '141.101.64.0/18', '162.158.0.0/15', '172.64.0.0/13',
-  '173.245.48.0/20', '188.114.96.0/20', '190.93.240.0/20',
-  '197.234.240.0/22', '198.41.128.0/17', '76.76.19.0/24'
-]
-
-// Fallback Vietnam IP ranges nếu không fetch được
-const FALLBACK_VN_RANGES = [
+const VIETNAM_IP_RANGES = [
   ['1.52.0.0', '1.55.255.255'],
   ['14.160.0.0', '14.191.255.255'],
   ['27.64.0.0', '27.79.255.255'],
-  ['42.112.0.0', '42.127.255.255'],
-  ['45.112.0.0', '45.127.255.255'],
-  ['103.1.16.0', '103.1.31.255'],
+  ['42.112.0.0', '42.119.255.255'],
+  ['45.117.76.0', '45.117.79.255'],
+  ['45.119.80.0', '45.119.83.255'],
+  ['45.121.24.0', '45.121.27.255'],
+  ['45.122.220.0', '45.122.223.255'],
+  ['45.124.84.0', '45.124.95.255'],
+  ['45.125.200.0', '45.125.207.255'],
+  ['49.236.208.0', '49.236.223.255'],
+  ['49.246.128.0', '49.246.191.255'],
+  ['58.186.0.0', '58.187.255.255'],
+  ['61.14.232.0', '61.14.239.255'],
+  ['101.53.0.0', '101.53.255.255'],
+  ['101.96.12.0', '101.96.15.255'],
+  ['101.96.64.0', '101.96.95.255'],
+  ['101.99.0.0', '101.99.63.255'],
+  ['103.1.200.0', '103.1.239.255'],
+  ['103.9.196.0', '103.9.203.255'],
+  ['103.35.64.0', '103.35.67.255'],
+  ['103.37.28.0', '103.37.31.255'],
+  ['103.53.88.0', '103.53.91.255'],
+  ['103.56.156.0', '103.56.159.255'],
+  ['103.63.104.0', '103.63.111.255'],
+  ['103.68.240.0', '103.68.255.255'],
+  ['103.74.100.0', '103.74.119.255'],
+  ['103.75.176.0', '103.75.191.255'],
+  ['103.89.88.0', '103.89.91.255'],
+  ['103.90.220.0', '103.90.227.255'],
+  ['103.92.24.0', '103.92.31.255'],
+  ['103.98.160.0', '103.98.163.255'],
+  ['103.107.180.0', '103.107.183.255'],
+  ['103.114.104.0', '103.114.107.255'],
+  ['103.130.212.0', '103.130.215.255'],
+  ['103.139.80.0', '103.139.87.255'],
+  ['103.141.140.0', '103.141.143.255'],
+  ['103.151.120.0', '103.151.127.255'],
+  ['103.153.248.0', '103.153.255.255'],
+  ['103.155.160.0', '103.155.167.255'],
+  ['103.157.144.0', '103.157.151.255'],
+  ['103.160.0.0', '103.160.7.255'],
+  ['103.161.16.0', '103.161.19.255'],
+  ['103.162.16.0', '103.162.23.255'],
+  ['103.163.212.0', '103.163.215.255'],
+  ['103.166.180.0', '103.166.183.255'],
+  ['103.167.84.0', '103.167.87.255'],
+  ['103.168.72.0', '103.168.75.255'],
+  ['103.169.32.0', '103.169.39.255'],
+  ['103.170.20.0', '103.170.23.255'],
+  ['103.172.76.0', '103.172.79.255'],
+  ['103.173.152.0', '103.173.159.255'],
+  ['103.176.104.0', '103.176.111.255'],
+  ['103.178.232.0', '103.178.235.255'],
+  ['103.179.188.0', '103.179.191.255'],
+  ['103.180.112.0', '103.180.119.255'],
+  ['103.181.12.0', '103.181.15.255'],
+  ['103.184.108.0', '103.184.111.255'],
+  ['103.186.62.0', '103.186.63.255'],
+  ['103.187.4.0', '103.187.7.255'],
+  ['103.188.80.0', '103.188.87.255'],
+  ['103.192.232.0', '103.192.239.255'],
+  ['103.194.188.0', '103.194.191.255'],
+  ['103.195.236.0', '103.195.239.255'],
+  ['103.196.244.0', '103.196.247.255'],
+  ['103.199.4.0', '103.199.19.255'],
+  ['103.200.20.0', '103.200.31.255'],
+  ['103.204.168.0', '103.204.175.255'],
+  ['103.205.96.0', '103.205.111.255'],
+  ['103.206.208.0', '103.206.223.255'],
+  ['103.207.32.0', '103.207.47.255'],
+  ['103.216.112.0', '103.216.127.255'],
+  ['103.220.80.0', '103.220.87.255'],
+  ['103.221.212.0', '103.221.223.255'],
+  ['103.226.248.0', '103.226.255.255'],
+  ['103.227.112.0', '103.227.119.255'],
+  ['103.228.20.0', '103.228.23.255'],
+  ['103.229.40.0', '103.229.43.255'],
+  ['103.232.48.0', '103.232.63.255'],
+  ['103.233.48.0', '103.233.51.255'],
+  ['103.234.88.0', '103.234.91.255'],
+  ['103.237.60.0', '103.237.99.255'],
+  ['103.238.68.0', '103.238.107.255'],
+  ['103.239.28.0', '103.239.31.255'],
+  ['103.241.248.0', '103.241.251.255'],
+  ['103.243.216.0', '103.243.219.255'],
+  ['103.245.244.0', '103.245.251.255'],
+  ['103.248.160.0', '103.248.167.255'],
+  ['103.249.100.0', '103.249.103.255'],
+  ['103.252.0.0', '103.252.7.255'],
+  ['103.253.88.0', '103.253.91.255'],
+  ['103.254.12.0', '103.254.47.255'],
+  ['103.255.84.0', '103.255.87.255'],
+  ['111.65.240.0', '111.65.255.255'],
+  ['112.72.0.0', '112.79.255.255'],
+  ['112.137.128.0', '112.137.191.255'],
+  ['112.197.0.0', '112.197.15.255'],
+  ['112.213.80.0', '112.213.95.255'],
+  ['113.20.96.0', '113.20.127.255'],
+  ['113.22.0.0', '113.23.255.255'],
+  ['113.52.32.0', '113.52.47.255'],
+  ['113.61.108.0', '113.61.111.255'],
   ['113.160.0.0', '113.191.255.255'],
-  ['115.84.64.0', '115.84.95.255'],
-  ['116.96.0.0', '116.103.255.255'],
-  ['171.224.0.0', '171.255.255.255']
+  ['115.72.0.0', '115.87.255.255'],
+  ['115.146.120.0', '115.146.127.255'],
+  ['116.96.0.0', '116.111.255.255'],
+  ['116.118.0.0', '116.119.255.255'],
+  ['116.193.64.0', '116.193.95.255'],
+  ['117.0.0.0', '117.7.255.255'],
+  ['117.103.200.0', '117.103.207.255'],
+  ['117.122.120.0', '117.122.127.255'],
+  ['118.68.0.0', '118.71.255.255'],
+  ['118.107.64.0', '118.107.127.255'],
+  ['119.15.160.0', '119.15.191.255'],
+  ['119.17.192.0', '119.17.255.255'],
+  ['119.82.128.0', '119.82.143.255'],
+  ['120.72.80.0', '120.72.127.255'],
+  ['120.138.64.0', '120.138.127.255'],
+  ['122.129.0.0', '122.129.127.255'],
+  ['123.16.0.0', '123.31.255.255'],
+  ['123.136.96.0', '123.136.127.255'],
+  ['124.157.96.0', '124.157.127.255'],
+  ['124.158.0.0', '124.158.15.255'],
+  ['125.58.0.0', '125.58.255.255'],
+  ['125.212.128.0', '125.212.255.255'],
+  ['125.214.0.0', '125.214.255.255'],
+  ['125.234.0.0', '125.235.255.255'],
+  ['125.253.112.0', '125.253.127.255'],
+  ['171.224.0.0', '171.255.255.255'],
+  ['175.103.24.0', '175.103.31.255'],
+  ['180.93.0.0', '180.93.255.255'],
+  ['180.148.128.0', '180.148.255.255'],
+  ['182.161.80.0', '182.161.95.255'],
+  ['183.80.0.0', '183.91.255.255'],
+  ['202.9.76.0', '202.9.79.255'],
+  ['202.37.80.0', '202.37.95.255'],
+  ['202.43.108.0', '202.43.111.255'],
+  ['202.44.136.0', '202.44.139.255'],
+  ['202.47.142.0', '202.47.143.255'],
+  ['202.52.39.0', '202.52.39.255'],
+  ['202.55.132.0', '202.55.135.255'],
+  ['202.56.56.0', '202.56.59.255'],
+  ['202.58.244.0', '202.58.247.255'],
+  ['202.59.252.0', '202.59.255.255'],
+  ['202.60.104.0', '202.60.111.255'],
+  ['202.74.56.0', '202.74.59.255'],
+  ['202.78.224.0', '202.78.231.255'],
+  ['202.79.232.0', '202.79.235.255'],
+  ['202.87.212.0', '202.87.215.255'],
+  ['202.92.4.0', '202.92.7.255'],
+  ['202.94.80.0', '202.94.95.255'],
+  ['202.124.204.0', '202.124.207.255'],
+  ['202.130.16.0', '202.130.31.255'],
+  ['202.134.16.0', '202.134.19.255'],
+  ['202.134.54.0', '202.134.55.255'],
+  ['202.143.108.0', '202.143.111.255'],
+  ['202.149.204.0', '202.149.207.255'],
+  ['202.151.160.0', '202.151.175.255'],
+  ['202.158.244.0', '202.158.247.255'],
+  ['202.160.124.0', '202.160.127.255'],
+  ['202.168.12.0', '202.168.15.255'],
+  ['202.172.4.0', '202.172.7.255'],
+  ['202.191.56.0', '202.191.63.255'],
+  ['203.8.172.0', '203.8.175.255'],
+  ['203.9.156.0', '203.9.159.255'],
+  ['203.34.144.0', '203.34.159.255'],
+  ['203.41.48.0', '203.41.63.255'],
+  ['203.77.176.0', '203.77.191.255'],
+  ['203.79.28.0', '203.79.31.255'],
+  ['203.80.128.0', '203.80.131.255'],
+  ['203.89.136.0', '203.89.143.255'],
+  ['203.99.248.0', '203.99.255.255'],
+  ['203.113.128.0', '203.113.191.255'],
+  ['203.119.8.0', '203.119.63.255'],
+  ['203.119.72.0', '203.119.79.255'],
+  ['203.128.240.0', '203.128.255.255'],
+  ['203.160.0.0', '203.163.255.255'],
+  ['203.167.8.0', '203.167.15.255'],
+  ['203.170.26.0', '203.170.27.255'],
+  ['203.171.16.0', '203.171.31.255'],
+  ['203.176.160.0', '203.176.191.255'],
+  ['203.189.24.0', '203.189.31.255'],
+  ['203.190.160.0', '203.190.175.255'],
+  ['203.191.8.0', '203.191.63.255'],
+  ['203.192.32.0', '203.192.63.255'],
+  ['203.195.0.0', '203.195.127.255'],
+  ['203.196.24.0', '203.196.31.255'],
+  ['203.201.56.0', '203.201.63.255'],
+  ['203.205.0.0', '203.205.63.255'],
+  ['203.209.176.0', '203.209.191.255'],
+  ['203.210.128.0', '203.210.255.255'],
+  ['210.2.64.0', '210.2.127.255'],
+  ['210.4.64.0', '210.4.127.255'],
+  ['210.86.224.0', '210.86.239.255'],
+  ['210.211.96.0', '210.211.127.255'],
+  ['210.245.0.0', '210.245.127.255'],
+  ['218.100.10.0', '218.100.15.255'],
+  ['220.231.64.0', '220.231.127.255'],
+  ['221.121.0.0', '221.121.63.255'],
+  ['221.132.0.0', '221.133.255.255'],
+  ['222.252.0.0', '222.255.255.255']
 ]
-
-// Global cache cho Vietnam IP ranges
-let VIETNAM_IP_RANGES = []
-let lastFetchTime = 0
-let fetchAttempts = 0
-const MAX_FETCH_ATTEMPTS = 3
-const CACHE_DURATION = 6 * 60 * 60 * 1000 // 6 hours
 
 const SUSPICIOUS_UAS = [
   'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 
@@ -48,7 +220,6 @@ const SUSPICIOUS_UAS = [
 function sanitizeIP(ip) {
   if (!ip || typeof ip !== 'string') return null
   
-  // Basic IP validation
   const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
   const cleaned = ip.trim()
   
@@ -74,25 +245,12 @@ function isPrivateIP(ip) {
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
     (a === 127) ||
-    (a === 169 && b === 254) // Link-local
+    (a === 169 && b === 254)
   )
-}
-
-function isTrustedProxy(proxyIP) {
-  if (!proxyIP) return false
-  
-  // Simplified CIDR matching
-  const commonProxies = [
-    '76.76.19', '162.158', '172.64', '104.16', '103.21',
-    '173.245', '188.114', '190.93', '197.234', '198.41'
-  ]
-  
-  return commonProxies.some(prefix => proxyIP.startsWith(prefix))
 }
 
 function getClientIP(request) {
   try {
-    // Ưu tiên Cloudflare connecting IP
     const cfIP = request.headers.get('cf-connecting-ip')
     if (cfIP) {
       const cleanIP = sanitizeIP(cfIP)
@@ -101,7 +259,6 @@ function getClientIP(request) {
       }
     }
     
-    // Fallback to x-real-ip từ trusted source
     const realIP = request.headers.get('x-real-ip')
     if (realIP) {
       const cleanIP = sanitizeIP(realIP)
@@ -110,7 +267,6 @@ function getClientIP(request) {
       }
     }
     
-    // Cuối cùng check x-forwarded-for
     const forwarded = request.headers.get('x-forwarded-for')
     if (forwarded) {
       const firstIP = sanitizeIP(forwarded.split(',')[0])
@@ -119,11 +275,9 @@ function getClientIP(request) {
       }
     }
     
-    // FAIL-SECURE: Không thể xác định IP thật
     return null
     
   } catch (error) {
-    console.error('IP extraction error:', error.message)
     return null
   }
 }
@@ -154,140 +308,14 @@ function ipToNumber(ip) {
   }
 }
 
-async function fetchVietnamIPs() {
-  try {
-    const now = Date.now()
-    
-    // Check cache first
-    if (VIETNAM_IP_RANGES.length > 0 && (now - lastFetchTime) < CACHE_DURATION) {
-      return VIETNAM_IP_RANGES
-    }
-    
-    // Limit fetch attempts để tránh spam
-    if (fetchAttempts >= MAX_FETCH_ATTEMPTS) {
-      console.warn('Max fetch attempts reached, using fallback ranges')
-      return FALLBACK_VN_RANGES
-    }
-    
-    fetchAttempts++
-    
-    // Fetch với security headers và timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
-    
-    const response = await fetch(
-      'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/vietnam_proxy.txt',
-      {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Security-Middleware/1.0',
-          'Accept': 'text/plain',
-          'Cache-Control': 'no-cache'
-        },
-        method: 'GET',
-        mode: 'cors'
-      }
-    )
-    
-    clearTimeout(timeoutId)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-    
-    // Validate content-type
-    const contentType = response.headers.get('content-type')
-    if (!contentType?.includes('text/plain') && !contentType?.includes('text/')) {
-      throw new Error('Invalid content type received')
-    }
-    
-    const text = await response.text()
-    
-    // Validate file size (không quá 1MB)
-    if (text.length > 1024 * 1024) {
-      throw new Error('File too large')
-    }
-    
-    const ranges = []
-    const lines = text.split('\n')
-    
-    // Validate format và parse
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('#')) continue
-      
-      // Support multiple formats
-      let match = trimmed.match(/^(\d+\.\d+\.\d+\.\d+)\s*[-\/]\s*(\d+\.\d+\.\d+\.\d+)$/)
-      if (!match) {
-        // Try CIDR format
-        match = trimmed.match(/^(\d+\.\d+\.\d+\.\d+)\/\d+$/)
-        if (match) {
-          // Convert CIDR to range (simplified)
-          ranges.push([match[1], match[1]])
-          continue
-        }
-      }
-      
-      if (match && match.length >= 3) {
-        const startIP = sanitizeIP(match[1])
-        const endIP = sanitizeIP(match[2])
-        
-        if (startIP && endIP) {
-          // Validate IP range
-          const startNum = ipToNumber(startIP)
-          const endNum = ipToNumber(endIP)
-          
-          if (startNum <= endNum && startNum > 0) {
-            ranges.push([startIP, endIP])
-          }
-        }
-      }
-    }
-    
-    // Validate parsed ranges
-    if (ranges.length < 10) {
-      throw new Error('Too few IP ranges parsed')
-    }
-    
-    if (ranges.length > 10000) {
-      throw new Error('Too many IP ranges parsed')
-    }
-    
-    // Success - update cache
-    VIETNAM_IP_RANGES = ranges
-    lastFetchTime = now
-    fetchAttempts = 0 // Reset attempts on success
-    
-    console.log(`Successfully loaded ${ranges.length} Vietnam IP ranges`)
-    return ranges
-    
-  } catch (error) {
-    console.error('Vietnam IP fetch error:', error.message)
-    
-    // Use cached data if available
-    if (VIETNAM_IP_RANGES.length > 0) {
-      console.log('Using cached Vietnam IP ranges')
-      return VIETNAM_IP_RANGES
-    }
-    
-    // Final fallback
-    console.log('Using fallback Vietnam IP ranges')
-    VIETNAM_IP_RANGES = FALLBACK_VN_RANGES
-    lastFetchTime = Date.now()
-    
-    return FALLBACK_VN_RANGES
-  }
-}
-
-async function isVietnamIP(ip) {
+function isVietnamIP(ip) {
   if (!ip) return false
   
-  const ranges = await fetchVietnamIPs()
   const ipNum = ipToNumber(ip)
   
   if (ipNum === 0) return false
   
-  for (const [start, end] of ranges) {
+  for (const [start, end] of VIETNAM_IP_RANGES) {
     const startNum = ipToNumber(start)
     const endNum = ipToNumber(end)
     
@@ -336,7 +364,6 @@ async function checkRateLimit(supabase, ip, isVN, country, userAgent) {
     
   } catch (error) {
     console.error('Rate limit check error:', error.message)
-    // FAIL-SECURE: Block khi không thể check
     return { allowed: false, banned: false, count: 0, violations: 0 }
   }
 }
@@ -357,7 +384,6 @@ async function logSecurityEvent(supabase, ip, eventType, severity = 'LOW', metad
   }
 }
 
-// Hàm tạo ASCII-safe block reason cho header
 function createBlockReason(type) {
   const reasons = {
     'BLOCKED_NO_IP': 'NO_IP_DETECTED',
@@ -436,11 +462,6 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
             0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
             40% { transform: translateY(-10px); }
             60% { transform: translateY(-5px); }
-        }
-        
-        @keyframes rainbow {
-            0% { filter: hue-rotate(0deg); }
-            100% { filter: hue-rotate(360deg); }
         }
         
         .title {
@@ -579,7 +600,6 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
     </div>
 
     <script>
-        // Auto refresh sau 60s nếu là rate limit
         ${statusCode === 429 ? `
         let countdown = 60;
         const btn = document.querySelector('.refresh-btn');
@@ -593,7 +613,6 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
         }, 1000);
         ` : ''}
         
-        // Easter egg - Konami code
         let konamiCode = [];
         const konami = [38,38,40,40,37,39,37,39,66,65];
         document.addEventListener('keydown', (e) => {
@@ -613,7 +632,7 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
     headers: { 
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'X-Block-Type': createBlockReason(blockType), // Sử dụng ASCII-safe reason
+      'X-Block-Type': createBlockReason(blockType),
       'X-Block-Time': new Date().toISOString()
     }
   });
@@ -662,7 +681,7 @@ function getDetailedReason(type, metadata = {}) {
       reason: 'Bạn đã gửi quá nhiều request trong thời gian ngắn',
       details: {
         'Số request': metadata.count || 'N/A',
-        'Giới hạn': metadata.isVN ? '20/phút' : '3/phút',
+        'Giới hạn': metadata.isVN ? '50/phút' : '3/phút',
         'Thời gian reset': '60 giây'
       }
     },
@@ -688,14 +707,12 @@ export default async function middleware(request) {
     const url = new URL(request.url)
     const path = url.pathname
     
-    // Skip static files
     if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map)$/)) {
       return
     }
     
     const ip = getClientIP(request)
     
-    // FAIL-SECURE: Block nếu không thể xác định IP thật
     if (!ip) {
       logSecurity('BLOCKED_NO_IP', 'unknown', { path })
       const reasonData = getDetailedReason('BLOCKED_NO_IP')
@@ -708,7 +725,6 @@ export default async function middleware(request) {
     
     logSecurity('REQUEST', ip, { path, method, country })
     
-    // Country-based blocking
     if (country && country !== 'VN' && country !== 'XX' && country !== '') {
       logSecurity('BLOCKED_COUNTRY', ip, { country, path })
       
@@ -729,9 +745,8 @@ export default async function middleware(request) {
       userAgent.toLowerCase().includes(ua)
     )
     
-    const isVN = await isVietnamIP(ip)
+    const isVN = isVietnamIP(ip)
     
-    // Block suspicious foreign requests
     if (!isVN && isSuspiciousUA) {
       logSecurity('BLOCKED_SUSPICIOUS_FOREIGN', ip, { 
         suspicious: true,
@@ -751,7 +766,6 @@ export default async function middleware(request) {
       return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_SUSPICIOUS_FOREIGN')
     }
     
-    // Rate limiting
     if (supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey, {
         auth: { persistSession: false },
@@ -789,7 +803,6 @@ export default async function middleware(request) {
       }
     }
     
-    // Final foreign IP block
     if (!isVN) {
       logSecurity('BLOCKED_FOREIGN', ip, { path })
       
@@ -806,7 +819,6 @@ export default async function middleware(request) {
       return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_FOREIGN')
     }
     
-    // Allow request
     const processingTime = Date.now() - startTime
     logSecurity('ALLOWED', ip, { 
       path, 
