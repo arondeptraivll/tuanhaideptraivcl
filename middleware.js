@@ -216,7 +216,7 @@ const SUSPICIOUS_UAS = [
   'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 
   'curl', 'wget', 'python', 'go-http', 'masscan', 'nmap', 'sqlmap',
   'fuzz'
-]
+];
 
 function sanitizeIP(ip) {
   if (!ip || typeof ip !== 'string') return null
