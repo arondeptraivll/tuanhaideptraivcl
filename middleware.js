@@ -214,7 +214,7 @@ const VIETNAM_IP_RANGES = [
 
 const SUSPICIOUS_UAS = [
   'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 
-  'curl', 'wget', 'python', 'go-http', 'masscan', 'nmap', 'sqlmap'
+  'curl', 'wget', 'python', 'go-http', 'masscan', 'nmap', 'sqlmap',
   'fuzz'
 ]
 
