@@ -216,18 +216,48 @@ const SUSPICIOUS_PATHS = [
   '/xmlrpc.php', '/wp-login.php', '/administrator', '/cpanel', '/cgi-bin'
 ];
 
-const DDOS_PATTERNS = [
-  /\.\.(\/|\KATEX_INLINE_CLOSE/,               // ✅ Đã sửa
-  /<script/i,                  
-  /union.*select/i,            
-  /javascript:/i,              
-  /vbscript:/i,                
-  /onload=/i,                  
-  /onerror=/i,                 
-  /evalKATEX_INLINE_OPEN/i,                   // ✅ Đã sửa
-  /execKATEX_INLINE_OPEN/i,                   // ✅ Đã sửa
-  /systemKATEX_INLINE_OPEN/i                  // ✅ Đã sửa
-];
+// Thay thế DDOS_PATTERNS bằng DDOS_CHECKS dùng function
+const DDOS_CHECKS = {
+  pathTraversal: (str) => {
+    return str.includes('..') || str.includes('..\\') || str.includes('%2e%2e');
+  },
+  scriptTag: (str) => {
+    const lower = str.toLowerCase();
+    return lower.includes('<script') || lower.includes('</script');
+  },
+  sqlInjection: (str) => {
+    const lower = str.toLowerCase();
+    const sqlPatterns = [
+      'union select', 'union all select', 'drop table', 'drop database',
+      'insert into', 'delete from', 'update set', 'exec xp_', 'exec sp_'
+    ];
+    return sqlPatterns.some(pattern => lower.includes(pattern));
+  },
+  xssPatterns: (str) => {
+    const lower = str.toLowerCase();
+    const xssPatterns = [
+      'javascript:', 'vbscript:', 'onload=', 'onerror=', 'onclick=',
+      'onmouseover=', 'onfocus=', 'onblur=', '<iframe', '<object',
+      '<embed', '<img src=', '<svg', '<body onload'
+    ];
+    return xssPatterns.some(pattern => lower.includes(pattern));
+  },
+  codeInjection: (str) => {
+    const lower = str.toLowerCase();
+    return lower.includes('eval(') || lower.includes('exec(') || 
+           lower.includes('system(') || lower.includes('require(') ||
+           lower.includes('import(') || lower.includes('include(');
+  },
+  commandInjection: (str) => {
+    const dangerous = ['|', '&', ';', '$', '`', '||', '&&'];
+    return dangerous.some(char => str.includes(char));
+  },
+  specialChars: (str) => {
+    const count = (str.match(/[<>"'&]/g) || []).length;
+    return count > 5;
+  }
+};
+
 const ADMIN_IPS = ['42.118.42.236'];
 
 const ipCache = new Map();
@@ -317,32 +347,53 @@ function createFingerprint(request, ip) {
   return btoa(`${ip}:${userAgent.substring(0, 50)}:${acceptLang}:${acceptEnc}:${connection}`);
 }
 
+// Hàm detectDDoSPatterns được viết lại để dùng string matching
 function detectDDoSPatterns(ip, path, userAgent, headers) {
   const now = Date.now();
   let ddosScore = 0;
   const reasons = [];
 
-  if (DDOS_PATTERNS.some(pattern => pattern.test(path) || pattern.test(userAgent))) {
-    ddosScore += 5;
-    reasons.push('malicious_payload');
+  // Kiểm tra các pattern bằng string matching
+  const checkString = path + ' ' + userAgent;
+  
+  for (const [checkName, checkFunc] of Object.entries(DDOS_CHECKS)) {
+    try {
+      if (checkFunc(checkString)) {
+        ddosScore += 5;
+        reasons.push(checkName);
+      }
+    } catch (e) {
+      // Bỏ qua lỗi nếu có
+    }
   }
 
+  // Kiểm tra kích thước
   if (path.length > 500 || userAgent.length > 1000) {
     ddosScore += 3;
     reasons.push('oversized_headers');
   }
 
-  const queryParams = new URL(`http://dummy${path}`).searchParams;
-  if (queryParams.toString().length > 1000) {
-    ddosScore += 3;
-    reasons.push('excessive_params');
+  // Kiểm tra query params
+  try {
+    const url = new URL(`http://dummy${path}`);
+    if (url.search.length > 1000) {
+      ddosScore += 3;
+      reasons.push('excessive_params');
+    }
+  } catch (e) {
+    if (path.includes('?') && path.length > 200) {
+      ddosScore += 2;
+      reasons.push('invalid_url');
+    }
   }
 
+  // Kiểm tra headers
   if (!headers.get('accept') || !headers.get('accept-language')) {
     ddosScore += 2;
     reasons.push('minimal_headers');
   }
 
+  // Kiểm tra lịch sử path
   const pathKey = `${ip}_path`;
   const pathHistory = patternCache.get(pathKey) || [];
   pathHistory.push({ path, time: now });
@@ -385,21 +436,28 @@ function detectSuspiciousActivity(ip, userAgent, path, method) {
   let suspicionScore = 0;
   const reasons = [];
   
-  if (SUSPICIOUS_UAS.some(ua => userAgent.toLowerCase().includes(ua))) {
+  const userAgentLower = userAgent.toLowerCase();
+  const pathLower = path.toLowerCase();
+  
+  // Kiểm tra User-Agent đáng ngờ
+  if (SUSPICIOUS_UAS.some(ua => userAgentLower.includes(ua))) {
     suspicionScore += 3;
     reasons.push('suspicious_ua');
   }
   
-  if (SUSPICIOUS_PATHS.some(p => path.toLowerCase().includes(p))) {
+  // Kiểm tra path đáng ngờ
+  if (SUSPICIOUS_PATHS.some(p => pathLower.includes(p))) {
     suspicionScore += 2;
     reasons.push('suspicious_path');
   }
   
+  // Kiểm tra method bất thường
   if (!['GET', 'POST', 'HEAD', 'OPTIONS'].includes(method)) {
     suspicionScore += 2;
     reasons.push('unusual_method');
   }
   
+  // Kiểm tra User-Agent
   if (!userAgent || userAgent.length < 10) {
     suspicionScore += 2;
     reasons.push('minimal_ua');
@@ -410,16 +468,20 @@ function detectSuspiciousActivity(ip, userAgent, path, method) {
     reasons.push('oversized_ua');
   }
 
+  // Kiểm tra path traversal
   if (path.includes('..') || path.includes('%2e%2e')) {
     suspicionScore += 4;
     reasons.push('path_traversal');
   }
 
-  if (/[<>'"&]/.test(path)) {
+  // Kiểm tra special chars
+  const specialCount = (path.match(/[<>'"&]/g) || []).length;
+  if (specialCount > 2) {
     suspicionScore += 2;
     reasons.push('special_chars');
   }
   
+  // Cập nhật cache
   const existing = suspiciousCache.get(ip) || { score: 0, reasons: [], count: 0 };
   existing.score = Math.max(existing.score, suspicionScore);
   existing.reasons = [...new Set([...existing.reasons, ...reasons])];
@@ -641,6 +703,22 @@ function getThemeConfig(code) {
 function createAdvancedErrorPage(code, customMessage = null, timeLeft = null, level = 1) {
   const theme = getThemeConfig(code);
   const message = customMessage || theme.message;
+  
+  // Generate particles HTML
+  const particlesHTML = [];
+  for (let i = 0; i < 8; i++) {
+    const left = 10 + i * 11;
+    const size = 3 + Math.random() * 4;
+    const delay = i * 1.5;
+    particlesHTML.push(`
+        <div class="particle" style="
+            left: ${left}%; 
+            width: ${size}px; 
+            height: ${size}px; 
+            animation-delay: ${delay}s;
+        "></div>
+    `);
+  }
   
   return new Response(`<!DOCTYPE html>
 <html lang="en">
@@ -938,14 +1016,7 @@ function createAdvancedErrorPage(code, customMessage = null, timeLeft = null, le
 </head>
 <body>
     <div class="animated-bg"></div>
-    ${Array.from({length: 8}, (_, i) => `
-        <div class="particle" style="
-            left: ${10 + i * 11}%; 
-            width: ${3 + Math.random() * 4}px; 
-            height: ${3 + Math.random() * 4}px; 
-            animation-delay: ${i * 1.5}s;
-        "></div>
-    `).join('')}
+    ${particlesHTML.join('')}
     <div class="container">
         <div class="error-icon">${theme.icon}</div>
         <div class="error-code">${code}</div>
@@ -990,7 +1061,7 @@ function createAdvancedErrorPage(code, customMessage = null, timeLeft = null, le
             <p>Our systems continuously monitor for suspicious activity to protect all users.</p>
             <p style="margin-top: 0.75rem; opacity: 0.7;">
                 ${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}
-                <br>Incident ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}
+                <br>Incident ID: ${Math.random().toString(36).substring(2, 11).toUpperCase()}
             </p>
         </div>
     </div>
@@ -1021,7 +1092,7 @@ function createAdvancedErrorPage(code, customMessage = null, timeLeft = null, le
                         if (minutes > 0) display += minutes + 'm ';
                         display += seconds + 's';
                         banTimer.textContent = display;
-                        retryBtn.innerHTML = \`<span>⏳</span><span class="countdown">Wait \${display}</span>\`;
+                        retryBtn.innerHTML = '<span>⏳</span><span class="countdown">Wait ' + display + '</span>';
                         retryBtn.disabled = true;
                         timeLeft--;
                         setTimeout(updateTimer, 1000);
@@ -1037,7 +1108,7 @@ function createAdvancedErrorPage(code, customMessage = null, timeLeft = null, le
                 const retryBtn = document.getElementById('retryBtn');
                 function updateCountdown() {
                     if (countdown > 0) {
-                        retryBtn.innerHTML = \`<span>⏳</span><span class="countdown">Wait \${countdown}s</span>\`;
+                        retryBtn.innerHTML = '<span>⏳</span><span class="countdown">Wait ' + countdown + 's</span>';
                         retryBtn.disabled = true;
                         countdown--;
                         setTimeout(updateCountdown, 1000);
@@ -1078,13 +1149,31 @@ export default async function middleware(request) {
     const method = request.method;
     const userAgent = request.headers.get('user-agent') || '';
     
-    if (pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml|pdf|zip|rar|mp4|mp3|avi|mov)$/)) {
+    // Bỏ qua các file static
+    const staticExts = ['ico', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'css', 'js', 
+                       'woff', 'woff2', 'ttf', 'webp', 'map', 'txt', 'xml', 
+                       'pdf', 'zip', 'rar', 'mp4', 'mp3', 'avi', 'mov'];
+    
+    const ext = pathname.split('.').pop().toLowerCase();
+    if (staticExts.includes(ext)) {
       return;
     }
 
+    // Admin stats endpoint
     if (pathname === '/api/admin/stats') {
       const ip = getIP(request);
       if (ADMIN_IPS.includes(ip) || !ip) {
+        const banList = [];
+        for (const [ip, info] of bannedIPs.entries()) {
+          banList.push({
+            ip: ip.substring(0, 8) + '***',
+            timeLeft: Math.max(0, info.duration - (Date.now() - info.timestamp)),
+            reason: info.reason,
+            level: info.level
+          });
+          if (banList.length >= 50) break;
+        }
+        
         return new Response(JSON.stringify({
           stats,
           cacheStats: {
@@ -1096,18 +1185,14 @@ export default async function middleware(request) {
             goodIPs: goodIPs.size,
             fingerprints: fingerprints.size
           },
-          banDetails: Array.from(bannedIPs.entries()).slice(0, 50).map(([ip, info]) => ({
-            ip: ip.substring(0, 8) + '***',
-            timeLeft: Math.max(0, info.duration - (Date.now() - info.timestamp)),
-            reason: info.reason,
-            level: info.level
-          })),
+          banDetails: banList,
           uptime: Math.floor((Date.now() - stats.startTime) / 1000)
         }), { headers: { 'Content-Type': 'application/json' } });
       }
       return createAdvancedErrorPage(401);
     }
     
+    // Lấy IP
     const ip = getIP(request);
     if (!ip || !isValidIP(ip)) {
       stats.blocked++;
@@ -1115,11 +1200,13 @@ export default async function middleware(request) {
       return createAdvancedErrorPage(400, 'Invalid or missing IP address in request.');
     }
     
+    // Kiểm tra Admin IP
     if (ADMIN_IPS.includes(ip)) {
       console.log(`[${new Date().toISOString()}] ADMIN_ACCESS: ${ip} - ${method} ${pathname}`);
       return;
     }
     
+    // Kiểm tra IP Việt Nam
     const vietnam = isVN(ip);
     
     if (!vietnam) {
@@ -1129,9 +1216,11 @@ export default async function middleware(request) {
       return createAdvancedErrorPage(403, 'This service is currently only available to users located in Vietnam.');
     }
 
+    // Tạo fingerprint
     const fingerprint = createFingerprint(request, ip);
     fingerprints.set(ip, fingerprint);
 
+    // Kiểm tra burst traffic
     const burstResult = detectBurstTraffic(ip);
     if (burstResult.burst) {
       stats.blocked++;
@@ -1141,6 +1230,7 @@ export default async function middleware(request) {
       return createAdvancedErrorPage(429, `Burst traffic detected. ${burstResult.count} requests in ${BURST_WINDOW/1000} seconds.`, banResult.duration, banResult.level);
     }
 
+    // Kiểm tra DDoS patterns
     const ddosResult = detectDDoSPatterns(ip, pathname, userAgent, request.headers);
     if (ddosResult.score >= 5) {
       stats.blocked++;
@@ -1150,12 +1240,14 @@ export default async function middleware(request) {
       return createAdvancedErrorPage(403, `Malicious request patterns detected. Score: ${ddosResult.score}`, banResult.duration, banResult.level);
     }
     
+    // Kiểm tra hoạt động đáng ngờ
     const suspiciousActivity = detectSuspiciousActivity(ip, userAgent, pathname, method);
     if (suspiciousActivity.suspicious) {
       stats.suspicious++;
       console.log(`[${new Date().toISOString()}] SUSPICIOUS: ${ip} - Score: ${suspiciousActivity.score} - Reasons: ${suspiciousActivity.reasons.join(',')} - ${pathname}`);
     }
     
+    // Kiểm tra rate limit
     const rateResult = checkRateLimit(ip, suspiciousActivity.suspicious, ddosResult.score);
     
     if (rateResult.banned) {
@@ -1179,12 +1271,14 @@ export default async function middleware(request) {
       return createAdvancedErrorPage(429, `Request rate exceeded. You have made ${rateResult.count} requests when the limit is ${rateResult.limit} per minute.`);
     }
     
+    // Robots.txt
     if (pathname === '/robots.txt') {
       return new Response('User-agent: *\nDisallow: /', {
         headers: { 'Content-Type': 'text/plain' }
       });
     }
     
+    // Log ngẫu nhiên
     if (Math.random() < 0.001) {
       console.log(`[${new Date().toISOString()}] ALLOW: ${ip} - ${method} ${pathname} - ${rateResult.count}/${rateResult.limit}`);
     }
