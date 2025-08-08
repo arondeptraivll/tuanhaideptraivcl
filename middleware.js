@@ -204,504 +204,154 @@ const VIETNAM_IP_RANGES = [
   ['222.252.0.0', '222.255.255.255']
 ];
 
-const SUSPICIOUS_UAS = [
-  'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 
-  'curl', 'wget', 'python', 'go-http', 'masscan', 'nmap', 'sqlmap',
-  'fuzz', 'attack', 'exploit', 'penetration', 'test', 'probe'
-];
-
 const ADMIN_IPS = ['127.0.0.1'];
 const LIMITS = { VN: 20, OTHER: 3 };
-const BAN_DURATION = 30 * 60 * 1000;
-const CLEANUP_INTERVAL = 300000;
-const GEO_CACHE_TTL = 3600000;
-const MAX_GEO_CACHE_SIZE = 15000;
-const MAX_IP_DATA_AGE = 600000;
 
-const ipData = new Map();
-const ipGeoCache = new Map();
-const blockedIPs = new Set();
-const tempBannedIPs = new Map();
-const suspiciousIPs = new Set();
-
-const stats = {
-  totalRequests: 0,
-  totalBlocked: 0,
-  totalTempBanned: 0,
-  totalPermBanned: 0,
-  rps: 0,
-  lastSecond: Date.now(),
-  startTime: Date.now()
-};
-
-function sanitizeIP(ip) {
-  if (!ip || typeof ip !== 'string') return null;
-  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  const cleaned = ip.trim();
-  if (!ipv4Regex.test(cleaned)) return null;
-  const parts = cleaned.split('.');
-  for (const part of parts) {
-    const num = parseInt(part, 10);
-    if (num < 0 || num > 255) return null;
-  }
-  return cleaned;
-}
-
-function isPrivateIP(ip) {
-  if (!ip) return false;
-  const parts = ip.split('.').map(Number);
-  const [a, b, c, d] = parts;
-  return (
-    a === 10 ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    a === 0
-  );
-}
+const globalBanCache = new Map();
+const ipRateData = new Map();
+const stats = { totalRequests: 0, totalBlocked: 0, startTime: Date.now() };
 
 function getClientIP(request) {
   try {
-    const headers = [
-      'x-vercel-forwarded-for',
-      'cf-connecting-ip', 
-      'x-real-ip',
-      'x-forwarded-for'
-    ];
-    
+    const headers = ['x-vercel-forwarded-for', 'cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'];
     for (const header of headers) {
       const value = request.headers.get(header);
       if (value) {
-        const ip = sanitizeIP(value.split(',')[0]);
-        if (ip && !isPrivateIP(ip)) return ip;
+        const ip = value.split(',')[0].trim();
+        if (ip && /^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) return ip;
       }
     }
     return null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function ipToNumber(ip) {
-  if (!ip) return 0;
-  try {
-    return ip.split('.').reduce((acc, octet) => {
-      const num = parseInt(octet, 10);
-      return (acc << 8) | num;
-    }, 0) >>> 0;
-  } catch {
-    return 0;
-  }
+  return ip.split('.').reduce((acc, octet) => (acc << 8) | parseInt(octet, 10), 0) >>> 0;
 }
 
 function isVietnamIP(ip) {
-  if (!ip) return false;
   const ipNum = ipToNumber(ip);
-  if (ipNum === 0) return false;
-  
-  for (const [start, end] of VIETNAM_IP_RANGES) {
+  return VIETNAM_IP_RANGES.some(([start, end]) => {
     const startNum = ipToNumber(start);
     const endNum = ipToNumber(end);
-    if (ipNum >= startNum && ipNum <= endNum) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function isVietnamIPCached(ip) {
-  const cached = ipGeoCache.get(ip);
-  const now = Date.now();
-  
-  if (cached && (now - cached.cachedAt) < GEO_CACHE_TTL) {
-    return cached.isVN;
-  }
-  
-  const isVN = isVietnamIP(ip);
-  ipGeoCache.set(ip, { isVN, cachedAt: now });
-  
-  if (ipGeoCache.size > MAX_GEO_CACHE_SIZE) {
-    const oldestEntries = Array.from(ipGeoCache.entries())
-      .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
-      .slice(0, Math.floor(MAX_GEO_CACHE_SIZE / 2));
-    oldestEntries.forEach(([ip]) => ipGeoCache.delete(ip));
-  }
-  
-  return isVN;
-}
-
-function updateRPS() {
-  const now = Date.now();
-  if (now - stats.lastSecond > 1000) {
-    stats.rps = 0;
-    stats.lastSecond = now;
-  }
-  stats.rps++;
-  stats.totalRequests++;
-}
-
-function logAction(action, ip, details = '') {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${action}: ${ip} ${details}`);
-}
-
-function addTempBan(ip, reason, isVN, isSuspicious = false) {
-  const now = Date.now();
-  let duration = BAN_DURATION;
-  
-  const existingBan = tempBannedIPs.get(ip);
-  const banCount = existingBan ? (existingBan.banCount || 0) + 1 : 1;
-  
-  if (banCount > 1) {
-    duration = duration * Math.min(banCount, 3);
-  }
-  
-  if (isSuspicious || !isVN) {
-    duration = duration * 1.5;
-  }
-  
-  const unbanTime = now + duration;
-  
-  tempBannedIPs.set(ip, {
-    unbanTime,
-    reason,
-    bannedAt: now,
-    banCount,
-    isVN,
-    isSuspicious
+    return ipNum >= startNum && ipNum <= endNum;
   });
-  
-  stats.totalTempBanned++;
-  const durationMin = Math.round(duration / 60000);
-  
-  logAction('TEMP_BAN', ip, `| Count: #${banCount} | Reason: ${reason} | Duration: ${durationMin}min | Type: ${isVN ? 'VN' : 'FOREIGN'} | Suspicious: ${isSuspicious}`);
-  
-  if (banCount >= 3) {
-    blockedIPs.add(ip);
-    tempBannedIPs.delete(ip);
-    stats.totalPermBanned++;
-    logAction('PERM_BAN', ip, `| Reason: ${banCount} temp bans exceeded`);
-  }
 }
 
-function checkTempBan(ip) {
-  const banInfo = tempBannedIPs.get(ip);
-  if (!banInfo) return null;
+function createBanKey(ip) {
+  return `ban_${ip}_${Math.floor(Date.now() / 300000)}`;
+}
+
+function addGlobalBan(ip, reason, duration = 1800000) {
+  const banUntil = Date.now() + duration;
+  const banKey = createBanKey(ip);
   
+  globalBanCache.set(ip, { banUntil, reason, banKey });
+  globalBanCache.set(banKey, { ip, banUntil, reason });
+  
+  console.log(`[${new Date().toISOString()}] GLOBAL_BAN: ${ip} | Reason: ${reason} | Duration: ${Math.round(duration/60000)}min | Key: ${banKey}`);
+}
+
+function checkGlobalBan(ip) {
   const now = Date.now();
-  if (now >= banInfo.unbanTime) {
-    tempBannedIPs.delete(ip);
-    logAction('UNBAN', ip, '| Reason: Temp ban expired');
-    return null;
+  
+  if (globalBanCache.has(ip)) {
+    const ban = globalBanCache.get(ip);
+    if (now < ban.banUntil) return ban;
+    globalBanCache.delete(ip);
+    globalBanCache.delete(ban.banKey);
   }
   
-  return {
-    ...banInfo,
-    remainingTime: banInfo.unbanTime - now
-  };
+  const currentBanKey = createBanKey(ip);
+  if (globalBanCache.has(currentBanKey)) {
+    const ban = globalBanCache.get(currentBanKey);
+    if (now < ban.banUntil) {
+      globalBanCache.set(ip, ban);
+      return ban;
+    }
+    globalBanCache.delete(currentBanKey);
+  }
+  
+  return null;
 }
 
-function checkRateLimit(ip, isVN, userAgent = '') {
+function checkRateLimit(ip, isVN) {
   const now = Date.now();
   const limit = isVN ? LIMITS.VN : LIMITS.OTHER;
-  const windowMs = 60000;
+  const window = 60000;
   
-  let data = ipData.get(ip);
-  if (!data || (now - data.window) > windowMs) {
-    data = { 
-      count: 1, 
-      window: now, 
-      lastSeen: now,
-      violations: data?.violations || 0
-    };
-    ipData.set(ip, data);
+  const key = `${ip}_${Math.floor(now / window)}`;
+  let data = ipRateData.get(key);
+  
+  if (!data) {
+    data = { count: 1, window: now };
+    ipRateData.set(key, data);
     return { allowed: true, count: 1, limit };
   }
   
   data.count++;
-  data.lastSeen = now;
-  
-  const isSuspiciousUA = SUSPICIOUS_UAS.some(ua => 
-    userAgent.toLowerCase().includes(ua)
-  );
-  
-  if (isSuspiciousUA) {
-    suspiciousIPs.add(ip);
-    data.violations = (data.violations || 0) + 1;
-  }
   
   if (data.count > limit) {
-    data.violations = (data.violations || 0) + 1;
-    
-    const isSuspicious = suspiciousIPs.has(ip) || isSuspiciousUA;
-    addTempBan(ip, `Rate limit exceeded (${data.count}/${limit})`, isVN, isSuspicious);
-    
-    ipData.delete(ip);
-    
-    return { 
-      allowed: false, 
-      reason: 'RATE_LIMIT_EXCEEDED', 
-      count: data.count, 
-      limit,
-      violations: data.violations
-    };
+    addGlobalBan(ip, `Rate exceeded: ${data.count}/${limit}`, isVN ? 1800000 : 3600000);
+    return { allowed: false, count: data.count, limit, banned: true };
   }
   
   return { allowed: true, count: data.count, limit };
 }
 
-function createBlockedResponse(statusCode, reason) {
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Denied</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #333;
-        }
-        .container {
-            background: white;
-            padding: 3rem 2rem;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .icon { 
-            font-size: 4rem; 
-            margin-bottom: 1.5rem; 
-            color: #e74c3c;
-            display: block;
-        }
-        .title { 
-            font-size: 2rem; 
-            color: #2c3e50; 
-            margin-bottom: 1rem; 
-            font-weight: 700; 
-        }
-        .code { 
-            display: inline-block;
-            background: #e74c3c;
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 25px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-bottom: 1.5rem;
-        }
-        .reason { 
-            font-size: 1.1rem; 
-            color: #555; 
-            margin-bottom: 2rem; 
-            line-height: 1.5; 
-        }
-        .footer { 
-            color: #777; 
-            font-size: 0.9rem; 
-            border-top: 1px solid #eee;
-            padding-top: 1.5rem;
-        }
-        .footer p { margin-bottom: 0.5rem; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="icon">🚫</div>
-        <h1 class="title">Access Denied</h1>
-        <div class="code">ERROR ${statusCode}</div>
-        <div class="reason">${reason}</div>
-        <div class="footer">
-            <p>Contact support if you believe this is an error</p>
-            <p>${new Date().toLocaleString()}</p>
-        </div>
-    </div>
-</body>
-</html>`;
-
-  return new Response(html, {
-    status: statusCode,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'X-Blocked-Time': new Date().toISOString()
-    }
+function createResponse(code, reason) {
+  return new Response(`<!DOCTYPE html><html><head><title>Access Denied</title><style>body{font-family:system-ui;background:#667eea;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.container{text-align:center;background:rgba(255,255,255,0.1);padding:2rem;border-radius:10px}.code{font-size:2rem;font-weight:bold;margin-bottom:1rem}.reason{font-size:1.2rem}</style></head><body><div class="container"><div class="code">ERROR ${code}</div><div class="reason">${reason}</div><p>${new Date().toLocaleString()}</p></div></body></html>`, {
+    status: code,
+    headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' }
   });
 }
-
-function createStatsResponse() {
-  const uptime = Date.now() - stats.startTime;
-  const uptimeHours = (uptime / 3600000).toFixed(2);
-  
-  const activeTempBans = Array.from(tempBannedIPs.entries()).map(([ip, info]) => ({
-    ip,
-    reason: info.reason,
-    bannedAt: new Date(info.bannedAt).toISOString(),
-    unbanAt: new Date(info.unbanTime).toISOString(),
-    remainingMinutes: Math.ceil((info.unbanTime - Date.now()) / 60000),
-    banCount: info.banCount,
-    type: info.isVN ? 'VN' : 'FOREIGN',
-    suspicious: info.isSuspicious
-  }));
-  
-  return new Response(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    stats: {
-      totalRequests: stats.totalRequests,
-      totalBlocked: stats.totalBlocked,
-      totalTempBanned: stats.totalTempBanned,
-      totalPermBanned: stats.totalPermBanned,
-      currentRPS: stats.rps,
-      uptime: `${uptimeHours}h`
-    },
-    limits: {
-      vietnam: `${LIMITS.VN}/min`,
-      other: `${LIMITS.OTHER}/min`,
-      banDuration: '30+ minutes (escalating)'
-    },
-    memory: {
-      activeIPs: ipData.size,
-      blacklistedIPs: blockedIPs.size,
-      tempBannedIPs: tempBannedIPs.size,
-      suspiciousIPs: suspiciousIPs.size,
-      geoCache: ipGeoCache.size
-    },
-    activeTempBans,
-    recentBlocked: Array.from(blockedIPs).slice(-20),
-    recentSuspicious: Array.from(suspiciousIPs).slice(-20)
-  }, null, 2), {
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-function cleanupMemory() {
-  const now = Date.now();
-  const expiredTime = now - MAX_IP_DATA_AGE;
-  let cleaned = 0;
-  let tempBansExpired = 0;
-  
-  for (const [ip, data] of ipData.entries()) {
-    if (data.lastSeen < expiredTime) {
-      ipData.delete(ip);
-      cleaned++;
-    }
-  }
-  
-  for (const [ip, banInfo] of tempBannedIPs.entries()) {
-    if (now >= banInfo.unbanTime) {
-      tempBannedIPs.delete(ip);
-      tempBansExpired++;
-      logAction('UNBAN', ip, '| Reason: Temp ban expired during cleanup');
-    }
-  }
-  
-  if (ipGeoCache.size > MAX_GEO_CACHE_SIZE) {
-    const oldEntries = Array.from(ipGeoCache.entries())
-      .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
-      .slice(0, Math.floor(MAX_GEO_CACHE_SIZE / 2));
-    oldEntries.forEach(([ip]) => ipGeoCache.delete(ip));
-  }
-  
-  if (suspiciousIPs.size > 1000) {
-    const ipsToRemove = Array.from(suspiciousIPs).slice(0, 500);
-    ipsToRemove.forEach(ip => suspiciousIPs.delete(ip));
-  }
-  
-  logAction('CLEANUP', 'SYSTEM', `| IPs: ${cleaned} | TempBans: ${tempBansExpired} | Active: ${ipData.size} | Blocked: ${blockedIPs.size} | TempBanned: ${tempBannedIPs.size} | Suspicious: ${suspiciousIPs.size} | Cache: ${ipGeoCache.size}`);
-}
-
-setInterval(cleanupMemory, CLEANUP_INTERVAL);
 
 export default async function middleware(request) {
   try {
-    updateRPS();
+    stats.totalRequests++;
     
     const url = new URL(request.url);
-    const path = url.pathname;
-    
-    if (path === '/api/ddos-stats') {
-      const ip = getClientIP(request);
-      if (ADMIN_IPS.includes(ip) || !ip) {
-        return createStatsResponse();
-      }
-      logAction('UNAUTHORIZED_STATS', ip || 'UNKNOWN', '| Attempt to access stats');
-      return new Response('Unauthorized', { status: 403 });
-    }
-    
-    if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml|pdf|zip|rar)$/)) {
-      return;
-    }
+    if (url.pathname.match(/\.(ico|png|jpg|css|js)$/)) return;
     
     const ip = getClientIP(request);
-    const userAgent = request.headers.get('user-agent') || '';
-    const method = request.method;
-    const country = request.headers.get('cf-ipcountry') || 'Unknown';
-    
     if (!ip) {
       stats.totalBlocked++;
-      logAction('BLOCK_NO_IP', 'UNKNOWN', `| Method: ${method} | Path: ${path} | UA: ${userAgent.substring(0, 50)}`);
-      return createBlockedResponse(403, 'Invalid request');
+      console.log(`[${new Date().toISOString()}] BLOCK_NO_IP: ${url.pathname}`);
+      return createResponse(403, 'Invalid request');
     }
     
-    if (ADMIN_IPS.includes(ip)) {
-      logAction('ADMIN_ACCESS', ip, `| Path: ${path} | Method: ${method}`);
-      return;
-    }
+    if (ADMIN_IPS.includes(ip)) return;
     
-    const tempBan = checkTempBan(ip);
-    if (tempBan) {
+    const globalBan = checkGlobalBan(ip);
+    if (globalBan) {
       stats.totalBlocked++;
-      const remainingMin = Math.ceil(tempBan.remainingTime / 60000);
-      logAction('BLOCK_TEMP_BAN', ip, `| Remaining: ${remainingMin}min | Count: #${tempBan.banCount} | Path: ${path} | Method: ${method}`);
-      return createBlockedResponse(429, 'Too many requests');
+      const remaining = Math.ceil((globalBan.banUntil - Date.now()) / 60000);
+      console.log(`[${new Date().toISOString()}] BLOCK_GLOBAL_BAN: ${ip} | Remaining: ${remaining}min | Reason: ${globalBan.reason}`);
+      return createResponse(429, 'Access temporarily restricted');
     }
     
-    if (blockedIPs.has(ip)) {
+    const isVN = isVietnamIP(ip);
+    
+    const rateResult = checkRateLimit(ip, isVN);
+    if (!rateResult.allowed) {
       stats.totalBlocked++;
-      logAction('BLOCK_PERM_BAN', ip, `| Path: ${path} | Method: ${method} | Country: ${country}`);
-      return createBlockedResponse(403, 'Access denied');
-    }
-    
-    const isVN = isVietnamIPCached(ip);
-    
-    const rateLimitResult = checkRateLimit(ip, isVN, userAgent);
-    
-    if (!rateLimitResult.allowed) {
-      stats.totalBlocked++;
-      logAction('RATE_LIMIT_BAN', ip, `| Requests: ${rateLimitResult.count}/${rateLimitResult.limit} | Violations: ${rateLimitResult.violations || 0} | Type: ${isVN ? 'VN' : 'FOREIGN'} | Path: ${path} | Method: ${method} | Country: ${country} | UA: ${userAgent.substring(0, 50)}`);
-      return createBlockedResponse(429, 'Rate limit exceeded');
+      console.log(`[${new Date().toISOString()}] RATE_LIMIT_GLOBAL_BAN: ${ip} | ${rateResult.count}/${rateResult.limit} | Type: ${isVN ? 'VN' : 'FOREIGN'}`);
+      return createResponse(429, 'Rate limit exceeded');
     }
     
     if (!isVN) {
       stats.totalBlocked++;
-      logAction('BLOCK_FOREIGN', ip, `| Country: ${country} | Path: ${path} | Method: ${method} | UA: ${userAgent.substring(0, 50)}`);
-      return createBlockedResponse(403, 'Access restricted');
-    }
-    
-    if (Math.random() < 0.005) {
-      logAction('ALLOW', ip, `| Requests: ${rateLimitResult.count}/${rateLimitResult.limit} | Path: ${path} | Method: ${method} | Country: ${country}`);
+      console.log(`[${new Date().toISOString()}] BLOCK_FOREIGN_AFTER_RATE: ${ip} | ${rateResult.count}/${rateResult.limit}`);
+      return createResponse(403, 'Access restricted');
     }
     
   } catch (error) {
-    stats.totalBlocked++;
-    logAction('ERROR', 'SYSTEM', `| Error: ${error.message} | Stack: ${error.stack?.substring(0, 100)}`);
-    return createBlockedResponse(503, 'Service temporarily unavailable');
+    console.log(`[${new Date().toISOString()}] ERROR: ${error.message}`);
+    return createResponse(503, 'Service error');
   }
 }
 
 export const config = {
   runtime: 'edge',
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ]
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 };
