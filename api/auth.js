@@ -30,7 +30,8 @@ export default async function handler(req, res) {
   const userAgent = req.headers['user-agent'] || '';
   const PRODUCTION_URL = 'https://tuanhaideptraivcl.vercel.app';
 
-  // Migration từ memory sang database nếu cần
+  // Kiểm tra bảng tồn tại và migration từ memory
+  await initializeDatabase();
   await migrateMemoryToDatabase();
 
   if (method === 'GET') {
@@ -73,13 +74,14 @@ export default async function handler(req, res) {
         // Cập nhật thời gian truy cập cuối
         await updateSessionAccess(token);
 
-        // Lấy dữ liệu user
+        // Lấy dữ liệu user với avatar URL đầy đủ
         const userData = await getUserByDiscordId(session.discord_id);
+        const userWithAvatar = formatUserData(userData);
         
         console.log('✅ Xác thực token thành công');
         return res.status(200).json({
           valid: true,
-          user: userData,
+          user: userWithAvatar,
           session_data: session.user_data,
           ip: clientIP,
           last_access: new Date().toISOString()
@@ -104,11 +106,12 @@ export default async function handler(req, res) {
         
         if (session) {
           const userData = await getUserByDiscordId(session.discord_id);
+          const userWithAvatar = formatUserData(userData);
           console.log('✅ Tìm thấy session hợp lệ cho:', userData.username);
           
           return res.status(200).json({
             has_session: true,
-            user: userData,
+            user: userWithAvatar,
             session_data: session.user_data,
             token: session.session_token,
             ip: clientIP
@@ -203,7 +206,11 @@ export default async function handler(req, res) {
         }
 
         const userData = await userResponse.json();
-        console.log('User đăng nhập:', { id: userData.id, username: userData.username });
+        console.log('User đăng nhập:', { 
+          id: userData.id, 
+          username: userData.username,
+          avatar: userData.avatar
+        });
 
         // Lấy dữ liệu guilds
         const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
@@ -226,12 +233,16 @@ export default async function handler(req, res) {
           }
         }
 
-        // Tạo dữ liệu session
+        // ✅ Tạo avatar URL đầy đủ - PHẦN QUAN TRỌNG
+        const avatarUrl = getDiscordAvatarUrl(userData.id, userData.avatar);
+
+        // Tạo dữ liệu session với avatar URL đầy đủ
         const sessionData = {
           id: userData.id,
           username: userData.username,
           discriminator: userData.discriminator || '0',
           avatar: userData.avatar,
+          avatarUrl: avatarUrl,
           globalName: userData.global_name || userData.username,
           timestamp: Date.now(),
           guilds: guilds.length,
@@ -253,11 +264,12 @@ export default async function handler(req, res) {
         console.log('Dữ liệu user:', {
           id: userData.id,
           username: userData.username,
-          globalName: userData.global_name
+          globalName: userData.global_name,
+          avatarUrl: avatarUrl
         });
 
-        // Chuyển hướng về trang chủ với thông tin session
-        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&user_id=${userData.id}&username=${encodeURIComponent(userData.global_name || userData.username)}&avatar=${userData.avatar || ''}`;
+        // ✅ Chuyển hướng với avatar URL đầy đủ - PHẦN QUAN TRỌNG
+        const redirectUrl = `${PRODUCTION_URL}/?login_success=true&user_id=${userData.id}&username=${encodeURIComponent(userData.global_name || userData.username)}&avatar=${encodeURIComponent(avatarUrl)}`;
         console.log('Chuyển hướng tới:', redirectUrl);
         
         return res.redirect(redirectUrl);
@@ -304,11 +316,59 @@ export default async function handler(req, res) {
   return res.status(405).json({ error: 'Method không được phép' });
 }
 
-// ✅ Các hàm database
+// ✅ Các hàm utility
 
 // Tạo session token bảo mật
 function generateSessionToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+// ✅ Tạo Discord Avatar URL đầy đủ - HÀM QUAN TRỌNG
+function getDiscordAvatarUrl(userId, avatarHash, size = 256) {
+  if (!avatarHash) {
+    // Nếu không có avatar, sử dụng default avatar
+    const defaultAvatarNumber = parseInt(userId) % 5;
+    return `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
+  }
+  
+  // Kiểm tra định dạng avatar (animated GIF hay static PNG)
+  const extension = avatarHash.startsWith('a_') ? 'gif' : 'png';
+  return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${extension}?size=${size}`;
+}
+
+// Format dữ liệu user với avatar URL đầy đủ
+function formatUserData(userData) {
+  if (!userData) return null;
+  
+  const avatarUrl = getDiscordAvatarUrl(userData.discord_id, userData.avatar);
+  
+  return {
+    ...userData,
+    avatarUrl: avatarUrl,
+    displayName: userData.global_name || userData.username || 'Unknown User'
+  };
+}
+
+// Kiểm tra và khởi tạo database
+async function initializeDatabase() {
+  try {
+    // Kiểm tra bảng user_sessions có tồn tại không
+    const { data, error } = await supabase
+      .from('user_sessions')
+      .select('id')
+      .limit(1);
+
+    if (error && error.code === '42P01') {
+      console.log('🚨 Bảng user_sessions chưa tồn tại. Vui lòng tạo bảng bằng SQL script được cung cấp.');
+      return false;
+    }
+
+    console.log('✅ Database đã sẵn sàng');
+    return true;
+  } catch (error) {
+    console.error('Lỗi kiểm tra database:', error);
+    return false;
+  }
 }
 
 // Migration dữ liệu từ memory sang database
@@ -365,7 +425,7 @@ async function saveOrUpdateUser(userData, guildsCount) {
         username: userData.username,
         discriminator: userData.discriminator || '0',
         global_name: userData.global_name,
-        avatar: userData.avatar,
+        avatar: userData.avatar, // Lưu hash avatar thay vì URL đầy đủ
         guilds_count: guildsCount,
         last_login: new Date().toISOString(),
         updated_at: new Date().toISOString()
