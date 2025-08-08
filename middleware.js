@@ -217,18 +217,17 @@ const SUSPICIOUS_PATHS = [
 ];
 
 const DDOS_PATTERNS = [
-  /\.\.(\/|\KATEX_INLINE_CLOSE/,
-  /<script/i,
-  /union.*select/i,
-  /javascript:/i,
-  /vbscript:/i,
-  /onload=/i,
-  /onerror=/i,
-  /evalKATEX_INLINE_OPEN/i,
-  /execKATEX_INLINE_OPEN/i,
-  /systemKATEX_INLINE_OPEN/i
+  /\.\.(\/|\KATEX_INLINE_CLOSE/,               
+  /<script/i,                  
+  /union.*select/i,            
+  /javascript:/i,              
+  /vbscript:/i,                
+  /onload=/i,                 
+  /onerror=/i,                 
+  /evalKATEX_INLINE_OPEN/i,                   
+  /execKATEX_INLINE_OPEN/i,                   
+  /systemKATEX_INLINE_OPEN/i                  
 ];
-
 const ADMIN_IPS = ['42.118.42.236'];
 
 const ipCache = new Map();
