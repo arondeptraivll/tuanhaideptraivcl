@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 
 const VIETNAM_IP_RANGES = [
   ['1.52.0.0', '1.55.255.255'],
