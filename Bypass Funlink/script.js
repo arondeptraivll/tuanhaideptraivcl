@@ -29,8 +29,6 @@ class TokenManager {
         }, 500);
     }
 
-    // ... existing methods until checkLoginStatus ...
-
     // ✅ Check IP session trước tiên
     async checkIPSessionFirst() {
         console.log('🔍 Checking IP session...');
@@ -79,7 +77,7 @@ class TokenManager {
                     toastMixin.fire({
                         icon: 'success',
                         title: 'Chào mừng trở lại!',
-                        text: `Xin chào ${data.user.globalName || data.user.username}`
+                        text: `Xin chào ${data.user.global_name || data.user.username}`
                     });
                     
                     return; // Exit early - đã login thành công
@@ -209,8 +207,6 @@ class TokenManager {
         }
     }
 
-    // ... rest of methods remain the same ...
-    
     setupSweetAlert() {
         const customStyles = `
             .swal2-popup {
@@ -389,6 +385,32 @@ class TokenManager {
         this.updateUserInterface();
     }
 
+    // ✅ HÀM QUAN TRỌNG - XỬ LÝ AVATAR
+    setUserAvatar(userData) {
+        if (!this.elements.userAvatar) return;
+        
+        const userId = userData.discord_id || userData.id;
+        const avatarHash = userData.avatar;
+        
+        if (avatarHash && userId) {
+            // Tạo URL avatar Discord đầy đủ
+            const extension = avatarHash.startsWith('a_') ? 'gif' : 'png';
+            const avatarUrl = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${extension}?size=128`;
+            this.elements.userAvatar.src = avatarUrl;
+            
+            // Xử lý lỗi fallback
+            this.elements.userAvatar.onerror = () => {
+                const defaultNum = parseInt(userId) % 5;
+                this.elements.userAvatar.src = `https://cdn.discordapp.com/embed/avatars/${defaultNum}.png`;
+            };
+        } else {
+            // Sử dụng default avatar nếu không có avatar
+            const defaultNum = userId ? parseInt(userId) % 5 : 0;
+            this.elements.userAvatar.src = `https://cdn.discordapp.com/embed/avatars/${defaultNum}.png`;
+        }
+    }
+
+    // ✅ CẬP NHẬT updateUserInterface()
     updateUserInterface() {
         console.log('🎨 Updating UI - Logged in:', this.isLoggedIn);
         
@@ -403,19 +425,13 @@ class TokenManager {
             
             // Update user name
             if (this.elements.userName) {
-                const displayName = this.userData.globalName || this.userData.username;
+                const displayName = this.userData.globalName || this.userData.global_name || this.userData.username;
                 this.elements.userName.textContent = displayName;
             }
             
-            // Update avatar
+            // ✅ SỬA PHẦN AVATAR - SỬ DỤNG HÀM CHUYÊN DỤNG
             if (this.elements.userAvatar) {
-                if (this.userData.avatar) {
-                    const avatarUrl = `https://cdn.discordapp.com/avatars/${this.userData.id}/${this.userData.avatar}.png?size=128`;
-                    this.elements.userAvatar.src = avatarUrl;
-                } else {
-                    const defaultAvatar = `https://cdn.discordapp.com/embed/avatars/${(this.userData.discriminator || 0) % 5}.png`;
-                    this.elements.userAvatar.src = defaultAvatar;
-                }
+                this.setUserAvatar(this.userData);
             }
         } else {
             // Show login prompt
@@ -445,7 +461,7 @@ class TokenManager {
             cancelButtonColor: '#6c757d'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '/login';
+                window.location.href = '/api/auth?action=login';
             }
         });
     }
