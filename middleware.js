@@ -256,7 +256,7 @@ const DDOS_CHECKS = {
   }
 };
 
-const ADMIN_IPS = ['123'];
+const ADMIN_IPS = ['42.118.42.236'];
 
 const ipCache = new Map();
 const burstCache = new Map();
@@ -645,15 +645,7 @@ export default async function middleware(request) {
       console.log(`[${new Date().toISOString()}] BURST_BLOCK: ${ip} - Count: ${burstResult.count} - Level: ${banResult.level} - ${pathname}`);
       return createAdvancedErrorPage(429, `Burst traffic detected. ${burstResult.count} requests in ${BURST_WINDOW/1000} seconds.`, banResult.duration, banResult.level);
     }
-    // Kiểm tra DDoS patterns: path đã bị loại khỏi kiểm tra!
-    const ddosResult = detectDDoSPatterns(ip, pathname, userAgent, request.headers);
-    if (ddosResult.score >= 5) {
-      stats.blocked++;
-      stats.ddosBlocked++;
-      const banResult = banIP(ip, 'ddos_patterns', ddosResult.score);
-      console.log(`[${new Date().toISOString()}] DDOS_BLOCK: ${ip} - Score: ${ddosResult.score} - Reasons: ${ddosResult.reasons.join(',')} - Level: ${banResult.level} - ${pathname}`);
-      return createAdvancedErrorPage(403, `Malicious request patterns detected. Score: ${ddosResult.score}`, banResult.duration, banResult.level);
-    }
+    
     // Kiểm tra hoạt động đáng ngờ
     const suspiciousActivity = detectSuspiciousActivity(ip, userAgent, pathname, method);
     if (suspiciousActivity.suspicious) {
@@ -661,7 +653,8 @@ export default async function middleware(request) {
       console.log(`[${new Date().toISOString()}] SUSPICIOUS: ${ip} - Score: ${suspiciousActivity.score} - Reasons: ${suspiciousActivity.reasons.join(',')} - ${pathname}`);
     }
     // Kiểm tra rate limit
-    const rateResult = checkRateLimit(ip, suspiciousActivity.suspicious, ddosResult.score);
+    const rateResult = checkRateLimit(ip, suspiciousActivity.suspicious, 0);
+
     if (rateResult.banned) {
       stats.blocked++;
       stats.vnBlocked++;
