@@ -207,25 +207,56 @@ const VIETNAM_IP_RANGES = [
 const SUSPICIOUS_UAS = [
   'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 'curl', 'wget', 
   'python', 'go-http', 'masscan', 'nmap', 'sqlmap', 'fuzz', 'attack', 'exploit', 
-  'penetration', 'test', 'probe', 'automation', 'headless', 'phantom'
+  'penetration', 'test', 'probe', 'automation', 'headless', 'phantom', 'selenium',
+  'puppeteer', 'playwright', 'requests', 'urllib', 'httpx', 'aiohttp', 'scrapy'
 ];
 
 const SUSPICIOUS_PATHS = [
   '/admin', '/wp-admin', '/phpmyadmin', '/.env', '/config', '/api/v1', 
-  '/wp-content', '/wp-includes', '/.git', '/backup', '/database'
+  '/wp-content', '/wp-includes', '/.git', '/backup', '/database', '/shell',
+  '/phpinfo', '/info.php', '/test.php', '/debug', '/console', '/manager',
+  '/xmlrpc.php', '/wp-login.php', '/administrator', '/cpanel', '/cgi-bin'
+];
+
+const DDOS_PATTERNS = [
+  /\.\.(\/|\KATEX_INLINE_CLOSE/,
+  /<script/i,
+  /union.*select/i,
+  /javascript:/i,
+  /vbscript:/i,
+  /onload=/i,
+  /onerror=/i,
+  /evalKATEX_INLINE_OPEN/i,
+  /execKATEX_INLINE_OPEN/i,
+  /systemKATEX_INLINE_OPEN/i
 ];
 
 const ADMIN_IPS = ['42.118.42.236'];
 
 const ipCache = new Map();
+const burstCache = new Map();
+const patternCache = new Map();
+const fingerprints = new Map();
 const suspiciousCache = new Map();
-const bannedIPs = new Set();
+const bannedIPs = new Map();
+const goodIPs = new Set();
+
 const stats = { 
   requests: 0, 
   blocked: 0, 
   suspicious: 0,
+  ddosBlocked: 0,
+  burstBlocked: 0,
+  patternBlocked: 0,
+  vnBlocked: 0,
+  foreignBlocked: 0,
   startTime: Date.now()
 };
+
+const BAN_DURATION = 15 * 60 * 1000;
+const BURST_WINDOW = 10000;
+const BURST_THRESHOLD = 50;
+const PATTERN_THRESHOLD = 3;
 
 function getIP(request) {
   const headers = [
@@ -280,6 +311,79 @@ function isVN(ip) {
   });
 }
 
+function createFingerprint(request, ip) {
+  const userAgent = request.headers.get('user-agent') || '';
+  const acceptLang = request.headers.get('accept-language') || '';
+  const acceptEnc = request.headers.get('accept-encoding') || '';
+  const connection = request.headers.get('connection') || '';
+  
+  return btoa(`${ip}:${userAgent.substring(0, 50)}:${acceptLang}:${acceptEnc}:${connection}`);
+}
+
+function detectDDoSPatterns(ip, path, userAgent, headers) {
+  const now = Date.now();
+  let ddosScore = 0;
+  const reasons = [];
+
+  if (DDOS_PATTERNS.some(pattern => pattern.test(path) || pattern.test(userAgent))) {
+    ddosScore += 5;
+    reasons.push('malicious_payload');
+  }
+
+  if (path.length > 500 || userAgent.length > 1000) {
+    ddosScore += 3;
+    reasons.push('oversized_headers');
+  }
+
+  const queryParams = new URL(`http://dummy${path}`).searchParams;
+  if (queryParams.toString().length > 1000) {
+    ddosScore += 3;
+    reasons.push('excessive_params');
+  }
+
+  if (!headers.get('accept') || !headers.get('accept-language')) {
+    ddosScore += 2;
+    reasons.push('minimal_headers');
+  }
+
+  const pathKey = `${ip}_path`;
+  const pathHistory = patternCache.get(pathKey) || [];
+  pathHistory.push({ path, time: now });
+  
+  const recentPaths = pathHistory.filter(p => now - p.time < 60000);
+  patternCache.set(pathKey, recentPaths);
+
+  const uniquePaths = new Set(recentPaths.map(p => p.path)).size;
+  if (recentPaths.length > 20 && uniquePaths < 3) {
+    ddosScore += 4;
+    reasons.push('repetitive_paths');
+  }
+
+  if (recentPaths.length > 100) {
+    ddosScore += 5;
+    reasons.push('excessive_requests');
+  }
+
+  return { score: ddosScore, reasons };
+}
+
+function detectBurstTraffic(ip) {
+  const now = Date.now();
+  const burstKey = `${ip}_burst`;
+  
+  let bursts = burstCache.get(burstKey) || [];
+  bursts = bursts.filter(timestamp => now - timestamp < BURST_WINDOW);
+  bursts.push(now);
+  
+  burstCache.set(burstKey, bursts);
+  
+  if (bursts.length >= BURST_THRESHOLD) {
+    return { burst: true, count: bursts.length };
+  }
+  
+  return { burst: false, count: bursts.length };
+}
+
 function detectSuspiciousActivity(ip, userAgent, path, method) {
   let suspicionScore = 0;
   const reasons = [];
@@ -294,8 +398,8 @@ function detectSuspiciousActivity(ip, userAgent, path, method) {
     reasons.push('suspicious_path');
   }
   
-  if (method !== 'GET' && method !== 'POST') {
-    suspicionScore += 1;
+  if (!['GET', 'POST', 'HEAD', 'OPTIONS'].includes(method)) {
+    suspicionScore += 2;
     reasons.push('unusual_method');
   }
   
@@ -308,6 +412,16 @@ function detectSuspiciousActivity(ip, userAgent, path, method) {
     suspicionScore += 1;
     reasons.push('oversized_ua');
   }
+
+  if (path.includes('..') || path.includes('%2e%2e')) {
+    suspicionScore += 4;
+    reasons.push('path_traversal');
+  }
+
+  if (/[<>'"&]/.test(path)) {
+    suspicionScore += 2;
+    reasons.push('special_chars');
+  }
   
   const existing = suspiciousCache.get(ip) || { score: 0, reasons: [], count: 0 };
   existing.score = Math.max(existing.score, suspicionScore);
@@ -315,7 +429,7 @@ function detectSuspiciousActivity(ip, userAgent, path, method) {
   existing.count++;
   existing.lastSeen = Date.now();
   
-  if (existing.score >= 3 || existing.count >= 5) {
+  if (existing.score >= 4 || existing.count >= 10) {
     suspiciousCache.set(ip, existing);
     return { suspicious: true, score: existing.score, reasons: existing.reasons };
   }
@@ -327,12 +441,117 @@ function detectSuspiciousActivity(ip, userAgent, path, method) {
   return { suspicious: false, score: suspicionScore, reasons };
 }
 
-function checkRateLimit(ip, isVietnam, suspicious = false) {
-  const now = Date.now();
-  let limit = isVietnam ? 20 : 3;
+function isIPBanned(ip) {
+  const banInfo = bannedIPs.get(ip);
+  if (!banInfo) return false;
   
-  if (suspicious) limit = Math.floor(limit * 0.5);
-  if (bannedIPs.has(ip)) return { allowed: false, banned: true };
+  const now = Date.now();
+  if (now - banInfo.timestamp > banInfo.duration) {
+    bannedIPs.delete(ip);
+    return false;
+  }
+  
+  return {
+    banned: true,
+    timeLeft: banInfo.duration - (now - banInfo.timestamp),
+    reason: banInfo.reason,
+    level: banInfo.level
+  };
+}
+
+function calculateBanDuration(violations, level = 1) {
+  const baseDuration = BAN_DURATION;
+  const multiplier = Math.min(level * 2, 8);
+  return baseDuration * multiplier;
+}
+
+function banIP(ip, reason, violations = 1) {
+  const existing = bannedIPs.get(ip);
+  const level = existing ? existing.level + 1 : 1;
+  const duration = calculateBanDuration(violations, level);
+  
+  bannedIPs.set(ip, {
+    timestamp: Date.now(),
+    reason,
+    violations,
+    level,
+    duration
+  });
+  
+  goodIPs.delete(ip);
+  
+  return { banned: true, level, duration };
+}
+
+function cleanExpiredEntries() {
+  const now = Date.now();
+  const expireTime = 300000;
+  
+  for (const [key, data] of ipCache) {
+    if (Array.isArray(data)) {
+      const filtered = data.filter(item => now - item.time < expireTime);
+      if (filtered.length === 0) {
+        ipCache.delete(key);
+      } else {
+        ipCache.set(key, filtered);
+      }
+    } else if (typeof data === 'object' && data.time && now - data.time > expireTime) {
+      ipCache.delete(key);
+    }
+  }
+  
+  for (const [ip, banInfo] of bannedIPs) {
+    if (now - banInfo.timestamp > banInfo.duration) {
+      bannedIPs.delete(ip);
+    }
+  }
+  
+  for (const [key, data] of burstCache) {
+    const filtered = data.filter(timestamp => now - timestamp < BURST_WINDOW);
+    if (filtered.length === 0) {
+      burstCache.delete(key);
+    } else {
+      burstCache.set(key, filtered);
+    }
+  }
+  
+  for (const [key, data] of patternCache) {
+    const filtered = data.filter(item => now - item.time < 60000);
+    if (filtered.length === 0) {
+      patternCache.delete(key);
+    } else {
+      patternCache.set(key, filtered);
+    }
+  }
+  
+  for (const [key, data] of suspiciousCache) {
+    if (now - data.lastSeen > 3600000) {
+      suspiciousCache.delete(key);
+    }
+  }
+}
+
+function checkRateLimit(ip, suspicious = false, ddosScore = 0) {
+  const now = Date.now();
+  let baseLimit = 20;
+  
+  if (suspicious) baseLimit = Math.floor(baseLimit * 0.6);
+  if (ddosScore >= 3) baseLimit = Math.floor(baseLimit * 0.3);
+  
+  const banStatus = isIPBanned(ip);
+  if (banStatus.banned) {
+    return { 
+      allowed: false, 
+      banned: true, 
+      timeLeft: banStatus.timeLeft,
+      reason: banStatus.reason,
+      level: banStatus.level
+    };
+  }
+  
+  if (goodIPs.has(ip) && !suspicious && ddosScore === 0) {
+    baseLimit = Math.floor(baseLimit * 1.5);
+  }
   
   const window = Math.floor(now / 60000);
   const key = `${ip}_${window}`;
@@ -340,25 +559,30 @@ function checkRateLimit(ip, isVietnam, suspicious = false) {
   const current = ipCache.get(key) || 0;
   ipCache.set(key, current + 1);
   
-  if (ipCache.size > 100000) {
-    const expired = Array.from(ipCache.keys()).filter(k => 
-      parseInt(k.split('_')[1]) < window - 5
-    );
-    expired.forEach(k => ipCache.delete(k));
-  }
+  const allowed = current + 1 <= baseLimit;
   
-  const allowed = current + 1 <= limit;
-  
-  if (!allowed && current + 1 > limit * 2) {
-    bannedIPs.add(ip);
-    return { allowed: false, banned: true, violations: current + 1 };
+  if (!allowed) {
+    const violations = current + 1 - baseLimit;
+    
+    if (violations >= baseLimit * 1.5) {
+      const banResult = banIP(ip, 'rate_limit_exceeded', violations);
+      return { 
+        allowed: false, 
+        banned: true, 
+        violations,
+        level: banResult.level,
+        banDuration: banResult.duration
+      };
+    }
+  } else if (current + 1 <= baseLimit * 0.5 && !suspicious && ddosScore === 0) {
+    goodIPs.add(ip);
   }
   
   return { 
     allowed, 
     count: current + 1, 
-    limit, 
-    violations: allowed ? 0 : current + 1 - limit 
+    limit: baseLimit, 
+    violations: allowed ? 0 : current + 1 - baseLimit 
   };
 }
 
@@ -411,21 +635,13 @@ function getThemeConfig(code) {
       message: 'An unexpected error occurred. Please try again later.',
       primaryColor: '#88d8a3',
       accentColor: '#a8e6cf'
-    },
-    503: {
-      gradient: 'linear-gradient(135deg, #d1a3ff 0%, #a8e6cf 100%)',
-      icon: '🚧',
-      title: 'Service Unavailable',
-      message: 'The service is temporarily unavailable. Please try again later.',
-      primaryColor: '#a8e6cf',
-      accentColor: '#d1a3ff'
     }
   };
   
   return themes[code] || themes[500];
 }
 
-function createAdvancedErrorPage(code, customMessage = null) {
+function createAdvancedErrorPage(code, customMessage = null, timeLeft = null, level = 1) {
   const theme = getThemeConfig(code);
   const message = customMessage || theme.message;
   
@@ -442,13 +658,11 @@ function createAdvancedErrorPage(code, customMessage = null) {
             --accent-color: ${theme.accentColor};
             --background: ${theme.gradient};
         }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--background);
@@ -460,7 +674,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             overflow: hidden;
             position: relative;
         }
-
         .animated-bg {
             position: absolute;
             top: 0;
@@ -473,13 +686,11 @@ function createAdvancedErrorPage(code, customMessage = null) {
                 radial-gradient(circle at 40% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
             animation: float 15s ease-in-out infinite;
         }
-
         @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
             33% { transform: translateY(-20px) rotate(1deg); }
             66% { transform: translateY(-10px) rotate(-1deg); }
         }
-
         .container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -496,7 +707,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             z-index: 10;
             animation: slideIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -507,7 +717,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
                 transform: translateY(0) scale(1);
             }
         }
-
         .error-icon {
             font-size: 4rem;
             margin-bottom: 1.5rem;
@@ -515,13 +724,11 @@ function createAdvancedErrorPage(code, customMessage = null) {
             animation: bounce 2s ease-in-out infinite;
             filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
         }
-
         @keyframes bounce {
             0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
             40% { transform: translateY(-10px); }
             60% { transform: translateY(-5px); }
         }
-
         .error-code {
             font-size: 4rem;
             font-weight: 700;
@@ -532,7 +739,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             margin-bottom: 1rem;
             letter-spacing: -2px;
         }
-
         .error-title {
             font-size: 2rem;
             font-weight: 600;
@@ -540,7 +746,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             margin-bottom: 1rem;
             line-height: 1.3;
         }
-
         .divider {
             width: 100px;
             height: 3px;
@@ -550,7 +755,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             position: relative;
             overflow: hidden;
         }
-
         .divider::after {
             content: '';
             position: absolute;
@@ -561,12 +765,10 @@ function createAdvancedErrorPage(code, customMessage = null) {
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
             animation: shimmer 2s infinite;
         }
-
         @keyframes shimmer {
             0% { left: -100%; }
             100% { left: 100%; }
         }
-
         .error-message {
             font-size: 1.1rem;
             color: #718096;
@@ -574,7 +776,30 @@ function createAdvancedErrorPage(code, customMessage = null) {
             margin-bottom: 2rem;
             font-weight: 400;
         }
-
+        .ban-notice {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            color: #dc2626;
+        }
+        .ban-timer {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 1rem 0;
+        }
+        .ban-level {
+            display: inline-block;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+        }
         .status-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -585,12 +810,10 @@ function createAdvancedErrorPage(code, customMessage = null) {
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.3);
         }
-
         .status-item {
             text-align: center;
             padding: 0.5rem;
         }
-
         .status-label {
             font-size: 0.85rem;
             color: #a0aec0;
@@ -599,13 +822,11 @@ function createAdvancedErrorPage(code, customMessage = null) {
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-
         .status-value {
             font-size: 1.1rem;
             color: #4a5568;
             font-weight: 600;
         }
-
         .action-buttons {
             display: flex;
             gap: 1rem;
@@ -613,7 +834,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             flex-wrap: wrap;
             margin: 2rem 0;
         }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -629,28 +849,28 @@ function createAdvancedErrorPage(code, customMessage = null) {
             position: relative;
             overflow: hidden;
         }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             color: white;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
-
         .btn-secondary {
             background: rgba(255, 255, 255, 0.8);
             color: #4a5568;
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
-
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
         }
-
         .btn:active {
             transform: translateY(0);
         }
-
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
         .security-notice {
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.1));
             border: 1px solid rgba(34, 197, 94, 0.2);
@@ -663,7 +883,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             font-size: 0.9rem;
             color: #059669;
         }
-
         .footer {
             margin-top: 2rem;
             padding-top: 1.5rem;
@@ -672,7 +891,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             color: #a0aec0;
             line-height: 1.6;
         }
-
         .particle {
             position: absolute;
             background: rgba(255, 255, 255, 0.4);
@@ -680,7 +898,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
             pointer-events: none;
             animation: particleFloat 12s linear infinite;
         }
-
         @keyframes particleFloat {
             0% {
                 transform: translateY(100vh) rotate(0deg);
@@ -693,36 +910,29 @@ function createAdvancedErrorPage(code, customMessage = null) {
                 opacity: 0;
             }
         }
-
         @media (max-width: 640px) {
             .container {
                 padding: 2rem 1.5rem;
                 margin: 1rem;
             }
-            
             .error-code {
                 font-size: 3rem;
             }
-            
             .error-title {
                 font-size: 1.5rem;
             }
-            
             .status-grid {
                 grid-template-columns: 1fr;
             }
-            
             .action-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-            
             .btn {
                 width: 100%;
                 max-width: 280px;
             }
         }
-
         .countdown {
             font-weight: 600;
             color: var(--primary-color);
@@ -731,7 +941,6 @@ function createAdvancedErrorPage(code, customMessage = null) {
 </head>
 <body>
     <div class="animated-bg"></div>
-    
     ${Array.from({length: 8}, (_, i) => `
         <div class="particle" style="
             left: ${10 + i * 11}%; 
@@ -740,30 +949,35 @@ function createAdvancedErrorPage(code, customMessage = null) {
             animation-delay: ${i * 1.5}s;
         "></div>
     `).join('')}
-
     <div class="container">
         <div class="error-icon">${theme.icon}</div>
         <div class="error-code">${code}</div>
         <h1 class="error-title">${theme.title}</h1>
         <div class="divider"></div>
         <p class="error-message">${message}</p>
-        
+        ${timeLeft ? `
+            <div class="ban-notice">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚫</div>
+                <div><strong>Security Ban Active</strong></div>
+                ${level > 1 ? `<div class="ban-level">Level ${level} Offense</div>` : ''}
+                <div style="margin: 0.5rem 0; font-size: 0.9rem;">Multiple violations detected. Access temporarily restricted.</div>
+                <div class="ban-timer" id="banTimer">${Math.ceil(timeLeft / 1000)}s</div>
+            </div>
+        ` : ''}
         <div class="status-grid">
             <div class="status-item">
                 <div class="status-label">Status</div>
-                <div class="status-value">Restricted</div>
+                <div class="status-value">${timeLeft ? 'Security Ban' : 'Restricted'}</div>
             </div>
             <div class="status-item">
                 <div class="status-label">Time</div>
                 <div class="status-value">${new Date().toLocaleTimeString()}</div>
             </div>
         </div>
-
         <div class="security-notice">
             <span style="font-size: 1.2rem;">🔒</span>
-            <span>This site is protected by advanced security systems</span>
+            <span>Protected by advanced DDoS protection and behavioral analysis</span>
         </div>
-
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="handleRetry()" id="retryBtn">
                 <span>🔄</span>
@@ -774,56 +988,69 @@ function createAdvancedErrorPage(code, customMessage = null) {
                 <span>Go Back</span>
             </button>
         </div>
-
         <div class="footer">
-            <p><strong>Need assistance?</strong></p>
-            <p>If you continue to experience issues, please contact our support team.</p>
+            <p><strong>Security Notice</strong></p>
+            <p>Our systems continuously monitor for suspicious activity to protect all users.</p>
             <p style="margin-top: 0.75rem; opacity: 0.7;">
                 ${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}
-                <br>Request ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}
+                <br>Incident ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}
             </p>
         </div>
     </div>
-
     <script>
         function handleRetry() {
             window.location.reload();
         }
-
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.querySelector('.container');
-            
             container.addEventListener('mouseenter', function() {
                 this.style.transform = 'translateY(-5px) scale(1.02)';
                 this.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             });
-            
             container.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateY(0) scale(1)';
             });
-
-            ${code === 429 ? `
+            ${timeLeft ? `
+                let timeLeft = ${Math.ceil(timeLeft / 1000)};
+                const banTimer = document.getElementById('banTimer');
+                const retryBtn = document.getElementById('retryBtn');
+                function updateTimer() {
+                    if (timeLeft > 0) {
+                        const hours = Math.floor(timeLeft / 3600);
+                        const minutes = Math.floor((timeLeft % 3600) / 60);
+                        const seconds = timeLeft % 60;
+                        let display = '';
+                        if (hours > 0) display += hours + 'h ';
+                        if (minutes > 0) display += minutes + 'm ';
+                        display += seconds + 's';
+                        banTimer.textContent = display;
+                        retryBtn.innerHTML = \`<span>⏳</span><span class="countdown">Wait \${display}</span>\`;
+                        retryBtn.disabled = true;
+                        timeLeft--;
+                        setTimeout(updateTimer, 1000);
+                    } else {
+                        retryBtn.innerHTML = '<span>🔄</span><span>Try Again</span>';
+                        retryBtn.disabled = false;
+                        banTimer.textContent = 'Ban Expired';
+                    }
+                }
+                updateTimer();
+            ` : (code === 429 ? `
                 let countdown = 60;
                 const retryBtn = document.getElementById('retryBtn');
-                
                 function updateCountdown() {
                     if (countdown > 0) {
                         retryBtn.innerHTML = \`<span>⏳</span><span class="countdown">Wait \${countdown}s</span>\`;
                         retryBtn.disabled = true;
-                        retryBtn.style.opacity = '0.6';
-                        retryBtn.style.cursor = 'not-allowed';
                         countdown--;
                         setTimeout(updateCountdown, 1000);
                     } else {
                         retryBtn.innerHTML = '<span>🔄</span><span>Try Again</span>';
                         retryBtn.disabled = false;
-                        retryBtn.style.opacity = '1';
-                        retryBtn.style.cursor = 'pointer';
                     }
                 }
-                
                 updateCountdown();
-            ` : ''}
+            ` : '')}
         });
     </script>
 </body>
@@ -834,7 +1061,9 @@ function createAdvancedErrorPage(code, customMessage = null) {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'no-referrer'
+      'Referrer-Policy': 'no-referrer',
+      'X-XSS-Protection': '1; mode=block',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
     }
   });
 }
@@ -843,11 +1072,14 @@ export default async function middleware(request) {
   try {
     stats.requests++;
     
+    if (stats.requests % 500 === 0) {
+      cleanExpiredEntries();
+    }
+    
     const url = new URL(request.url);
-    const { pathname, search } = url;
+    const { pathname } = url;
     const method = request.method;
     const userAgent = request.headers.get('user-agent') || '';
-    const referer = request.headers.get('referer') || '';
     
     if (pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml|pdf|zip|rar|mp4|mp3|avi|mov)$/)) {
       return;
@@ -858,9 +1090,21 @@ export default async function middleware(request) {
       if (ADMIN_IPS.includes(ip) || !ip) {
         return new Response(JSON.stringify({
           stats,
-          activeConnections: ipCache.size,
-          suspiciousIPs: suspiciousCache.size,
-          bannedIPs: bannedIPs.size,
+          cacheStats: {
+            ipCache: ipCache.size,
+            burstCache: burstCache.size,
+            patternCache: patternCache.size,
+            suspiciousCache: suspiciousCache.size,
+            bannedIPs: bannedIPs.size,
+            goodIPs: goodIPs.size,
+            fingerprints: fingerprints.size
+          },
+          banDetails: Array.from(bannedIPs.entries()).slice(0, 50).map(([ip, info]) => ({
+            ip: ip.substring(0, 8) + '***',
+            timeLeft: Math.max(0, info.duration - (Date.now() - info.timestamp)),
+            reason: info.reason,
+            level: info.level
+          })),
           uptime: Math.floor((Date.now() - stats.startTime) / 1000)
         }), { headers: { 'Content-Type': 'application/json' } });
       }
@@ -870,7 +1114,7 @@ export default async function middleware(request) {
     const ip = getIP(request);
     if (!ip || !isValidIP(ip)) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] INVALID_IP: ${ip || 'null'} - ${pathname} - ${userAgent.substring(0, 100)}`);
+      console.log(`[${new Date().toISOString()}] INVALID_IP: ${ip || 'null'} - ${pathname}`);
       return createAdvancedErrorPage(400, 'Invalid or missing IP address in request.');
     }
     
@@ -879,37 +1123,63 @@ export default async function middleware(request) {
       return;
     }
     
-    if (bannedIPs.has(ip)) {
+    const vietnam = isVN(ip);
+    
+    if (!vietnam) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] BANNED_IP: ${ip} - ${pathname}`);
-      return createAdvancedErrorPage(403, 'Your IP address has been permanently blocked due to suspicious activity.');
+      stats.foreignBlocked++;
+      console.log(`[${new Date().toISOString()}] GEO_BLOCK: ${ip} - ${pathname}`);
+      return createAdvancedErrorPage(403, 'This service is currently only available to users located in Vietnam.');
+    }
+
+    const fingerprint = createFingerprint(request, ip);
+    fingerprints.set(ip, fingerprint);
+
+    const burstResult = detectBurstTraffic(ip);
+    if (burstResult.burst) {
+      stats.blocked++;
+      stats.burstBlocked++;
+      const banResult = banIP(ip, 'burst_traffic', burstResult.count);
+      console.log(`[${new Date().toISOString()}] BURST_BLOCK: ${ip} - Count: ${burstResult.count} - Level: ${banResult.level} - ${pathname}`);
+      return createAdvancedErrorPage(429, `Burst traffic detected. ${burstResult.count} requests in ${BURST_WINDOW/1000} seconds.`, banResult.duration, banResult.level);
+    }
+
+    const ddosResult = detectDDoSPatterns(ip, pathname, userAgent, request.headers);
+    if (ddosResult.score >= 5) {
+      stats.blocked++;
+      stats.ddosBlocked++;
+      const banResult = banIP(ip, 'ddos_patterns', ddosResult.score);
+      console.log(`[${new Date().toISOString()}] DDOS_BLOCK: ${ip} - Score: ${ddosResult.score} - Reasons: ${ddosResult.reasons.join(',')} - Level: ${banResult.level} - ${pathname}`);
+      return createAdvancedErrorPage(403, `Malicious request patterns detected. Score: ${ddosResult.score}`, banResult.duration, banResult.level);
     }
     
     const suspiciousActivity = detectSuspiciousActivity(ip, userAgent, pathname, method);
     if (suspiciousActivity.suspicious) {
       stats.suspicious++;
-      console.log(`[${new Date().toISOString()}] SUSPICIOUS: ${ip} - Score: ${suspiciousActivity.score} - Reasons: ${suspiciousActivity.reasons.join(',')} - ${pathname} - ${userAgent.substring(0, 100)}`);
+      console.log(`[${new Date().toISOString()}] SUSPICIOUS: ${ip} - Score: ${suspiciousActivity.score} - Reasons: ${suspiciousActivity.reasons.join(',')} - ${pathname}`);
     }
     
-    const vietnam = isVN(ip);
-    const rateResult = checkRateLimit(ip, vietnam, suspiciousActivity.suspicious);
+    const rateResult = checkRateLimit(ip, suspiciousActivity.suspicious, ddosResult.score);
     
     if (rateResult.banned) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] AUTO_BAN: ${ip} - Violations: ${rateResult.violations} - Type: ${vietnam ? 'VN' : 'FOREIGN'} - ${pathname}`);
-      return createAdvancedErrorPage(403, 'Access denied due to repeated policy violations.');
+      stats.vnBlocked++;
+      const timeLeft = rateResult.timeLeft || 0;
+      console.log(`[${new Date().toISOString()}] ${rateResult.timeLeft ? 'TEMP_BAN' : 'AUTO_BAN'}: ${ip} - Violations: ${rateResult.violations} - Level: ${rateResult.level || 1} - TimeLeft: ${Math.ceil(timeLeft/1000)}s - ${pathname}`);
+      return createAdvancedErrorPage(403, 
+        rateResult.timeLeft ? 
+          `Security ban active. Multiple violations detected. Level ${rateResult.level || 1} offense.` :
+          'Access denied due to repeated policy violations.', 
+        timeLeft,
+        rateResult.level || 1
+      );
     }
     
     if (!rateResult.allowed) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] RATE_LIMIT: ${ip} - ${rateResult.count}/${rateResult.limit} - Violations: ${rateResult.violations} - Type: ${vietnam ? 'VN' : 'FOREIGN'} - Suspicious: ${suspiciousActivity.suspicious} - ${pathname} - ${userAgent.substring(0, 100)}`);
+      stats.vnBlocked++;
+      console.log(`[${new Date().toISOString()}] RATE_LIMIT: ${ip} - ${rateResult.count}/${rateResult.limit} - Violations: ${rateResult.violations} - ${pathname}`);
       return createAdvancedErrorPage(429, `Request rate exceeded. You have made ${rateResult.count} requests when the limit is ${rateResult.limit} per minute.`);
-    }
-    
-    if (!vietnam) {
-      stats.blocked++;
-      console.log(`[${new Date().toISOString()}] GEO_BLOCK: ${ip} - Country: ${request.headers.get('cf-ipcountry') || 'Unknown'} - ${pathname} - ${userAgent.substring(0, 100)}`);
-      return createAdvancedErrorPage(403, 'This service is currently only available to users located in Vietnam.');
     }
     
     if (pathname === '/robots.txt') {
@@ -918,13 +1188,13 @@ export default async function middleware(request) {
       });
     }
     
-    if (Math.random() < 0.005) {
-      console.log(`[${new Date().toISOString()}] ALLOW: ${ip} - ${method} ${pathname} - ${rateResult.count}/${rateResult.limit} - ${userAgent.substring(0, 50)}`);
+    if (Math.random() < 0.001) {
+      console.log(`[${new Date().toISOString()}] ALLOW: ${ip} - ${method} ${pathname} - ${rateResult.count}/${rateResult.limit}`);
     }
     
   } catch (error) {
     stats.blocked++;
-    console.log(`[${new Date().toISOString()}] CRITICAL_ERROR: ${error.message} - Stack: ${error.stack?.substring(0, 200)}`);
+    console.log(`[${new Date().toISOString()}] CRITICAL_ERROR: ${error.message}`);
     return createAdvancedErrorPage(500, 'An unexpected error occurred while processing your request.');
   }
 }
