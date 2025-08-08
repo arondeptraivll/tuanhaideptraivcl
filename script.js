@@ -1,1 +1,371 @@
-const _0x108360=_0x3fd1;(function(_0x548d90,_0x4d3516){const _0x2216a5=_0x3fd1,_0x38a824=_0x548d90();while(!![]){try{const _0xe00513=-parseInt(_0x2216a5(0x1f8))/0x1+parseInt(_0x2216a5(0x1e3))/0x2*(parseInt(_0x2216a5(0x1cd))/0x3)+parseInt(_0x2216a5(0x20e))/0x4*(-parseInt(_0x2216a5(0x1bd))/0x5)+parseInt(_0x2216a5(0x1e9))/0x6*(parseInt(_0x2216a5(0x1e5))/0x7)+-parseInt(_0x2216a5(0x1d6))/0x8+parseInt(_0x2216a5(0x205))/0x9*(-parseInt(_0x2216a5(0x1d1))/0xa)+parseInt(_0x2216a5(0x1ef))/0xb*(parseInt(_0x2216a5(0x1d2))/0xc);if(_0xe00513===_0x4d3516)break;else _0x38a824['push'](_0x38a824['shift']());}catch(_0x468ff1){_0x38a824['push'](_0x38a824['shift']());}}}(_0x3168,0xb824f));const loginPrompt=document['getElementById'](_0x108360(0x1c5)),userInfo=document['getElementById'](_0x108360(0x1da)),userAvatar=document[_0x108360(0x21b)](_0x108360(0x1c6)),userName=document[_0x108360(0x21b)](_0x108360(0x21a)),userMenuBtn=document[_0x108360(0x21b)](_0x108360(0x1bf)),dropdownMenu=document['getElementById'](_0x108360(0x203)),logoutBtn=document['getElementById']('logoutBtn'),AUTH_API=_0x108360(0x1dd);document[_0x108360(0x218)](_0x108360(0x1f1),function(){checkLoginStatus(),checkLoginWelcome(),setupUserMenu();});async function checkLoginStatus(){const _0x4fdb9c=_0x108360,_0x861f9b=localStorage[_0x4fdb9c(0x1f5)](_0x4fdb9c(0x20d));if(!_0x861f9b){showLoginButton();return;}try{const _0x1023e1=await fetch(AUTH_API+_0x4fdb9c(0x1ee));if(_0x1023e1['ok']){const _0x50133c=await _0x1023e1['json']();if(_0x50133c[_0x4fdb9c(0x1cb)]&&_0x50133c[_0x4fdb9c(0x1f2)]){console[_0x4fdb9c(0x1f0)](_0x4fdb9c(0x221)),showUserInfo(_0x50133c['user']);return;}}const _0x3e372c=await fetch(AUTH_API+_0x4fdb9c(0x1fa),{'headers':{'Authorization':'Bearer\x20'+_0x861f9b,'Content-Type':_0x4fdb9c(0x1c8)}});if(_0x3e372c['ok']){const _0x177b4b=await _0x3e372c['json']();if(_0x177b4b[_0x4fdb9c(0x211)]&&_0x177b4b['user']){showUserInfo(_0x177b4b[_0x4fdb9c(0x1f2)]);return;}}localStorage[_0x4fdb9c(0x217)](_0x4fdb9c(0x20d)),showLoginButton();}catch(_0x78e8cd){console[_0x4fdb9c(0x1e2)](_0x4fdb9c(0x1d5),_0x78e8cd);try{const _0x212246=JSON['parse'](atob(_0x861f9b));if(_0x212246['id']&&_0x212246[_0x4fdb9c(0x1c7)]){showUserInfo(_0x212246);return;}}catch(_0x5eaf7a){}showLoginButton();}}function showLoginButton(){const _0x368d47=_0x108360;loginPrompt[_0x368d47(0x202)][_0x368d47(0x22d)]=_0x368d47(0x1c1),userInfo[_0x368d47(0x202)][_0x368d47(0x22d)]=_0x368d47(0x1eb);}function showUserInfo(_0x3eabbd){const _0x24b63a=_0x108360;loginPrompt[_0x24b63a(0x202)]['display']=_0x24b63a(0x1eb),userInfo['style'][_0x24b63a(0x22d)]='flex',userName[_0x24b63a(0x21e)]=_0x3eabbd[_0x24b63a(0x1fd)]||_0x3eabbd[_0x24b63a(0x1c7)];if(_0x3eabbd[_0x24b63a(0x1db)])userAvatar[_0x24b63a(0x215)]='https://cdn.discordapp.com/avatars/'+_0x3eabbd['id']+'/'+_0x3eabbd['avatar']+_0x24b63a(0x1c3);else{const _0xb7e669=_0x24b63a(0x214)+(_0x3eabbd[_0x24b63a(0x1f6)]||0x0)%0x5+'.png';userAvatar[_0x24b63a(0x215)]=_0xb7e669;}}function setupUserMenu(){const _0x10745c=_0x108360;userMenuBtn?.[_0x10745c(0x218)](_0x10745c(0x1d3),_0x39c64b=>{const _0x4dcd60=_0x10745c;_0x39c64b[_0x4dcd60(0x22f)](),dropdownMenu[_0x4dcd60(0x1e7)][_0x4dcd60(0x22a)](_0x4dcd60(0x219));}),document[_0x10745c(0x218)](_0x10745c(0x1d3),()=>{const _0x43d70c=_0x10745c;dropdownMenu?.[_0x43d70c(0x1e7)][_0x43d70c(0x1d7)](_0x43d70c(0x219));}),logoutBtn?.['addEventListener']('click',async()=>{const _0x48ae3c=_0x10745c,_0x48a751=confirm(_0x48ae3c(0x201));if(!_0x48a751)return;localStorage[_0x48ae3c(0x217)](_0x48ae3c(0x20d));try{await fetch(AUTH_API+_0x48ae3c(0x223),{'method':_0x48ae3c(0x1ea)});}catch(_0x35e3ba){console[_0x48ae3c(0x1f0)](_0x48ae3c(0x1cf),_0x35e3ba);}showLoginButton(),showNotification(_0x48ae3c(0x1e8),_0x48ae3c(0x216));});}function checkLoginWelcome(){const _0x5b2011=_0x108360,_0x290f86=new URLSearchParams(window[_0x5b2011(0x220)]['search']),_0x570f9c=_0x290f86['get']('login_success'),_0x5d831c=_0x290f86[_0x5b2011(0x1e1)]('username'),_0xbebab4=_0x290f86[_0x5b2011(0x1e1)](_0x5b2011(0x213)),_0x3dbb9b=_0x290f86[_0x5b2011(0x1e1)](_0x5b2011(0x1db));console[_0x5b2011(0x1f0)](_0x5b2011(0x210),{'loginSuccess':_0x570f9c,'username':_0x5d831c,'userId':_0xbebab4,'avatar':_0x3dbb9b});if(_0x570f9c===_0x5b2011(0x226)&&_0x5d831c){const _0x496cc5=window[_0x5b2011(0x220)]['pathname'];window[_0x5b2011(0x22c)]['replaceState']({},document['title'],_0x496cc5),showNotification(_0x5b2011(0x200)+decodeURIComponent(_0x5d831c)+_0x5b2011(0x227),_0x5b2011(0x1ed));if(_0xbebab4){const _0x4e3448={'id':_0xbebab4,'username':decodeURIComponent(_0x5d831c),'globalName':decodeURIComponent(_0x5d831c),'avatar':_0x3dbb9b||null};showUserInfo(_0x4e3448);const _0x3460ee=btoa(JSON[_0x5b2011(0x209)](_0x4e3448));localStorage['setItem'](_0x5b2011(0x20d),_0x3460ee);}setTimeout(()=>{checkLoginStatus();},0x3e8);}}function showNotification(_0x4fef76,_0x3df362=_0x108360(0x1ed)){const _0x571d3a=_0x108360,_0xaf6e84=document['querySelectorAll'](_0x571d3a(0x1d9));_0xaf6e84[_0x571d3a(0x1d0)](_0x1aac0d=>_0x1aac0d[_0x571d3a(0x1d7)]());const _0x212e08=document[_0x571d3a(0x225)]('div');_0x212e08[_0x571d3a(0x230)]='auth-notification',_0x212e08[_0x571d3a(0x202)][_0x571d3a(0x1ca)]=_0x571d3a(0x1ce)+(_0x3df362===_0x571d3a(0x1ed)?'linear-gradient(135deg,\x20rgba(0,255,136,0.9),\x20rgba(0,204,255,0.9))':_0x571d3a(0x208))+_0x571d3a(0x1ec);const _0x29f92f=_0x3df362===_0x571d3a(0x1ed)?'✅':_0x3df362===_0x571d3a(0x216)?'ℹ️':'❌';_0x212e08[_0x571d3a(0x204)]=_0x571d3a(0x1e4)+_0x29f92f+_0x571d3a(0x228)+_0x4fef76+_0x571d3a(0x1d4),document[_0x571d3a(0x1c4)][_0x571d3a(0x1e0)](_0x212e08),setTimeout(()=>{const _0x458f23=_0x571d3a;_0x212e08[_0x458f23(0x202)][_0x458f23(0x207)]='translateX(-50%)\x20translateY(0)';},0x64),setTimeout(()=>{const _0x3e6404=_0x571d3a;_0x212e08[_0x3e6404(0x202)]['transform']=_0x3e6404(0x1e6),setTimeout(()=>_0x212e08[_0x3e6404(0x1d7)](),0x12c);},0xfa0);}const loginButton=document[_0x108360(0x212)](_0x108360(0x22e));if(loginButton){let loginDeg=0x0,loginAnimationId;const animateLoginRainbow=()=>{const _0x2ef514=_0x108360;loginDeg=(loginDeg+0x2)%0x168,loginButton[_0x2ef514(0x202)]['backgroundImage']='\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20linear-gradient(rgba(255,\x20255,\x20255,\x200.08),\x20rgba(255,\x20255,\x20255,\x200.08)),\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20conic-gradient(\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20from\x20'+loginDeg+_0x2ef514(0x1fe),loginAnimationId=requestAnimationFrame(animateLoginRainbow);};loginButton[_0x108360(0x218)](_0x108360(0x1f9),()=>{const _0x497da5=_0x108360;loginButton[_0x497da5(0x1e7)][_0x497da5(0x20c)](_0x497da5(0x1ff)),animateLoginRainbow();}),loginButton[_0x108360(0x218)](_0x108360(0x1c0),()=>{const _0x3f2860=_0x108360;cancelAnimationFrame(loginAnimationId),loginButton[_0x3f2860(0x1e7)][_0x3f2860(0x1d7)](_0x3f2860(0x1ff)),loginButton['style'][_0x3f2860(0x1de)]='',loginButton['style'][_0x3f2860(0x1fb)]=_0x3f2860(0x1f4),loginDeg=0x0;});}const avatarBorder=document[_0x108360(0x212)](_0x108360(0x22b));let deg=0x0,rainbowAnimId;function animateRainbowBorder(){const _0x2d1c8c=_0x108360;deg=(deg+0x1)%0x168,avatarBorder[_0x2d1c8c(0x202)][_0x2d1c8c(0x20b)]=_0x2d1c8c(0x1d8)+deg+'deg,\x20#ff0000,\x20#ff9900,\x20#ffee00,\x20#33ff00,\x20#00ffee,\x20#0066ff,\x20#cc00ff,\x20#ff0000)',rainbowAnimId=requestAnimationFrame(animateRainbowBorder);}document[_0x108360(0x218)](_0x108360(0x1c9),()=>{const _0x52a8ae=_0x108360;document[_0x52a8ae(0x229)]?cancelAnimationFrame(rainbowAnimId):animateRainbowBorder();}),animateRainbowBorder();const welcomeOverlay=document[_0x108360(0x21b)](_0x108360(0x20a)),enterBtn=document[_0x108360(0x212)](_0x108360(0x224)),bgAudio=document[_0x108360(0x21b)](_0x108360(0x21f)),bgVideo=document[_0x108360(0x21b)](_0x108360(0x222)),loadingSpinner=document[_0x108360(0x225)]('div');function _0x3fd1(_0x339f95,_0x27134f){const _0x31680b=_0x3168();return _0x3fd1=function(_0x3fd18d,_0x2a6601){_0x3fd18d=_0x3fd18d-0x1bd;let _0x4a6010=_0x31680b[_0x3fd18d];return _0x4a6010;},_0x3fd1(_0x339f95,_0x27134f);}loadingSpinner[_0x108360(0x230)]=_0x108360(0x1df),document[_0x108360(0x1c4)][_0x108360(0x1e0)](loadingSpinner),loadingSpinner['style'][_0x108360(0x22d)]=_0x108360(0x1eb),enterBtn[_0x108360(0x218)]('click',function(){const _0x35f61d=_0x108360;loadingSpinner['style'][_0x35f61d(0x22d)]=_0x35f61d(0x1c1),setTimeout(()=>{const _0x6cc040=_0x35f61d;welcomeOverlay[_0x6cc040(0x1e7)][_0x6cc040(0x20c)](_0x6cc040(0x229)),loadingSpinner[_0x6cc040(0x202)][_0x6cc040(0x22d)]=_0x6cc040(0x1eb);},0x1f4),playAudio(),playVideo();});function playAudio(){const _0x3e576f=_0x108360;bgAudio[_0x3e576f(0x20f)]=0x0,bgAudio['play']()[_0x3e576f(0x1f3)](_0x18776d=>{const _0x255ecc=_0x3e576f;console['log'](_0x255ecc(0x206),_0x18776d);});}function _0x3168(){const _0x34195c=['remove','conic-gradient(from\x20','.auth-notification','userInfo','avatar','pause','/api/auth','backgroundImage','loading-spinner','appendChild','get','error','1697618ZFbPdM','<span\x20style=\x22font-size:\x2016px\x22>','14bGOixj','translateX(-50%)\x20translateY(-100px)','classList','Đã\x20đăng\x20xuất\x20thành\x20công','2472588JkAudN','POST','none',';\x0a\x20\x20\x20\x20\x20\x20\x20\x20color:\x20white;\x0a\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2015px\x2025px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2050px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20600;\x0a\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x208px\x2032px\x20rgba(0,0,0,0.3);\x0a\x20\x20\x20\x20\x20\x20\x20\x20transition:\x20transform\x200.3s\x20ease;\x0a\x20\x20\x20\x20\x20\x20\x20\x20z-index:\x201000;\x0a\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20gap:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20backdrop-filter:\x20blur(10px);\x0a\x20\x20\x20\x20\x20\x20\x20\x20border:\x201px\x20solid\x20rgba(255,255,255,0.2);\x0a\x20\x20\x20\x20','success','?action=check_session','34199297IKjuFg','log','DOMContentLoaded','user','catch','2px\x20solid\x20rgba(255,\x20255,\x20255,\x200.1)','getItem','discriminator','Không\x20thể\x20resume\x20audio:','798357rlrwaA','mouseenter','?action=verify','border','play','globalName','deg,\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20#ff0000,\x20#ff9900,\x20#ffee00,\x20#33ff00,\x20#00ffee,\x20#0066ff,\x20#cc00ff,\x20#ff0000\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20)\x0a\x20\x20\x20\x20\x20\x20\x20\x20','rainbow-border','Chào\x20mừng\x20','Bạn\x20có\x20chắc\x20chắn\x20muốn\x20đăng\x20xuất?','style','dropdownMenu','innerHTML','72QpSUQi','Lỗi\x20phát\x20âm\x20thanh:','transform','rgba(20,20,20,0.95)','stringify','welcome-overlay','background','add','sessionToken','19108RipedG','currentTime','🔍\x20URL\x20params:','valid','querySelector','user_id','https://cdn.discordapp.com/embed/avatars/','src','info','removeItem','addEventListener','show','userName','getElementById','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20linear-gradient(rgba(255,\x20255,\x20255,\x200.08),\x20rgba(255,\x20255,\x20255,\x200.08)),\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20conic-gradient(\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20from\x20','querySelectorAll','textContent','bg-audio','location','Found\x20IP\x20session','bg-video','?action=clear_session','.enter-btn','createElement','true','\x20trở\x20lại!','</span><span>','hidden','toggle','.avatar-border','history','display','.login-button','stopPropagation','className','745KZgwKb','paused','userMenuBtn','mouseleave','block','authModule','.png?size=128','body','loginPrompt','userAvatar','username','application/json','visibilitychange','cssText','has_session','.top-button','3aUuDys','\x0a\x20\x20\x20\x20\x20\x20\x20\x20position:\x20fixed;\x0a\x20\x20\x20\x20\x20\x20\x20\x20top:\x2030px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20left:\x2050%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20transform:\x20translateX(-50%)\x20translateY(-100px);\x0a\x20\x20\x20\x20\x20\x20\x20\x20background:\x20','Error\x20clearing\x20session:','forEach','1823380JfLIML','12mVWnkE','click','</span>','Error\x20checking\x20login:','8471544ahEcYO'];_0x3168=function(){return _0x34195c;};return _0x3168();}function playVideo(){const _0x2e7ecc=_0x108360;bgVideo[_0x2e7ecc(0x202)]['opacity']='1',bgVideo['play']()[_0x2e7ecc(0x1f3)](_0x5469cb=>{const _0x123c89=_0x2e7ecc;console[_0x123c89(0x1f0)]('Lỗi\x20phát\x20video:',_0x5469cb);});}const topButtons=document[_0x108360(0x21d)](_0x108360(0x1cc));topButtons['forEach'](_0x352f03=>{const _0x378656=_0x108360;let _0x467389=0x0,_0x1fac1b;const _0x5d11ab=()=>{const _0x3cfcb=_0x3fd1;_0x467389=(_0x467389+0x2)%0x168,_0x352f03[_0x3cfcb(0x202)][_0x3cfcb(0x1de)]=_0x3cfcb(0x21c)+_0x467389+'deg,\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20#ff0000,\x20#ff9900,\x20#ffee00,\x20#33ff00,\x20#00ffee,\x20#0066ff,\x20#cc00ff,\x20#ff0000\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20)\x0a\x20\x20\x20\x20\x20\x20\x20\x20',_0x1fac1b=requestAnimationFrame(_0x5d11ab);};_0x352f03[_0x378656(0x218)](_0x378656(0x1f9),()=>{const _0x35bc76=_0x378656;_0x352f03[_0x35bc76(0x1e7)][_0x35bc76(0x20c)]('rainbow-border'),_0x5d11ab();}),_0x352f03[_0x378656(0x218)](_0x378656(0x1c0),()=>{const _0x3c7971=_0x378656;cancelAnimationFrame(_0x1fac1b),_0x352f03[_0x3c7971(0x1e7)][_0x3c7971(0x1d7)](_0x3c7971(0x1ff)),_0x352f03[_0x3c7971(0x202)][_0x3c7971(0x1de)]='',_0x352f03[_0x3c7971(0x202)][_0x3c7971(0x1fb)]=_0x3c7971(0x1f4),_0x467389=0x0;});}),document[_0x108360(0x218)](_0x108360(0x1c9),()=>{const _0x525b05=_0x108360;document[_0x525b05(0x229)]?bgAudio&&!bgAudio[_0x525b05(0x1be)]&&bgAudio[_0x525b05(0x1dc)]():bgAudio&&bgAudio['paused']&&welcomeOverlay[_0x525b05(0x1e7)]['contains'](_0x525b05(0x229))&&bgAudio[_0x525b05(0x1fc)]()[_0x525b05(0x1f3)](_0x4512d5=>{const _0x508662=_0x525b05;console[_0x508662(0x1f0)](_0x508662(0x1f7),_0x4512d5);});}),window[_0x108360(0x1c2)]={'checkLoginStatus':checkLoginStatus,'showLoginButton':showLoginButton,'showUserInfo':showUserInfo,'showNotification':showNotification,'bgVideo':bgVideo,'bgAudio':bgAudio},console[_0x108360(0x1f0)]('🎉\x20Script\x20loaded\x20successfully!');
+const loginPrompt = document.getElementById('loginPrompt');
+const userInfo = document.getElementById('userInfo');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+const userMenuBtn = document.getElementById('userMenuBtn');
+const dropdownMenu = document.getElementById('dropdownMenu');
+const logoutBtn = document.getElementById('logoutBtn');
+const AUTH_API = '/api/auth';
+
+document.addEventListener('DOMContentLoaded', function() {
+    checkLoginStatus();
+    checkLoginWelcome();
+    setupUserMenu();
+});
+
+async function checkLoginStatus() {
+    const sessionToken = localStorage.getItem('sessionToken');
+    
+    if (!sessionToken) {
+        showLoginButton();
+        return;
+    }
+
+    try {
+        const response = await fetch(AUTH_API + '?action=check_session');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.has_session && data.user) {
+                console.log('Found IP session');
+                showUserInfo(data.user);
+                return;
+            }
+        }
+
+        const verifyResponse = await fetch(AUTH_API + '?action=verify', {
+            'headers': {
+                'Authorization': 'Bearer ' + sessionToken,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            if (verifyData.valid && verifyData.user) {
+                showUserInfo(verifyData.user);
+                return;
+            }
+        }
+
+        localStorage.removeItem('sessionToken');
+        showLoginButton();
+    } catch (error) {
+        console.error('Error checking login:', error);
+        
+        try {
+            const tokenData = JSON.parse(atob(sessionToken));
+            if (tokenData.id && tokenData.username) {
+                showUserInfo(tokenData);
+                return;
+            }
+        } catch (e) {}
+        
+        showLoginButton();
+    }
+}
+
+function showLoginButton() {
+    loginPrompt.style.display = 'block';
+    userInfo.style.display = 'none';
+}
+
+function showUserInfo(userData) {
+    loginPrompt.style.display = 'none';
+    userInfo.style.display = 'flex';
+    userName.textContent = userData.globalName || userData.global_name || userData.username;
+    
+    // ✅ Cập nhật xử lý avatar - PHẦN QUAN TRỌNG
+    setUserAvatar(userData);
+}
+
+// ✅ THÊM HÀM MỚI XỬ LÝ AVATAR
+function setUserAvatar(userData) {
+    const userId = userData.discord_id || userData.id;
+    const avatarHash = userData.avatar;
+    
+    if (avatarHash && userId) {
+        // Tạo URL avatar Discord đầy đủ
+        const extension = avatarHash.startsWith('a_') ? 'gif' : 'png';
+        const avatarUrl = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${extension}?size=256`;
+        userAvatar.src = avatarUrl;
+        
+        // Xử lý lỗi fallback
+        userAvatar.onerror = function() {
+            const defaultNum = parseInt(userId) % 5;
+            userAvatar.src = `https://cdn.discordapp.com/embed/avatars/${defaultNum}.png`;
+        };
+    } else {
+        // Sử dụng default avatar nếu không có avatar
+        const defaultNum = userId ? parseInt(userId) % 5 : 0;
+        userAvatar.src = `https://cdn.discordapp.com/embed/avatars/${defaultNum}.png`;
+    }
+}
+
+function setupUserMenu() {
+    userMenuBtn?.addEventListener('click', event => {
+        event.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+    });
+
+    document.addEventListener('click', () => {
+        dropdownMenu?.classList.remove('show');
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+        const confirmed = confirm('Bạn có chắc chắn muốn đăng xuất?');
+        if (!confirmed) return;
+
+        localStorage.removeItem('sessionToken');
+
+        try {
+            await fetch(AUTH_API + '?action=clear_session', {
+                'method': 'POST'
+            });
+        } catch (error) {
+            console.log('Error clearing session:', error);
+        }
+
+        showLoginButton();
+        showNotification('Đã đăng xuất thành công', 'info');
+    });
+}
+
+function checkLoginWelcome() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginSuccess = urlParams.get('login_success');
+    const username = urlParams.get('username');
+    const userId = urlParams.get('user_id');
+    const avatar = urlParams.get('avatar'); // ✅ LẤY AVATAR TỪ URL
+
+    console.log('🔍 URL params:', {
+        loginSuccess,
+        username,
+        userId,
+        avatar
+    });
+
+    if (loginSuccess === 'true' && username) {
+        const pathname = window.location.pathname;
+        window.history.replaceState({}, document.title, pathname);
+        
+        showNotification('Chào mừng ' + decodeURIComponent(username) + ' trở lại!', 'success');
+
+        if (userId) {
+            const userData = {
+                id: userId,
+                username: decodeURIComponent(username),
+                globalName: decodeURIComponent(username),
+                avatar: null // ✅ SẼ XỬ LÝ TRONG setUserAvatar
+            };
+
+            // ✅ XỬ LÝ AVATAR TỪ URL PARAMS
+            if (avatar) {
+                // Nếu avatar từ URL là full URL
+                if (avatar.startsWith('https://')) {
+                    userAvatar.src = decodeURIComponent(avatar);
+                } else {
+                    // Nếu avatar là hash
+                    userData.avatar = avatar;
+                }
+            }
+
+            showUserInfo(userData);
+
+            const sessionToken = btoa(JSON.stringify(userData));
+            localStorage.setItem('sessionToken', sessionToken);
+        }
+
+        setTimeout(() => {
+            checkLoginStatus();
+        }, 1000);
+    }
+}
+
+function showNotification(message, type = 'success') {
+    const existingNotifications = document.querySelectorAll('.auth-notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    const notification = document.createElement('div');
+    notification.className = 'auth-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-100px);
+        background: ${type === 'success' ? 
+            'linear-gradient(135deg, rgba(0,255,136,0.9), rgba(0,204,255,0.9))' : 
+            'rgba(20,20,20,0.95)'};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 50px;
+        font-weight: 600;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+    `;
+
+    const icon = type === 'success' ? '✅' : type === 'info' ? 'ℹ️' : '❌';
+    notification.innerHTML = `<span style="font-size: 16px">${icon}</span><span>${message}</span>`;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.transform = 'translateX(-50%) translateY(0)';
+    }, 100);
+
+    setTimeout(() => {
+        notification.style.transform = 'translateX(-50%) translateY(-100px)';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
+
+// Login button rainbow animation
+const loginButton = document.querySelector('.login-button');
+if (loginButton) {
+    let loginDeg = 0;
+    let loginAnimationId;
+
+    const animateLoginRainbow = () => {
+        loginDeg = (loginDeg + 2) % 360;
+        loginButton.style.backgroundImage = `
+            linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+            conic-gradient(
+                from ${loginDeg}deg,
+                #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000
+            )
+        `;
+        loginAnimationId = requestAnimationFrame(animateLoginRainbow);
+    };
+
+    loginButton.addEventListener('mouseenter', () => {
+        loginButton.classList.add('rainbow-border');
+        animateLoginRainbow();
+    });
+
+    loginButton.addEventListener('mouseleave', () => {
+        cancelAnimationFrame(loginAnimationId);
+        loginButton.classList.remove('rainbow-border');
+        loginButton.style.backgroundImage = '';
+        loginButton.style.border = '2px solid rgba(255, 255, 255, 0.1)';
+        loginDeg = 0;
+    });
+}
+
+// Avatar border rainbow animation
+const avatarBorder = document.querySelector('.avatar-border');
+let deg = 0;
+let rainbowAnimId;
+
+function animateRainbowBorder() {
+    deg = (deg + 1) % 360;
+    avatarBorder.style.background = `conic-gradient(from ${deg}deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000)`;
+    rainbowAnimId = requestAnimationFrame(animateRainbowBorder);
+}
+
+document.addEventListener('visibilitychange', () => {
+    document.hidden ? cancelAnimationFrame(rainbowAnimId) : animateRainbowBorder();
+});
+
+animateRainbowBorder();
+
+// Welcome screen functionality
+const welcomeOverlay = document.getElementById('welcome-overlay');
+const enterBtn = document.querySelector('.enter-btn');
+const bgAudio = document.getElementById('bg-audio');
+const bgVideo = document.getElementById('bg-video');
+const loadingSpinner = document.createElement('div');
+
+loadingSpinner.className = 'loading-spinner';
+document.body.appendChild(loadingSpinner);
+loadingSpinner.style.display = 'none';
+
+enterBtn.addEventListener('click', function() {
+    loadingSpinner.style.display = 'block';
+    
+    setTimeout(() => {
+        welcomeOverlay.classList.add('hidden');
+        loadingSpinner.style.display = 'none';
+    }, 500);
+    
+    playAudio();
+    playVideo();
+});
+
+function playAudio() {
+    bgAudio.currentTime = 0;
+    bgAudio.play().catch(error => {
+        console.log('Lỗi phát âm thanh:', error);
+    });
+}
+
+function playVideo() {
+    bgVideo.style.opacity = '1';
+    bgVideo.play().catch(error => {
+        console.log('Lỗi phát video:', error);
+    });
+}
+
+// Top buttons rainbow animation
+const topButtons = document.querySelectorAll('.top-button');
+topButtons.forEach(button => {
+    let deg = 0;
+    let animationId;
+
+    const animateRainbow = () => {
+        deg = (deg + 2) % 360;
+        button.style.backgroundImage = `
+            linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+            conic-gradient(
+                from ${deg}deg,
+                #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000
+            )
+        `;
+        animationId = requestAnimationFrame(animateRainbow);
+    };
+
+    button.addEventListener('mouseenter', () => {
+        button.classList.add('rainbow-border');
+        animateRainbow();
+    });
+
+    button.addEventListener('mouseleave', () => {
+        cancelAnimationFrame(animationId);
+        button.classList.remove('rainbow-border');
+        button.style.backgroundImage = '';
+        button.style.border = '2px solid rgba(255, 255, 255, 0.1)';
+        deg = 0;
+    });
+});
+
+// Audio/video pause on visibility change
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (bgAudio && !bgAudio.paused) {
+            bgAudio.pause();
+        }
+    } else {
+        if (bgAudio && bgAudio.paused && !welcomeOverlay.classList.contains('hidden')) {
+            bgAudio.play().catch(error => {
+                console.log('Không thể resume audio:', error);
+            });
+        }
+    }
+});
+
+// Export functions to global scope
+window.authModule = {
+    checkLoginStatus: checkLoginStatus,
+    showLoginButton: showLoginButton,
+    showUserInfo: showUserInfo,
+    showNotification: showNotification,
+    setUserAvatar: setUserAvatar, // ✅ THÊM HÀM MỚI
+    bgVideo: bgVideo,
+    bgAudio: bgAudio
+};
+
+console.log('🎉 Script loaded successfully!');
