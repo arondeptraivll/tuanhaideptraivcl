@@ -256,7 +256,7 @@ const DDOS_CHECKS = {
   }
 };
 
-const ADMIN_IPS = ['42.118.42.236'];
+const ADMIN_IPS = ['123'];
 
 const ipCache = new Map();
 const burstCache = new Map();
