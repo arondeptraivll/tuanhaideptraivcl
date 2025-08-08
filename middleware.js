@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-// ==================== CONFIG ====================
 const VIETNAM_IP_RANGES = [
   ['1.52.0.0', '1.55.255.255'],
   ['14.160.0.0', '14.191.255.255'],
@@ -205,66 +204,40 @@ const VIETNAM_IP_RANGES = [
   ['222.252.0.0', '222.255.255.255']
 ];
 
-const SUSPICIOUS_UAS = [
-  'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 
-  'curl', 'wget', 'python', 'go-http', 'masscan', 'nmap', 'sqlmap',
-  'fuzz', 'attack', 'exploit', 'penetration'
-];
+const ADMIN_IPS = ['127.0.0.1'];
+const LIMITS = { VN: 20, OTHER: 3 };
+const BAN_DURATION = 30 * 60 * 1000;
 
-const ADMIN_IPS = ['42.118.42.236']; // Thêm admin IPs ở đây
+const ipData = new Map();
+const ipGeoCache = new Map();
+const blockedIPs = new Set();
+const tempBannedIPs = new Map();
 
-// ==================== RATE LIMITS ====================
-const BASE_LIMITS = {
-  VN: 20,    // 20 requests/minute for Vietnam
-  OTHER: 3   // 3 requests/minute for other countries
-};
-
-// ==================== IN-MEMORY STORAGE ====================
-const ipData = new Map(); // {ip: {count, window, violations, lastSeen, totalRequests}}
-const ipGeoCache = new Map(); // {ip: {isVN, cachedAt}}
-const blockedIPs = new Set(); // Permanently blocked IPs
-const tempBannedIPs = new Map(); // {ip: {unbanTime, reason, bannedAt}}
-const suspiciousIPs = new Set(); // IPs được theo dõi đặc biệt
-
-// ==================== GLOBAL STATS ====================
 const stats = {
-  requestsPerSecond: 0,
   totalRequests: 0,
   totalBlocked: 0,
   totalTempBanned: 0,
   totalPermBanned: 0,
-  lastSecond: Date.now(),
-  emergencyLevel: 0, // 0=normal, 1=caution, 2=emergency, 3=lockdown
-  startTime: Date.now(),
-  peakRPS: 0
+  startTime: Date.now()
 };
 
-let NUCLEAR_LOCKDOWN = false;
-
-// ==================== UTILITY FUNCTIONS ====================
 function sanitizeIP(ip) {
   if (!ip || typeof ip !== 'string') return null;
-  
   const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
   const cleaned = ip.trim();
-  
   if (!ipv4Regex.test(cleaned)) return null;
-  
   const parts = cleaned.split('.');
   for (const part of parts) {
     const num = parseInt(part, 10);
     if (num < 0 || num > 255) return null;
   }
-  
   return cleaned;
 }
 
 function isPrivateIP(ip) {
   if (!ip) return false;
-  
   const parts = ip.split('.').map(Number);
   const [a, b, c, d] = parts;
-  
   return (
     a === 10 ||
     (a === 172 && b >= 16 && b <= 31) ||
@@ -276,33 +249,26 @@ function isPrivateIP(ip) {
 
 function getClientIP(request) {
   try {
-    // Vercel
     const vercelIP = request.headers.get('x-vercel-forwarded-for');
     if (vercelIP) {
       const cleanIP = sanitizeIP(vercelIP.split(',')[0]);
       if (cleanIP && !isPrivateIP(cleanIP)) return cleanIP;
     }
-
-    // Cloudflare
     const cfIP = request.headers.get('cf-connecting-ip');
     if (cfIP) {
       const cleanIP = sanitizeIP(cfIP);
       if (cleanIP && !isPrivateIP(cleanIP)) return cleanIP;
     }
-    
-    // Standard headers
     const realIP = request.headers.get('x-real-ip');
     if (realIP) {
       const cleanIP = sanitizeIP(realIP);
       if (cleanIP && !isPrivateIP(cleanIP)) return cleanIP;
     }
-    
     const forwarded = request.headers.get('x-forwarded-for');
     if (forwarded) {
       const firstIP = sanitizeIP(forwarded.split(',')[0]);
       if (firstIP && !isPrivateIP(firstIP)) return firstIP;
     }
-    
     return null;
   } catch (error) {
     return null;
@@ -323,292 +289,93 @@ function ipToNumber(ip) {
 
 function isVietnamIP(ip) {
   if (!ip) return false;
-  
   const ipNum = ipToNumber(ip);
   if (ipNum === 0) return false;
-  
   for (const [start, end] of VIETNAM_IP_RANGES) {
     const startNum = ipToNumber(start);
     const endNum = ipToNumber(end);
-    
     if (ipNum >= startNum && ipNum <= endNum) {
       return true;
     }
   }
-  
   return false;
 }
 
 function isVietnamIPCached(ip) {
   const cached = ipGeoCache.get(ip);
   const now = Date.now();
-  
-  if (cached && (now - cached.cachedAt) < 3600000) { // 1 hour cache
+  if (cached && (now - cached.cachedAt) < 3600000) {
     return cached.isVN;
   }
-  
   const isVN = isVietnamIP(ip);
-  
-  ipGeoCache.set(ip, {
-    isVN,
-    cachedAt: now
-  });
-  
-  // Cleanup cache nếu quá lớn
+  ipGeoCache.set(ip, { isVN, cachedAt: now });
   if (ipGeoCache.size > 10000) {
     const oldestEntries = Array.from(ipGeoCache.entries())
       .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
       .slice(0, 2000);
-      
     oldestEntries.forEach(([ip]) => ipGeoCache.delete(ip));
   }
-  
   return isVN;
 }
 
-// ==================== LOGGING FUNCTIONS ====================
-function logTempBan(ip, reason, duration) {
+function logAction(action, ip, details = '') {
   const timestamp = new Date().toISOString();
-  const durationMin = Math.round(duration / 60000);
-  console.log(`🕐 TEMP BAN: ${ip} | Reason: ${reason} | Duration: ${durationMin}min | Time: ${timestamp}`);
+  console.log(`[${timestamp}] ${action}: ${ip} ${details}`);
 }
 
-function logPermBan(ip, reason, violations) {
-  const timestamp = new Date().toISOString();
-  console.log(`🔨 PERM BAN: ${ip} | Reason: ${reason} | Violations: ${violations} | Time: ${timestamp}`);
-}
-
-function logUnban(ip, reason) {
-  const timestamp = new Date().toISOString();
-  console.log(`✅ UNBAN: ${ip} | Reason: ${reason} | Time: ${timestamp}`);
-}
-
-// ==================== EMERGENCY SYSTEM ====================
-function updateEmergencyLevel() {
+function addTempBan(ip, reason, isVN) {
   const now = Date.now();
-  
-  if (now - stats.lastSecond > 1000) {
-    const rps = stats.requestsPerSecond;
-    stats.peakRPS = Math.max(stats.peakRPS, rps);
-    
-    // Auto-adjust emergency level based on new limits
-    if (rps > 10000) {
-      stats.emergencyLevel = 3; // Lockdown
-      console.log(`🚨 LOCKDOWN MODE: ${rps} RPS`);
-    } else if (rps > 5000) {
-      stats.emergencyLevel = 2; // Emergency
-      console.log(`⚠️ EMERGENCY MODE: ${rps} RPS`);
-    } else if (rps > 1000) {
-      stats.emergencyLevel = 1; // Caution
-      console.log(`⚡ CAUTION MODE: ${rps} RPS`);
-    } else if (rps < 50) {
-      stats.emergencyLevel = 0; // Normal
-    }
-    
-    // Nuclear lockdown
-    if (rps > 25000) {
-      NUCLEAR_LOCKDOWN = true;
-      console.log('☢️ NUCLEAR LOCKDOWN ACTIVATED');
-      
-      setTimeout(() => {
-        NUCLEAR_LOCKDOWN = false;
-        console.log('✅ Nuclear lockdown deactivated');
-      }, 300000); // 5 phút
-    }
-    
-    stats.requestsPerSecond = 0;
-    stats.lastSecond = now;
-  }
-  
-  stats.requestsPerSecond++;
-  stats.totalRequests++;
-}
-
-// ==================== TEMPORARY BAN SYSTEM ====================
-function addTempBan(ip, reason, durationMs = 900000) { // 15 minutes default
-  const now = Date.now();
-  const unbanTime = now + durationMs;
-  
-  tempBannedIPs.set(ip, {
-    unbanTime,
-    reason,
-    bannedAt: now
-  });
-  
+  const unbanTime = now + BAN_DURATION;
+  tempBannedIPs.set(ip, { unbanTime, reason, bannedAt: now, isVN });
   stats.totalTempBanned++;
-  logTempBan(ip, reason, durationMs);
+  logAction('TEMP_BAN', ip, `| Reason: ${reason} | Duration: 30min | Type: ${isVN ? 'VN' : 'FOREIGN'}`);
 }
 
 function checkTempBan(ip) {
   const banInfo = tempBannedIPs.get(ip);
   if (!banInfo) return null;
-  
   const now = Date.now();
   if (now >= banInfo.unbanTime) {
-    // Ban expired
     tempBannedIPs.delete(ip);
-    logUnban(ip, 'Temp ban expired');
+    logAction('UNBAN', ip, '| Reason: Temp ban expired');
     return null;
   }
-  
-  return {
-    ...banInfo,
-    remainingTime: banInfo.unbanTime - now
-  };
+  return { ...banInfo, remainingTime: banInfo.unbanTime - now };
 }
 
-// ==================== RATE LIMITING ====================
-function ultraFastRateLimit(ip, isVN, userAgent) {
+function checkRateLimit(ip, isVN) {
   const now = Date.now();
-  updateEmergencyLevel();
-  
-  // Nuclear lockdown
-  if (NUCLEAR_LOCKDOWN && !ADMIN_IPS.includes(ip)) {
-    stats.totalBlocked++;
-    return { allowed: false, reason: 'NUCLEAR_LOCKDOWN', code: 503 };
-  }
-  
-  // Check temporary ban
-  const tempBan = checkTempBan(ip);
-  if (tempBan) {
-    stats.totalBlocked++;
-    const remainingMin = Math.ceil(tempBan.remainingTime / 60000);
-    return { 
-      allowed: false, 
-      reason: 'TEMP_BANNED', 
-      code: 429,
-      remainingTime: remainingMin,
-      banReason: tempBan.reason
-    };
-  }
-  
-  // Permanent block list
-  if (blockedIPs.has(ip)) {
-    stats.totalBlocked++;
-    return { allowed: false, reason: 'BLACKLISTED', code: 403 };
-  }
-  
-  // Dynamic limits based on emergency level
-  const baseLimit = isVN ? BASE_LIMITS.VN : BASE_LIMITS.OTHER;
-  const emergencyMultipliers = [1, 0.5, 0.25, 0.15]; // Normal, Caution, Emergency, Lockdown
-  const limit = Math.max(1, Math.floor(baseLimit * emergencyMultipliers[stats.emergencyLevel]));
-  
-  const windowMs = 60000; // 1 minute
+  const limit = isVN ? LIMITS.VN : LIMITS.OTHER;
+  const windowMs = 60000;
   
   let data = ipData.get(ip);
-  
   if (!data || (now - data.window) > windowMs) {
-    // New window
-    data = { 
-      count: 1, 
-      window: now, 
-      violations: data?.violations || 0, 
-      lastSeen: now,
-      totalRequests: (data?.totalRequests || 0) + 1
-    };
+    data = { count: 1, window: now, lastSeen: now };
     ipData.set(ip, data);
-    return { allowed: true, reason: 'NEW_WINDOW', count: 1 };
+    return { allowed: true, count: 1, limit };
   }
   
   data.count++;
   data.lastSeen = now;
-  data.totalRequests++;
-  
-  // Suspicious behavior detection
-  const isSuspiciousUA = SUSPICIOUS_UAS.some(ua => 
-    userAgent.toLowerCase().includes(ua)
-  );
-  
-  if (isSuspiciousUA) {
-    data.violations += isVN ? 1 : 2; // More penalty for foreign suspicious
-    suspiciousIPs.add(ip);
-  }
   
   if (data.count > limit) {
-    data.violations++;
-    stats.totalBlocked++;
-    
-    // Temporary ban logic - more aggressive
-    if (data.violations >= 2 && !isVN) {
-      // Foreign IPs: temp ban after 2 violations
-      addTempBan(ip, `Rate limit exceeded (${data.violations} violations, non-VN)`, 900000); // 15 min
-      ipData.delete(ip);
-      return { allowed: false, reason: 'TEMP_BANNED_NEW', code: 429 };
-    } else if (data.violations >= 3 && isVN) {
-      // VN IPs: temp ban after 3 violations
-      addTempBan(ip, `Rate limit exceeded (${data.violations} violations, VN)`, 900000); // 15 min
-      ipData.delete(ip);
-      return { allowed: false, reason: 'TEMP_BANNED_NEW', code: 429 };
-    }
-    
-    // Permanent ban logic
-    let permBanThreshold;
-    if (stats.emergencyLevel >= 2) {
-      permBanThreshold = isVN ? 5 : 3; // Strict during emergency
-    } else if (suspiciousIPs.has(ip)) {
-      permBanThreshold = isVN ? 4 : 2; // Suspicious IPs
-    } else {
-      permBanThreshold = isVN ? 6 : 4; // Normal IPs
-    }
-    
-    if (data.violations >= permBanThreshold) {
-      blockedIPs.add(ip);
-      tempBannedIPs.delete(ip); // Remove from temp ban if exists
-      ipData.delete(ip);
-      suspiciousIPs.delete(ip);
-      stats.totalPermBanned++;
-      
-      logPermBan(ip, `Auto-blacklist after ${data.violations} violations`, data.violations);
-      return { allowed: false, reason: 'AUTO_BLACKLISTED', code: 403 };
-    }
-    
-    return { 
-      allowed: false, 
-      reason: 'RATE_LIMITED', 
-      code: 429, 
-      count: data.count,
-      violations: data.violations,
-      limit
-    };
+    addTempBan(ip, `Rate limit exceeded (${data.count}/${limit})`, isVN);
+    ipData.delete(ip);
+    return { allowed: false, reason: 'RATE_LIMIT_EXCEEDED', count: data.count, limit };
   }
   
-  return { allowed: true, reason: 'ALLOWED', count: data.count };
+  return { allowed: true, count: data.count, limit };
 }
 
-// ==================== RESPONSE FUNCTIONS ====================
-function createFastResponse(message, code = 403) {
-  return new Response(message, {
-    status: code,
-    headers: { 
-      'Content-Type': 'text/plain',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'X-Emergency-Level': stats.emergencyLevel.toString(),
-      'X-Block-Time': new Date().toISOString()
-    }
-  });
-}
-
-function createDetailedResponse(statusCode, reason, details = {}) {
-  const isEmergency = stats.emergencyLevel >= 2;
-  
-  if (isEmergency) {
-    return createFastResponse(`${statusCode}: ${reason}`, statusCode);
-  }
-  
-  const html = `
-<!DOCTYPE html>
-<html lang="vi">
+function createBlockedResponse(statusCode, reason) {
+  const html = `<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Truy cập bị từ chối</title>
+    <title>Access Denied</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -618,328 +385,54 @@ function createDetailedResponse(statusCode, reason, details = {}) {
             justify-content: center;
             color: #333;
         }
-        
         .container {
             background: white;
-            padding: 2rem;
-            border-radius: 20px;
+            padding: 3rem 2rem;
+            border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             text-align: center;
-            max-width: 500px;
+            max-width: 400px;
             width: 90%;
-            position: relative;
-            overflow: hidden;
         }
-        
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
-            background-size: 300% 300%;
-            animation: gradient 3s ease infinite;
-        }
-        
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .emoji {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-10px); }
-            60% { transform: translateY(-5px); }
-        }
-        
-        .title {
-            font-size: 2.5rem;
-            color: #2c3e50;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .status-code {
+        .icon { font-size: 4rem; margin-bottom: 1rem; color: #e74c3c; }
+        .title { font-size: 2rem; color: #2c3e50; margin-bottom: 1rem; font-weight: 700; }
+        .code { 
             display: inline-block;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            background: #e74c3c;
             color: white;
             padding: 0.5rem 1.5rem;
-            border-radius: 50px;
-            font-size: 1.2rem;
+            border-radius: 25px;
+            font-size: 1.1rem;
             font-weight: bold;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
         }
-        
-        .reason {
-            font-size: 1.2rem;
-            color: #555;
-            margin-bottom: 1.5rem;
-            line-height: 1.6;
-        }
-        
-        .details {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid #007bff;
-        }
-        
-        .details-title {
-            font-weight: 600;
-            color: #007bff;
-            margin-bottom: 0.5rem;
-        }
-        
-        .details-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.3rem 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .details-item:last-child {
-            border-bottom: none;
-        }
-        
-        .temp-ban-warning {
-            background: #fff3cd;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            color: #856404;
-            border-left: 4px solid #ffc107;
-        }
-        
-        .stats {
-            background: #e9ecef;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-        
-        .emergency-indicator {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-        
-        .emergency-0 { background: #d4edda; color: #155724; }
-        .emergency-1 { background: #fff3cd; color: #856404; }
-        .emergency-2 { background: #f8d7da; color: #721c24; }
-        .emergency-3 { background: #f5c6cb; color: #721c24; animation: pulse 1s infinite; }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        
-        .refresh-btn {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-            color: white;
-            border: none;
-            padding: 0.8rem 2rem;
-            border-radius: 50px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 1rem;
-        }
-        
-        .refresh-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.3);
-        }
-        
-        .footer {
-            color: #777;
-            font-size: 0.9rem;
-            margin-top: 1rem;
-        }
-        
-        @media (max-width: 480px) {
-            .title { font-size: 2rem; }
-            .container { padding: 1.5rem; }
-            .emoji { font-size: 3rem; }
-        }
+        .reason { font-size: 1.1rem; color: #555; margin-bottom: 2rem; line-height: 1.4; }
+        .footer { color: #777; font-size: 0.9rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="emoji">${getEmojiForStatus(statusCode)}</div>
+        <div class="icon">🚫</div>
         <h1 class="title">Access Denied</h1>
-        
-        <div class="emergency-indicator emergency-${stats.emergencyLevel}">
-            ${getEmergencyText(stats.emergencyLevel)}
-        </div>
-        
-        <div class="status-code">ERROR ${statusCode}</div>
+        <div class="code">ERROR ${statusCode}</div>
         <div class="reason">${reason}</div>
-        
-        ${details.remainingTime ? `
-        <div class="temp-ban-warning">
-            <strong>🕐 Temporary Ban Active</strong><br>
-            Remaining time: ${details.remainingTime} minutes<br>
-            Reason: ${details.banReason || 'Rate limit violation'}
-        </div>
-        ` : ''}
-        
-        ${Object.keys(details).length > 0 ? `
-        <div class="details">
-            <div class="details-title">📋 Chi tiết:</div>
-            ${Object.entries(details).filter(([key]) => key !== 'remainingTime' && key !== 'banReason').map(([key, value]) => `
-                <div class="details-item">
-                    <span>${key}:</span>
-                    <strong>${value}</strong>
-                </div>
-            `).join('')}
-        </div>
-        ` : ''}
-        
-        <div class="stats">
-            <strong>🛡️ System Status:</strong><br>
-            Emergency Level: ${stats.emergencyLevel}/3 | 
-            RPS: ${stats.requestsPerSecond} | 
-            Blocked: ${stats.totalBlocked} | 
-            Temp Banned: ${stats.totalTempBanned} | 
-            Perm Banned: ${stats.totalPermBanned}
-        </div>
-        
-        ${statusCode === 429 ? `
-        <div style="background: #fff3cd; padding: 1rem; border-radius: 10px; margin: 1rem 0; color: #856404;">
-            ⏱️ <strong>Rate limit exceeded!</strong><br>
-            Limits: VN ${BASE_LIMITS.VN}/min | Other ${BASE_LIMITS.OTHER}/min<br>
-            ${details.remainingTime ? `Wait ${details.remainingTime} minutes or contact admin` : 'Please slow down your requests'}
-        </div>
-        ` : ''}
-        
-        <button class="refresh-btn" onclick="window.location.reload()">
-            🔄 Thử lại
-        </button>
-        
         <div class="footer">
-            <p>🛡️ Protected by Ultra DDoS Shield v2.0</p>
-            <p>Timestamp: ${new Date().toLocaleString('vi-VN')}</p>
+            <p>If you believe this is an error, please contact support.</p>
+            <p>${new Date().toLocaleString()}</p>
         </div>
     </div>
-
-    <script>
-        ${details.remainingTime ? `
-        let countdown = ${details.remainingTime * 60}; // Convert to seconds
-        const btn = document.querySelector('.refresh-btn');
-        const interval = setInterval(() => {
-            countdown--;
-            const minutes = Math.floor(countdown / 60);
-            const seconds = countdown % 60;
-            btn.textContent = \`🔄 Thử lại (\${minutes}:\${seconds.toString().padStart(2, '0')})\`;
-            if (countdown <= 0) {
-                clearInterval(interval);
-                window.location.reload();
-            }
-        }, 1000);
-        ` : statusCode === 429 ? `
-        let countdown = 60;
-        const btn = document.querySelector('.refresh-btn');
-        const interval = setInterval(() => {
-            countdown--;
-            btn.textContent = \`🔄 Thử lại (\${countdown}s)\`;
-            if (countdown <= 0) {
-                clearInterval(interval);
-                window.location.reload();
-            }
-        }, 1000);
-        ` : ''}
-    </script>
 </body>
 </html>`;
 
   return new Response(html, {
     status: statusCode,
-    headers: { 
+    headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'X-Emergency-Level': stats.emergencyLevel.toString(),
-      'X-Block-Time': new Date().toISOString()
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   });
 }
 
-function getEmojiForStatus(statusCode) {
-  switch(statusCode) {
-    case 403: return '🚫';
-    case 429: return '⏱️';
-    case 503: return '🔧';
-    default: return '❌';
-  }
-}
-
-function getEmergencyText(level) {
-  switch(level) {
-    case 0: return '🟢 NORMAL';
-    case 1: return '🟡 CAUTION';
-    case 2: return '🟠 EMERGENCY';
-    case 3: return '🔴 LOCKDOWN';
-    default: return '⚪ UNKNOWN';
-  }
-}
-
-// ==================== CLEANUP & MONITORING ====================
-function cleanupMemory() {
-  const now = Date.now();
-  const fiveMinutesAgo = now - 300000;
-  let cleaned = 0;
-  let tempBansExpired = 0;
-  
-  // Cleanup old IP data
-  for (const [ip, data] of ipData.entries()) {
-    if (data.lastSeen < fiveMinutesAgo) {
-      ipData.delete(ip);
-      cleaned++;
-    }
-  }
-  
-  // Cleanup expired temp bans
-  for (const [ip, banInfo] of tempBannedIPs.entries()) {
-    if (now >= banInfo.unbanTime) {
-      tempBannedIPs.delete(ip);
-      tempBansExpired++;
-      logUnban(ip, 'Temp ban expired during cleanup');
-    }
-  }
-  
-  // Cleanup geo cache if too large
-  if (ipGeoCache.size > 20000) {
-    const oldEntries = Array.from(ipGeoCache.entries())
-      .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
-      .slice(0, 5000);
-    
-    oldEntries.forEach(([ip]) => ipGeoCache.delete(ip));
-  }
-  
-  console.log(`🧹 Cleanup: ${cleaned} IPs removed, ${tempBansExpired} temp bans expired | Active: ${ipData.size} | Blocked: ${blockedIPs.size} | Temp Banned: ${tempBannedIPs.size} | Suspicious: ${suspiciousIPs.size}`);
-}
-
-// Auto cleanup every 2 minutes
-setInterval(cleanupMemory, 120000);
-
-// ==================== STATS ENDPOINT ====================
 function createStatsResponse() {
   const uptime = Date.now() - stats.startTime;
   const uptimeHours = (uptime / 3600000).toFixed(2);
@@ -949,154 +442,141 @@ function createStatsResponse() {
     reason: info.reason,
     bannedAt: new Date(info.bannedAt).toISOString(),
     unbanAt: new Date(info.unbanTime).toISOString(),
-    remainingMinutes: Math.ceil((info.unbanTime - Date.now()) / 60000)
+    remainingMinutes: Math.ceil((info.unbanTime - Date.now()) / 60000),
+    type: info.isVN ? 'VN' : 'FOREIGN'
   }));
   
   return new Response(JSON.stringify({
     stats: {
-      emergencyLevel: stats.emergencyLevel,
-      rps: stats.requestsPerSecond,
       totalRequests: stats.totalRequests,
       totalBlocked: stats.totalBlocked,
       totalTempBanned: stats.totalTempBanned,
       totalPermBanned: stats.totalPermBanned,
-      peakRPS: stats.peakRPS,
-      uptime: `${uptimeHours}h`,
-      nuclearLockdown: NUCLEAR_LOCKDOWN
+      uptime: `${uptimeHours}h`
     },
     limits: {
-      vietnam: `${BASE_LIMITS.VN}/min`,
-      other: `${BASE_LIMITS.OTHER}/min`,
-      tempBanDuration: '15 minutes'
+      vietnam: `${LIMITS.VN}/min`,
+      other: `${LIMITS.OTHER}/min`,
+      banDuration: '30 minutes'
     },
     memory: {
       activeIPs: ipData.size,
       blacklistedIPs: blockedIPs.size,
       tempBannedIPs: tempBannedIPs.size,
-      suspiciousIPs: suspiciousIPs.size,
       geoCache: ipGeoCache.size
     },
     activeTempBans,
-    recentBlocked: Array.from(blockedIPs).slice(-10),
-    recentSuspicious: Array.from(suspiciousIPs).slice(-10)
+    recentBlocked: Array.from(blockedIPs).slice(-10)
   }, null, 2), {
     headers: { 'Content-Type': 'application/json' }
   });
 }
 
-// ==================== MAIN MIDDLEWARE ====================
-export default async function middleware(request) {
-  const startTime = performance.now();
+function cleanupMemory() {
+  const now = Date.now();
+  const fiveMinutesAgo = now - 300000;
+  let cleaned = 0;
+  let tempBansExpired = 0;
   
+  for (const [ip, data] of ipData.entries()) {
+    if (data.lastSeen < fiveMinutesAgo) {
+      ipData.delete(ip);
+      cleaned++;
+    }
+  }
+  
+  for (const [ip, banInfo] of tempBannedIPs.entries()) {
+    if (now >= banInfo.unbanTime) {
+      tempBannedIPs.delete(ip);
+      tempBansExpired++;
+      logAction('UNBAN', ip, '| Reason: Temp ban expired during cleanup');
+    }
+  }
+  
+  if (ipGeoCache.size > 15000) {
+    const oldEntries = Array.from(ipGeoCache.entries())
+      .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
+      .slice(0, 7500);
+    oldEntries.forEach(([ip]) => ipGeoCache.delete(ip));
+  }
+  
+  logAction('CLEANUP', 'SYSTEM', `| IPs removed: ${cleaned} | Temp bans expired: ${tempBansExpired} | Active: ${ipData.size} | Blocked: ${blockedIPs.size} | Temp banned: ${tempBannedIPs.size}`);
+}
+
+setInterval(cleanupMemory, 300000);
+
+export default async function middleware(request) {
   try {
     const url = new URL(request.url);
     const path = url.pathname;
     
-    // Stats endpoint (admin only)
     if (path === '/api/ddos-stats') {
       const ip = getClientIP(request);
       if (ADMIN_IPS.includes(ip) || !ip) {
         return createStatsResponse();
       }
-      return createFastResponse('Unauthorized', 403);
+      return new Response('Unauthorized', { status: 403 });
     }
     
-    // Static files bypass
     if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml)$/)) {
       return;
     }
     
     const ip = getClientIP(request);
     const userAgent = request.headers.get('user-agent') || '';
-    const method = request.method;
     
-    // No IP = instant block
+    stats.totalRequests++;
+    
     if (!ip) {
       stats.totalBlocked++;
-      return createFastResponse('No IP detected', 403);
+      logAction('BLOCK', 'NO_IP', '| Reason: No IP detected');
+      return createBlockedResponse(403, 'No IP address detected');
     }
     
-    // Admin bypass
     if (ADMIN_IPS.includes(ip)) {
-      console.log(`👑 Admin access: ${ip} - ${path}`);
+      logAction('ADMIN_ACCESS', ip, `| Path: ${path}`);
       return;
     }
     
-    // Vietnam IP check (cached)
     const isVN = isVietnamIPCached(ip);
     
-    // Non-Vietnam = instant block (more strict)
     if (!isVN) {
       stats.totalBlocked++;
       const country = request.headers.get('cf-ipcountry') || 'Unknown';
-      
-      console.log(`🌍 Foreign blocked: ${ip} (${country}) - ${path}`);
-      
-      return stats.emergencyLevel >= 2 
-        ? createFastResponse('VN Only', 403)
-        : createDetailedResponse(403, 'Chỉ cho phép truy cập từ Việt Nam', {
-            'IP': ip,
-            'Country': country,
-            'Policy': 'Vietnam Only',
-            'Limit': `${BASE_LIMITS.OTHER} req/min`
-          });
+      logAction('BLOCK', ip, `| Reason: Non-VN access | Country: ${country} | Path: ${path}`);
+      return createBlockedResponse(403, 'Access restricted to Vietnam only');
     }
     
-    // Rate limit check
-    const rateLimitResult = ultraFastRateLimit(ip, isVN, userAgent);
+    const tempBan = checkTempBan(ip);
+    if (tempBan) {
+      stats.totalBlocked++;
+      const remainingMin = Math.ceil(tempBan.remainingTime / 60000);
+      logAction('BLOCK', ip, `| Reason: Temp banned | Remaining: ${remainingMin}min | Path: ${path}`);
+      return createBlockedResponse(429, 'Too many requests - temporarily banned');
+    }
+    
+    if (blockedIPs.has(ip)) {
+      stats.totalBlocked++;
+      logAction('BLOCK', ip, `| Reason: Permanently banned | Path: ${path}`);
+      return createBlockedResponse(403, 'IP address permanently blocked');
+    }
+    
+    const rateLimitResult = checkRateLimit(ip, isVN);
     
     if (!rateLimitResult.allowed) {
-      const logDetails = `${rateLimitResult.reason}: ${ip} - ${path}`;
-      
-      if (rateLimitResult.code === 503) {
-        console.log(`☢️ ${logDetails} (Nuclear lockdown)`);
-        return createFastResponse('Service temporarily unavailable during emergency', 503);
-      }
-      
-      if (rateLimitResult.code === 403) {
-        console.log(`🔨 ${logDetails} (Permanent ban)`);
-        return createFastResponse('IP permanently blocked', 403);
-      }
-      
-      // Rate limited or temp banned
-      if (rateLimitResult.remainingTime) {
-        console.log(`🕐 ${logDetails} (Temp banned, ${rateLimitResult.remainingTime}min remaining)`);
-        return createDetailedResponse(429, 'IP tạm thời bị cấm do vi phạm', {
-          'Ban Type': 'Temporary',
-          'Remaining Time': `${rateLimitResult.remainingTime} minutes`,
-          'Ban Reason': rateLimitResult.banReason,
-          'Limit': `${isVN ? BASE_LIMITS.VN : BASE_LIMITS.OTHER} req/min`,
-          remainingTime: rateLimitResult.remainingTime,
-          banReason: rateLimitResult.banReason
-        });
-      } else {
-        console.log(`🚫 ${logDetails} (${rateLimitResult.count || 'N/A'}/${rateLimitResult.limit || 'N/A'}, violations: ${rateLimitResult.violations || 0})`);
-        return stats.emergencyLevel >= 2
-          ? createFastResponse(`Rate Limited: ${rateLimitResult.count}/${rateLimitResult.limit}`, 429)
-          : createDetailedResponse(429, 'Quá nhiều request trong thời gian ngắn', {
-              'Requests': `${rateLimitResult.count}/${rateLimitResult.limit}`,
-              'Violations': rateLimitResult.violations,
-              'Emergency Level': stats.emergencyLevel,
-              'Window': '60 seconds',
-              'Limit': `${isVN ? BASE_LIMITS.VN : BASE_LIMITS.OTHER} req/min`
-            });
-      }
+      stats.totalBlocked++;
+      logAction('RATE_LIMIT', ip, `| Requests: ${rateLimitResult.count}/${rateLimitResult.limit} | Path: ${path} | UA: ${userAgent.substring(0, 50)}`);
+      return createBlockedResponse(429, 'Rate limit exceeded');
     }
     
-    // Success
-    const processingTime = performance.now() - startTime;
-    
-    // Async logging (không block response)
-    if (processingTime > 10 || Math.random() < 0.01) { // Log slow requests hoặc 1% random
-      setImmediate(() => {
-        console.log(`✅ ${ip} - ${path} (${processingTime.toFixed(2)}ms, ${rateLimitResult.count}/${isVN ? BASE_LIMITS.VN : BASE_LIMITS.OTHER})`);
-      });
+    if (Math.random() < 0.01) {
+      logAction('ALLOW', ip, `| Requests: ${rateLimitResult.count}/${rateLimitResult.limit} | Path: ${path}`);
     }
     
   } catch (error) {
-    console.error('🔥 Critical middleware error:', error.message);
     stats.totalBlocked++;
-    return createFastResponse('Internal Server Error', 503);
+    logAction('ERROR', 'SYSTEM', `| Error: ${error.message}`);
+    return createBlockedResponse(503, 'Service temporarily unavailable');
   }
 }
 
