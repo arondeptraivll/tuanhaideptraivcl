@@ -1,13 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-const RATE_LIMIT_VN = 50          
-const RATE_LIMIT_FOREIGN = 3      
-const WINDOW_MS = 60 * 1000
-const BAN_DURATION = 24 * 60 * 60 * 1000
-
+// ==================== CONFIG ====================
 const VIETNAM_IP_RANGES = [
   ['1.52.0.0', '1.55.255.255'],
   ['14.160.0.0', '14.191.255.255'],
@@ -210,36 +203,58 @@ const VIETNAM_IP_RANGES = [
   ['221.121.0.0', '221.121.63.255'],
   ['221.132.0.0', '221.133.255.255'],
   ['222.252.0.0', '222.255.255.255']
-]
+];
 
 const SUSPICIOUS_UAS = [
   'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 
   'curl', 'wget', 'python', 'go-http', 'masscan', 'nmap', 'sqlmap',
-  'fuzz'
+  'fuzz', 'attack', 'exploit', 'penetration'
 ];
 
+const ADMIN_IPS = ['127.0.0.1']; // Thêm admin IPs ở đây
+
+// ==================== IN-MEMORY STORAGE ====================
+const ipData = new Map(); // {ip: {count, window, violations, lastSeen, totalRequests}}
+const ipGeoCache = new Map(); // {ip: {isVN, cachedAt}}
+const blockedIPs = new Set(); // Permanently blocked IPs
+const suspiciousIPs = new Set(); // IPs được theo dõi đặc biệt
+
+// ==================== GLOBAL STATS ====================
+const stats = {
+  requestsPerSecond: 0,
+  totalRequests: 0,
+  totalBlocked: 0,
+  lastSecond: Date.now(),
+  emergencyLevel: 0, // 0=normal, 1=caution, 2=emergency, 3=lockdown
+  startTime: Date.now(),
+  peakRPS: 0
+};
+
+let NUCLEAR_LOCKDOWN = false;
+
+// ==================== UTILITY FUNCTIONS ====================
 function sanitizeIP(ip) {
-  if (!ip || typeof ip !== 'string') return null
+  if (!ip || typeof ip !== 'string') return null;
   
-  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
-  const cleaned = ip.trim()
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const cleaned = ip.trim();
   
-  if (!ipv4Regex.test(cleaned)) return null
+  if (!ipv4Regex.test(cleaned)) return null;
   
-  const parts = cleaned.split('.')
+  const parts = cleaned.split('.');
   for (const part of parts) {
-    const num = parseInt(part, 10)
-    if (num < 0 || num > 255) return null
+    const num = parseInt(part, 10);
+    if (num < 0 || num > 255) return null;
   }
   
-  return cleaned
+  return cleaned;
 }
 
 function isPrivateIP(ip) {
-  if (!ip) return false
+  if (!ip) return false;
   
-  const parts = ip.split('.').map(Number)
-  const [a, b, c, d] = parts
+  const parts = ip.split('.').map(Number);
+  const [a, b, c, d] = parts;
   
   return (
     a === 10 ||
@@ -247,158 +262,255 @@ function isPrivateIP(ip) {
     (a === 192 && b === 168) ||
     (a === 127) ||
     (a === 169 && b === 254)
-  )
+  );
 }
 
 function getClientIP(request) {
   try {
-    const cfIP = request.headers.get('cf-connecting-ip')
-    if (cfIP) {
-      const cleanIP = sanitizeIP(cfIP)
-      if (cleanIP && !isPrivateIP(cleanIP)) {
-        return cleanIP
-      }
+    // Vercel
+    const vercelIP = request.headers.get('x-vercel-forwarded-for');
+    if (vercelIP) {
+      const cleanIP = sanitizeIP(vercelIP.split(',')[0]);
+      if (cleanIP && !isPrivateIP(cleanIP)) return cleanIP;
     }
-    
-    const realIP = request.headers.get('x-real-ip')
-    if (realIP) {
-      const cleanIP = sanitizeIP(realIP)
-      if (cleanIP && !isPrivateIP(cleanIP)) {
-        return cleanIP
-      }
-    }
-    
-    const forwarded = request.headers.get('x-forwarded-for')
-    if (forwarded) {
-      const firstIP = sanitizeIP(forwarded.split(',')[0])
-      if (firstIP && !isPrivateIP(firstIP)) {
-        return firstIP
-      }
-    }
-    
-    return null
-    
-  } catch (error) {
-    return null
-  }
-}
 
-function logSecurity(type, ip, data = {}) {
-  const sanitizedData = {
-    path: data.path?.substring(0, 100),
-    method: data.method,
-    country: data.country,
-    time: data.time,
-    count: data.count,
-    violations: data.violations
+    // Cloudflare
+    const cfIP = request.headers.get('cf-connecting-ip');
+    if (cfIP) {
+      const cleanIP = sanitizeIP(cfIP);
+      if (cleanIP && !isPrivateIP(cleanIP)) return cleanIP;
+    }
+    
+    // Standard headers
+    const realIP = request.headers.get('x-real-ip');
+    if (realIP) {
+      const cleanIP = sanitizeIP(realIP);
+      if (cleanIP && !isPrivateIP(cleanIP)) return cleanIP;
+    }
+    
+    const forwarded = request.headers.get('x-forwarded-for');
+    if (forwarded) {
+      const firstIP = sanitizeIP(forwarded.split(',')[0]);
+      if (firstIP && !isPrivateIP(firstIP)) return firstIP;
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
   }
-  
-  console.log(`[${new Date().toISOString()}] ${type} - ${ip || 'unknown'}`, 
-    JSON.stringify(sanitizedData))
 }
 
 function ipToNumber(ip) {
-  if (!ip) return 0
+  if (!ip) return 0;
   try {
     return ip.split('.').reduce((acc, octet) => {
-      const num = parseInt(octet, 10)
-      return (acc << 8) | num
-    }, 0) >>> 0
+      const num = parseInt(octet, 10);
+      return (acc << 8) | num;
+    }, 0) >>> 0;
   } catch {
-    return 0
+    return 0;
   }
 }
 
 function isVietnamIP(ip) {
-  if (!ip) return false
+  if (!ip) return false;
   
-  const ipNum = ipToNumber(ip)
-  
-  if (ipNum === 0) return false
+  const ipNum = ipToNumber(ip);
+  if (ipNum === 0) return false;
   
   for (const [start, end] of VIETNAM_IP_RANGES) {
-    const startNum = ipToNumber(start)
-    const endNum = ipToNumber(end)
+    const startNum = ipToNumber(start);
+    const endNum = ipToNumber(end);
     
     if (ipNum >= startNum && ipNum <= endNum) {
-      return true
+      return true;
     }
   }
   
-  return false
+  return false;
 }
 
-async function hashUserAgent(userAgent) {
-  if (!userAgent) return null
+function isVietnamIPCached(ip) {
+  const cached = ipGeoCache.get(ip);
+  const now = Date.now();
   
-  try {
-    const encoder = new TextEncoder()
-    const data = encoder.encode(userAgent.substring(0, 200))
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16)
-  } catch {
-    return null
+  if (cached && (now - cached.cachedAt) < 3600000) { // 1 hour cache
+    return cached.isVN;
   }
+  
+  const isVN = isVietnamIP(ip);
+  
+  ipGeoCache.set(ip, {
+    isVN,
+    cachedAt: now
+  });
+  
+  // Cleanup cache nếu quá lớn
+  if (ipGeoCache.size > 10000) {
+    const oldestEntries = Array.from(ipGeoCache.entries())
+      .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
+      .slice(0, 2000);
+      
+    oldestEntries.forEach(([ip]) => ipGeoCache.delete(ip));
+  }
+  
+  return isVN;
 }
 
-async function checkRateLimit(supabase, ip, isVN, country, userAgent) {
-  try {
-    const uaHash = await hashUserAgent(userAgent)
+// ==================== EMERGENCY SYSTEM ====================
+function updateEmergencyLevel() {
+  const now = Date.now();
+  
+  if (now - stats.lastSecond > 1000) {
+    const rps = stats.requestsPerSecond;
+    stats.peakRPS = Math.max(stats.peakRPS, rps);
     
-    const { data: result, error } = await supabase.rpc('handle_rate_limit_v2', {
-      p_ip: ip,
-      p_limit: isVN ? RATE_LIMIT_VN : RATE_LIMIT_FOREIGN,
-      p_window_ms: WINDOW_MS,
-      p_ban_duration: BAN_DURATION,
-      p_is_vn: isVN
-    })
-    
-    if (error) throw error
-    
-    return {
-      allowed: result?.allowed || false,
-      banned: result?.banned || false,
-      count: result?.count || 0,
-      violations: result?.violations || 0
+    // Auto-adjust emergency level
+    if (rps > 20000) {
+      stats.emergencyLevel = 3; // Lockdown
+      console.log(`🚨 LOCKDOWN MODE: ${rps} RPS`);
+    } else if (rps > 10000) {
+      stats.emergencyLevel = 2; // Emergency
+      console.log(`⚠️ EMERGENCY MODE: ${rps} RPS`);
+    } else if (rps > 2000) {
+      stats.emergencyLevel = 1; // Caution
+      console.log(`⚡ CAUTION MODE: ${rps} RPS`);
+    } else if (rps < 100) {
+      stats.emergencyLevel = 0; // Normal
     }
     
-  } catch (error) {
-    console.error('Rate limit check error:', error.message)
-    return { allowed: false, banned: false, count: 0, violations: 0 }
+    // Nuclear lockdown
+    if (rps > 50000) {
+      NUCLEAR_LOCKDOWN = true;
+      console.log('☢️ NUCLEAR LOCKDOWN ACTIVATED');
+      
+      setTimeout(() => {
+        NUCLEAR_LOCKDOWN = false;
+        console.log('✅ Nuclear lockdown deactivated');
+      }, 300000); // 5 phút
+    }
+    
+    stats.requestsPerSecond = 0;
+    stats.lastSecond = now;
   }
+  
+  stats.requestsPerSecond++;
+  stats.totalRequests++;
 }
 
-async function logSecurityEvent(supabase, ip, eventType, severity = 'LOW', metadata = {}) {
-  try {
-    await supabase.rpc('log_security_event', {
-      input_ip: ip,
-      input_event_type: eventType,
-      input_severity: severity,
-      input_path: metadata.path,
-      input_user_agent: metadata.userAgent?.substring(0, 500),
-      input_country: metadata.country,
-      input_metadata: metadata
-    })
-  } catch (error) {
-    console.error('Security logging error:', error.message)
+// ==================== RATE LIMITING ====================
+function ultraFastRateLimit(ip, isVN, userAgent) {
+  const now = Date.now();
+  updateEmergencyLevel();
+  
+  // Nuclear lockdown
+  if (NUCLEAR_LOCKDOWN && !ADMIN_IPS.includes(ip)) {
+    stats.totalBlocked++;
+    return { allowed: false, reason: 'NUCLEAR_LOCKDOWN', code: 503 };
   }
+  
+  // Permanent block list
+  if (blockedIPs.has(ip)) {
+    stats.totalBlocked++;
+    return { allowed: false, reason: 'BLACKLISTED', code: 403 };
+  }
+  
+  // Emergency limits
+  const limits = {
+    0: isVN ? 60 : 5,   // Normal
+    1: isVN ? 30 : 3,   // Caution  
+    2: isVN ? 10 : 1,   // Emergency
+    3: isVN ? 3 : 1     // Lockdown
+  };
+  
+  const limit = limits[stats.emergencyLevel];
+  const windowMs = 60000; // 1 minute
+  
+  let data = ipData.get(ip);
+  
+  if (!data || (now - data.window) > windowMs) {
+    // New window
+    data = { 
+      count: 1, 
+      window: now, 
+      violations: data?.violations || 0, 
+      lastSeen: now,
+      totalRequests: (data?.totalRequests || 0) + 1
+    };
+    ipData.set(ip, data);
+    return { allowed: true, reason: 'NEW_WINDOW', count: 1 };
+  }
+  
+  data.count++;
+  data.lastSeen = now;
+  data.totalRequests++;
+  
+  // Suspicious behavior detection
+  const isSuspiciousUA = SUSPICIOUS_UAS.some(ua => 
+    userAgent.toLowerCase().includes(ua)
+  );
+  
+  if (isSuspiciousUA && !isVN) {
+    data.violations += 2; // Double penalty for foreign suspicious
+    suspiciousIPs.add(ip);
+  }
+  
+  if (data.count > limit) {
+    data.violations++;
+    stats.totalBlocked++;
+    
+    // Auto-blacklist logic
+    let blacklistThreshold;
+    if (stats.emergencyLevel >= 2) {
+      blacklistThreshold = 2; // Strict during emergency
+    } else if (suspiciousIPs.has(ip)) {
+      blacklistThreshold = 3; // Suspicious IPs
+    } else {
+      blacklistThreshold = 5; // Normal IPs
+    }
+    
+    if (data.violations >= blacklistThreshold) {
+      blockedIPs.add(ip);
+      ipData.delete(ip);
+      suspiciousIPs.delete(ip);
+      
+      console.log(`🔨 BLACKLISTED: ${ip} (${data.violations} violations, emergency: ${stats.emergencyLevel})`);
+      return { allowed: false, reason: 'AUTO_BLACKLISTED', code: 403 };
+    }
+    
+    return { 
+      allowed: false, 
+      reason: 'RATE_LIMITED', 
+      code: 429, 
+      count: data.count,
+      violations: data.violations,
+      limit
+    };
+  }
+  
+  return { allowed: true, reason: 'ALLOWED', count: data.count };
 }
 
-function createBlockReason(type) {
-  const reasons = {
-    'BLOCKED_NO_IP': 'NO_IP_DETECTED',
-    'BLOCKED_COUNTRY': 'FOREIGN_COUNTRY',
-    'BLOCKED_SUSPICIOUS_FOREIGN': 'SUSPICIOUS_FOREIGN',
-    'BLOCKED_BANNED': 'IP_BANNED',
-    'RATE_LIMIT_EXCEEDED': 'RATE_LIMIT',
-    'BLOCKED_FOREIGN': 'FOREIGN_IP',
-    'SERVICE_ERROR': 'SERVICE_ERROR'
-  }
-  return reasons[type] || 'ACCESS_DENIED'
+// ==================== RESPONSE FUNCTIONS ====================
+function createFastResponse(message, code = 403) {
+  return new Response(message, {
+    status: code,
+    headers: { 
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'X-Emergency-Level': stats.emergencyLevel.toString(),
+      'X-Block-Time': new Date().toISOString()
+    }
+  });
 }
 
-function createBlockedResponse(statusCode, reason, details = {}, blockType = '') {
+function createDetailedResponse(statusCode, reason, details = {}) {
+  const isEmergency = stats.emergencyLevel >= 2;
+  
+  if (isEmergency) {
+    return createFastResponse(`${statusCode}: ${reason}`, statusCode);
+  }
+  
   const html = `
 <!DOCTYPE html>
 <html lang="vi">
@@ -516,19 +628,32 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
             border-bottom: none;
         }
         
-        .retry-info {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
+        .stats {
+            background: #e9ecef;
             padding: 1rem;
             border-radius: 10px;
-            color: #856404;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .emergency-indicator {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
             margin-bottom: 1rem;
         }
         
-        .footer {
-            color: #777;
-            font-size: 0.9rem;
-            margin-top: 1rem;
+        .emergency-0 { background: #d4edda; color: #155724; }
+        .emergency-1 { background: #fff3cd; color: #856404; }
+        .emergency-2 { background: #f8d7da; color: #721c24; }
+        .emergency-3 { background: #f5c6cb; color: #721c24; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         
         .refresh-btn {
@@ -550,6 +675,12 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
             box-shadow: 0 6px 20px rgba(78, 205, 196, 0.3);
         }
         
+        .footer {
+            color: #777;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
         @media (max-width: 480px) {
             .title { font-size: 2rem; }
             .container { padding: 1.5rem; }
@@ -560,11 +691,16 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
 <body>
     <div class="container">
         <div class="emoji">${getEmojiForStatus(statusCode)}</div>
-        <h1 class="title">Bạn đã bị chặn :v</h1>
+        <h1 class="title">Access Denied</h1>
+        
+        <div class="emergency-indicator emergency-${stats.emergencyLevel}">
+            ${getEmergencyText(stats.emergencyLevel)}
+        </div>
+        
         <div class="status-code">ERROR ${statusCode}</div>
         <div class="reason">${reason}</div>
         
-        ${details && Object.keys(details).length > 0 ? `
+        ${Object.keys(details).length > 0 ? `
         <div class="details">
             <div class="details-title">📋 Chi tiết:</div>
             ${Object.entries(details).map(([key, value]) => `
@@ -576,17 +712,18 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
         </div>
         ` : ''}
         
+        <div class="stats">
+            <strong>🛡️ System Status:</strong><br>
+            Emergency Level: ${stats.emergencyLevel}/3 | 
+            RPS: ${stats.requestsPerSecond} | 
+            Blocked: ${stats.totalBlocked} | 
+            Peak: ${stats.peakRPS}
+        </div>
+        
         ${statusCode === 429 ? `
-        <div class="retry-info">
+        <div style="background: #fff3cd; padding: 1rem; border-radius: 10px; margin: 1rem 0; color: #856404;">
             ⏱️ <strong>Rate limit exceeded!</strong><br>
             Vui lòng chờ 60 giây trước khi thử lại.
-        </div>
-        ` : ''}
-        
-        ${statusCode === 403 && reason.includes('Vietnam') ? `
-        <div class="retry-info">
-            🇻🇳 <strong>Chỉ cho phép truy cập từ Việt Nam</strong><br>
-            Nếu bạn đang ở VN, hãy thử tắt VPN/Proxy.
         </div>
         ` : ''}
         
@@ -595,7 +732,7 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
         </button>
         
         <div class="footer">
-            <p>🛡️ Đừng có ddos em ạ, ko đủ cảnh</p>
+            <p>🛡️ Protected by Ultra DDoS Shield</p>
             <p>Timestamp: ${new Date().toLocaleString('vi-VN')}</p>
         </div>
     </div>
@@ -613,17 +750,6 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
             }
         }, 1000);
         ` : ''}
-        
-        let konamiCode = [];
-        const konami = [38,38,40,40,37,39,37,39,66,65];
-        document.addEventListener('keydown', (e) => {
-            konamiCode.push(e.keyCode);
-            if (konamiCode.length > 10) konamiCode.shift();
-            if (konamiCode.join(',') === konami.join(',')) {
-                document.body.style.animation = 'rainbow 1s infinite';
-                setTimeout(() => document.body.style.animation = '', 3000);
-            }
-        });
     </script>
 </body>
 </html>`;
@@ -633,7 +759,7 @@ function createBlockedResponse(statusCode, reason, details = {}, blockType = '')
     headers: { 
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'X-Block-Type': createBlockReason(blockType),
+      'X-Emergency-Level': stats.emergencyLevel.toString(),
       'X-Block-Time': new Date().toISOString()
     }
   });
@@ -648,192 +774,169 @@ function getEmojiForStatus(statusCode) {
   }
 }
 
-function getDetailedReason(type, metadata = {}) {
-  const reasons = {
-    'BLOCKED_NO_IP': {
-      reason: 'Không thể xác định địa chỉ IP thực của bạn',
-      details: {
-        'Nguyên nhân': 'IP headers không hợp lệ hoặc bị thiếu',
-        'Giải pháp': 'Tắt proxy/VPN và thử lại'
-      }
-    },
-    'BLOCKED_COUNTRY': {
-      reason: 'Truy cập từ quốc gia không được phép',
-      details: {
-        'Quốc gia': metadata.country || 'Unknown',
-        'Chính sách': 'Chỉ cho phép truy cập từ Việt Nam'
-      }
-    },
-    'BLOCKED_SUSPICIOUS_FOREIGN': {
-      reason: 'Phát hiện hoạt động đáng nghi từ IP nước ngoài',
-      details: {
-        'Loại': 'Suspicious User Agent + Foreign IP',
-        'Mức độ': 'Nguy hiểm cao'
-      }
-    },
-    'BLOCKED_BANNED': {
-      reason: 'IP của bạn đã bị cấm truy cập',
-      details: {
-        'Thời gian ban': '24 giờ',
-        'Nguyên nhân': 'Vi phạm rate limit nhiều lần'
-      }
-    },
-    'RATE_LIMIT_EXCEEDED': {
-      reason: 'Bạn đã gửi quá nhiều request trong thời gian ngắn',
-      details: {
-        'Số request': metadata.count || 'N/A',
-        'Giới hạn': metadata.isVN ? '50/phút' : '3/phút',
-        'Thời gian reset': '60 giây'
-      }
-    },
-    'BLOCKED_FOREIGN': {
-      reason: 'Truy cập từ IP nước ngoài không được phép',
-      details: {
-        'IP': metadata.ip || 'Hidden',
-        'Chính sách': 'Vietnam Only'
-      }
-    }
-  };
-
-  return reasons[type] || {
-    reason: 'Truy cập bị từ chối',
-    details: { 'Lý do': 'Không xác định' }
-  };
+function getEmergencyText(level) {
+  switch(level) {
+    case 0: return '🟢 NORMAL';
+    case 1: return '🟡 CAUTION';
+    case 2: return '🟠 EMERGENCY';
+    case 3: return '🔴 LOCKDOWN';
+    default: return '⚪ UNKNOWN';
+  }
 }
 
+// ==================== CLEANUP & MONITORING ====================
+function cleanupMemory() {
+  const now = Date.now();
+  const fiveMinutesAgo = now - 300000;
+  let cleaned = 0;
+  
+  // Cleanup old IP data
+  for (const [ip, data] of ipData.entries()) {
+    if (data.lastSeen < fiveMinutesAgo) {
+      ipData.delete(ip);
+      cleaned++;
+    }
+  }
+  
+  // Cleanup geo cache if too large
+  if (ipGeoCache.size > 20000) {
+    const oldEntries = Array.from(ipGeoCache.entries())
+      .sort((a, b) => a[1].cachedAt - b[1].cachedAt)
+      .slice(0, 5000);
+    
+    oldEntries.forEach(([ip]) => ipGeoCache.delete(ip));
+  }
+  
+  console.log(`🧹 Cleanup: ${cleaned} IPs removed, ${ipData.size} active, ${blockedIPs.size} blocked, ${suspiciousIPs.size} suspicious`);
+}
+
+// Auto cleanup every 2 minutes
+setInterval(cleanupMemory, 120000);
+
+// ==================== STATS ENDPOINT ====================
+function createStatsResponse() {
+  const uptime = Date.now() - stats.startTime;
+  const uptimeHours = (uptime / 3600000).toFixed(2);
+  
+  return new Response(JSON.stringify({
+    stats: {
+      emergencyLevel: stats.emergencyLevel,
+      rps: stats.requestsPerSecond,
+      totalRequests: stats.totalRequests,
+      totalBlocked: stats.totalBlocked,
+      peakRPS: stats.peakRPS,
+      uptime: `${uptimeHours}h`,
+      nuclearLockdown: NUCLEAR_LOCKDOWN
+    },
+    memory: {
+      activeIPs: ipData.size,
+      blacklistedIPs: blockedIPs.size,
+      suspiciousIPs: suspiciousIPs.size,
+      geoCache: ipGeoCache.size
+    },
+    recentBlocked: Array.from(blockedIPs).slice(-10),
+    recentSuspicious: Array.from(suspiciousIPs).slice(-10)
+  }, null, 2), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// ==================== MAIN MIDDLEWARE ====================
 export default async function middleware(request) {
-  const startTime = Date.now()
+  const startTime = performance.now();
   
   try {
-    const url = new URL(request.url)
-    const path = url.pathname
+    const url = new URL(request.url);
+    const path = url.pathname;
     
-    if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map)$/)) {
-      return
+    // Stats endpoint (admin only)
+    if (path === '/api/ddos-stats') {
+      const ip = getClientIP(request);
+      if (ADMIN_IPS.includes(ip) || !ip) {
+        return createStatsResponse();
+      }
+      return createFastResponse('Unauthorized', 403);
     }
     
-    const ip = getClientIP(request)
+    // Static files bypass
+    if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml)$/)) {
+      return;
+    }
     
+    const ip = getClientIP(request);
+    const userAgent = request.headers.get('user-agent') || '';
+    const method = request.method;
+    
+    // No IP = instant block
     if (!ip) {
-      logSecurity('BLOCKED_NO_IP', 'unknown', { path })
-      const reasonData = getDetailedReason('BLOCKED_NO_IP')
-      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_NO_IP')
+      stats.totalBlocked++;
+      return createFastResponse('No IP detected', 403);
     }
     
-    const userAgent = request.headers.get('user-agent') || ''
-    const country = request.headers.get('cf-ipcountry') || ''
-    const method = request.method
-    
-    logSecurity('REQUEST', ip, { path, method, country })
-    
-    if (country && country !== 'VN' && country !== 'XX' && country !== '') {
-      logSecurity('BLOCKED_COUNTRY', ip, { country, path })
-      
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: { persistSession: false }
-        })
-        await logSecurityEvent(supabase, ip, 'COUNTRY_BLOCK', 'MEDIUM', {
-          country, path, userAgent: userAgent.substring(0, 100)
-        })
-      }
-      
-      const reasonData = getDetailedReason('BLOCKED_COUNTRY', { country })
-      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_COUNTRY')
+    // Admin bypass
+    if (ADMIN_IPS.includes(ip)) {
+      console.log(`👑 Admin access: ${ip} - ${path}`);
+      return;
     }
     
-    const isSuspiciousUA = SUSPICIOUS_UAS.some(ua => 
-      userAgent.toLowerCase().includes(ua)
-    )
+    // Vietnam IP check (cached)
+    const isVN = isVietnamIPCached(ip);
     
-    const isVN = isVietnamIP(ip)
-    
-    if (!isVN && isSuspiciousUA) {
-      logSecurity('BLOCKED_SUSPICIOUS_FOREIGN', ip, { 
-        suspicious: true,
-        ua: userAgent.substring(0, 50)
-      })
-      
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: { persistSession: false }
-        })
-        await logSecurityEvent(supabase, ip, 'SUSPICIOUS_UA', 'HIGH', {
-          path, userAgent: userAgent.substring(0, 200), country
-        })
-      }
-      
-      const reasonData = getDetailedReason('BLOCKED_SUSPICIOUS_FOREIGN')
-      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_SUSPICIOUS_FOREIGN')
-    }
-    
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey, {
-        auth: { persistSession: false },
-        db: { schema: 'public' }
-      })
-      
-      const rateLimitResult = await checkRateLimit(supabase, ip, isVN, country, userAgent)
-      
-      if (rateLimitResult.banned) {
-        logSecurity('BLOCKED_BANNED', ip, { path })
-        await logSecurityEvent(supabase, ip, 'BANNED_ACCESS', 'HIGH', {
-          path, country, userAgent: userAgent.substring(0, 100)
-        })
-        
-        const reasonData = getDetailedReason('BLOCKED_BANNED')
-        return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_BANNED')
-      }
-      
-      if (!rateLimitResult.allowed) {
-        logSecurity('RATE_LIMIT_EXCEEDED', ip, { 
-          count: rateLimitResult.count,
-          violations: rateLimitResult.violations
-        })
-        
-        await logSecurityEvent(supabase, ip, 'RATE_LIMIT', 'MEDIUM', {
-          path, count: rateLimitResult.count, 
-          violations: rateLimitResult.violations
-        })
-        
-        const reasonData = getDetailedReason('RATE_LIMIT_EXCEEDED', {
-          count: rateLimitResult.count,
-          isVN: isVN
-        })
-        return createBlockedResponse(429, reasonData.reason, reasonData.details, 'RATE_LIMIT_EXCEEDED')
-      }
-    }
-    
+    // Non-Vietnam = instant block
     if (!isVN) {
-      logSecurity('BLOCKED_FOREIGN', ip, { path })
+      stats.totalBlocked++;
+      const country = request.headers.get('cf-ipcountry') || 'Unknown';
       
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: { persistSession: false }
-        })
-        await logSecurityEvent(supabase, ip, 'FOREIGN_BLOCK', 'LOW', {
-          path, country, userAgent: userAgent.substring(0, 100)
-        })
-      }
+      console.log(`🌍 Foreign blocked: ${ip} (${country}) - ${path}`);
       
-      const reasonData = getDetailedReason('BLOCKED_FOREIGN', { ip })
-      return createBlockedResponse(403, reasonData.reason, reasonData.details, 'BLOCKED_FOREIGN')
+      return stats.emergencyLevel >= 2 
+        ? createFastResponse('VN Only', 403)
+        : createDetailedResponse(403, 'Chỉ cho phép truy cập từ Việt Nam', {
+            'IP': ip,
+            'Country': country,
+            'Policy': 'Vietnam Only'
+          });
     }
     
-    const processingTime = Date.now() - startTime
-    logSecurity('ALLOWED', ip, { 
-      path, 
-      time: `${processingTime}ms` 
-    })
+    // Rate limit check
+    const rateLimitResult = ultraFastRateLimit(ip, isVN, userAgent);
+    
+    if (!rateLimitResult.allowed) {
+      console.log(`🚫 ${rateLimitResult.reason}: ${ip} - ${path} (${rateLimitResult.count || 'N/A'}/${rateLimitResult.limit || 'N/A'})`);
+      
+      if (rateLimitResult.code === 503) {
+        return createFastResponse('Service temporarily unavailable during emergency', 503);
+      }
+      
+      if (rateLimitResult.code === 403) {
+        return createFastResponse('IP permanently blocked', 403);
+      }
+      
+      // Rate limited
+      return stats.emergencyLevel >= 2
+        ? createFastResponse(`Rate Limited: ${rateLimitResult.count}/${rateLimitResult.limit}`, 429)
+        : createDetailedResponse(429, 'Quá nhiều request trong thời gian ngắn', {
+            'Requests': `${rateLimitResult.count}/${rateLimitResult.limit}`,
+            'Violations': rateLimitResult.violations,
+            'Emergency Level': stats.emergencyLevel,
+            'Window': '60 seconds'
+          });
+    }
+    
+    // Success
+    const processingTime = performance.now() - startTime;
+    
+    // Async logging (không block response)
+    if (processingTime > 10 || Math.random() < 0.01) { // Log slow requests hoặc 1% random
+      setImmediate(() => {
+        console.log(`✅ ${ip} - ${path} (${processingTime.toFixed(2)}ms, ${rateLimitResult.count}/min)`);
+      });
+    }
     
   } catch (error) {
-    console.error('Middleware critical error:', error.message)
-    
-    const reasonData = getDetailedReason('SERVICE_ERROR', { error: error.message })
-    return createBlockedResponse(503, 'Dịch vụ tạm thời không khả dụng', {
-      'Lỗi': 'Internal Server Error',
-      'Thời gian': new Date().toLocaleTimeString('vi-VN')
-    }, 'SERVICE_ERROR')
+    console.error('🔥 Critical middleware error:', error.message);
+    stats.totalBlocked++;
+    return createFastResponse('Internal Server Error', 503);
   }
 }
 
@@ -842,4 +945,4 @@ export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ]
-}
+};
