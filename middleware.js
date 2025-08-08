@@ -204,7 +204,7 @@ const VIETNAM_IP_RANGES = [
   ['222.252.0.0', '222.255.255.255']
 ];
 
-const ADMIN_IPS = ['127.0.0.1'];
+const ADMIN_IPS = ['42.118.42.236'];
 const LIMITS = { VN: 20, OTHER: 3 };
 const BAN_DURATION = 30 * 60 * 1000;
 
