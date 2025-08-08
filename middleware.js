@@ -216,11 +216,8 @@ const SUSPICIOUS_PATHS = [
   '/xmlrpc.php', '/wp-login.php', '/administrator', '/cpanel', '/cgi-bin'
 ];
 
-// Thay thế DDOS_PATTERNS bằng DDOS_CHECKS dùng function
+// DDoS pattern chỉ còn kiểm tra user-agent và headers, KHÔNG dùng path
 const DDOS_CHECKS = {
-  pathTraversal: (str) => {
-    return str.includes('..') || str.includes('..\\') || str.includes('%2e%2e');
-  },
   scriptTag: (str) => {
     const lower = str.toLowerCase();
     return lower.includes('<script') || lower.includes('</script');
@@ -292,7 +289,6 @@ function getIP(request) {
     'x-real-ip',
     'x-forwarded-for'
   ];
-  
   for (const h of headers) {
     const value = request.headers.get(h);
     if (value) {
@@ -307,7 +303,6 @@ function isValidIP(ip) {
   if (!ip || typeof ip !== 'string') return false;
   const parts = ip.split('.');
   if (parts.length !== 4) return false;
-  
   return parts.every(part => {
     const num = parseInt(part, 10);
     return !isNaN(num) && num >= 0 && num <= 255;
@@ -329,7 +324,6 @@ function isPrivateIP(ip) {
 
 function isVN(ip) {
   if (isPrivateIP(ip)) return false;
-  
   const num = ip.split('.').reduce((a, b) => (a << 8) | parseInt(b), 0) >>> 0;
   return VIETNAM_IP_RANGES.some(([s, e]) => {
     const start = s.split('.').reduce((a, b) => (a << 8) | parseInt(b), 0) >>> 0;
@@ -343,173 +337,114 @@ function createFingerprint(request, ip) {
   const acceptLang = request.headers.get('accept-language') || '';
   const acceptEnc = request.headers.get('accept-encoding') || '';
   const connection = request.headers.get('connection') || '';
-  
   return btoa(`${ip}:${userAgent.substring(0, 50)}:${acceptLang}:${acceptEnc}:${connection}`);
 }
 
-// Hàm detectDDoSPatterns được viết lại để dùng string matching
+// DDoS patterns: chỉ dùng user-agent, KHÔNG kiểm tra path nữa!
 function detectDDoSPatterns(ip, path, userAgent, headers) {
   const now = Date.now();
   let ddosScore = 0;
   const reasons = [];
-
-  // Kiểm tra các pattern bằng string matching
-  const checkString = path + ' ' + userAgent;
-  
+  // Chỉ kiểm tra user-agent
+  const checkString = userAgent;
   for (const [checkName, checkFunc] of Object.entries(DDOS_CHECKS)) {
     try {
       if (checkFunc(checkString)) {
         ddosScore += 5;
         reasons.push(checkName);
       }
-    } catch (e) {
-      // Bỏ qua lỗi nếu có
-    }
+    } catch (e) {}
   }
-
-  // Kiểm tra kích thước
-  if (path.length > 500 || userAgent.length > 1000) {
+  // Kiểm tra kích thước userAgent
+  if (userAgent.length > 1000) {
     ddosScore += 3;
     reasons.push('oversized_headers');
   }
-
-  // Kiểm tra query params
-  try {
-    const url = new URL(`http://dummy${path}`);
-    if (url.search.length > 1000) {
-      ddosScore += 3;
-      reasons.push('excessive_params');
-    }
-  } catch (e) {
-    if (path.includes('?') && path.length > 200) {
-      ddosScore += 2;
-      reasons.push('invalid_url');
-    }
-  }
-
   // Kiểm tra headers
   if (!headers.get('accept') || !headers.get('accept-language')) {
     ddosScore += 2;
     reasons.push('minimal_headers');
   }
-
-  // Kiểm tra lịch sử path
-  const pathKey = `${ip}_path`;
-  const pathHistory = patternCache.get(pathKey) || [];
-  pathHistory.push({ path, time: now });
-  
-  const recentPaths = pathHistory.filter(p => now - p.time < 60000);
-  patternCache.set(pathKey, recentPaths);
-
-  const uniquePaths = new Set(recentPaths.map(p => p.path)).size;
-  if (recentPaths.length > 20 && uniquePaths < 3) {
-    ddosScore += 4;
-    reasons.push('repetitive_paths');
-  }
-
-  if (recentPaths.length > 100) {
-    ddosScore += 5;
-    reasons.push('excessive_requests');
-  }
-
   return { score: ddosScore, reasons };
 }
 
 function detectBurstTraffic(ip) {
   const now = Date.now();
   const burstKey = `${ip}_burst`;
-  
   let bursts = burstCache.get(burstKey) || [];
   bursts = bursts.filter(timestamp => now - timestamp < BURST_WINDOW);
   bursts.push(now);
-  
   burstCache.set(burstKey, bursts);
-  
   if (bursts.length >= BURST_THRESHOLD) {
     return { burst: true, count: bursts.length };
   }
-  
   return { burst: false, count: bursts.length };
 }
 
 function detectSuspiciousActivity(ip, userAgent, path, method) {
   let suspicionScore = 0;
   const reasons = [];
-  
   const userAgentLower = userAgent.toLowerCase();
   const pathLower = path.toLowerCase();
-  
   // Kiểm tra User-Agent đáng ngờ
   if (SUSPICIOUS_UAS.some(ua => userAgentLower.includes(ua))) {
     suspicionScore += 3;
     reasons.push('suspicious_ua');
   }
-  
   // Kiểm tra path đáng ngờ
   if (SUSPICIOUS_PATHS.some(p => pathLower.includes(p))) {
     suspicionScore += 2;
     reasons.push('suspicious_path');
   }
-  
   // Kiểm tra method bất thường
   if (!['GET', 'POST', 'HEAD', 'OPTIONS'].includes(method)) {
     suspicionScore += 2;
     reasons.push('unusual_method');
   }
-  
   // Kiểm tra User-Agent
   if (!userAgent || userAgent.length < 10) {
     suspicionScore += 2;
     reasons.push('minimal_ua');
   }
-  
   if (userAgent.length > 500) {
     suspicionScore += 1;
     reasons.push('oversized_ua');
   }
-
   // Kiểm tra path traversal
   if (path.includes('..') || path.includes('%2e%2e')) {
     suspicionScore += 4;
     reasons.push('path_traversal');
   }
-
   // Kiểm tra special chars
   const specialCount = (path.match(/[<>'"&]/g) || []).length;
   if (specialCount > 2) {
     suspicionScore += 2;
     reasons.push('special_chars');
   }
-  
   // Cập nhật cache
   const existing = suspiciousCache.get(ip) || { score: 0, reasons: [], count: 0 };
   existing.score = Math.max(existing.score, suspicionScore);
   existing.reasons = [...new Set([...existing.reasons, ...reasons])];
   existing.count++;
   existing.lastSeen = Date.now();
-  
   if (existing.score >= 4 || existing.count >= 10) {
     suspiciousCache.set(ip, existing);
     return { suspicious: true, score: existing.score, reasons: existing.reasons };
   }
-  
   if (suspicionScore > 0) {
     suspiciousCache.set(ip, existing);
   }
-  
   return { suspicious: false, score: suspicionScore, reasons };
 }
 
 function isIPBanned(ip) {
   const banInfo = bannedIPs.get(ip);
   if (!banInfo) return false;
-  
   const now = Date.now();
   if (now - banInfo.timestamp > banInfo.duration) {
     bannedIPs.delete(ip);
     return false;
   }
-  
   return {
     banned: true,
     timeLeft: banInfo.duration - (now - banInfo.timestamp),
@@ -528,7 +463,6 @@ function banIP(ip, reason, violations = 1) {
   const existing = bannedIPs.get(ip);
   const level = existing ? existing.level + 1 : 1;
   const duration = calculateBanDuration(violations, level);
-  
   bannedIPs.set(ip, {
     timestamp: Date.now(),
     reason,
@@ -536,16 +470,13 @@ function banIP(ip, reason, violations = 1) {
     level,
     duration
   });
-  
   goodIPs.delete(ip);
-  
   return { banned: true, level, duration };
 }
 
 function cleanExpiredEntries() {
   const now = Date.now();
   const expireTime = 300000;
-  
   for (const [key, data] of ipCache) {
     if (Array.isArray(data)) {
       const filtered = data.filter(item => now - item.time < expireTime);
@@ -558,13 +489,11 @@ function cleanExpiredEntries() {
       ipCache.delete(key);
     }
   }
-  
   for (const [ip, banInfo] of bannedIPs) {
     if (now - banInfo.timestamp > banInfo.duration) {
       bannedIPs.delete(ip);
     }
   }
-  
   for (const [key, data] of burstCache) {
     const filtered = data.filter(timestamp => now - timestamp < BURST_WINDOW);
     if (filtered.length === 0) {
@@ -573,7 +502,6 @@ function cleanExpiredEntries() {
       burstCache.set(key, filtered);
     }
   }
-  
   for (const [key, data] of patternCache) {
     const filtered = data.filter(item => now - item.time < 60000);
     if (filtered.length === 0) {
@@ -582,7 +510,6 @@ function cleanExpiredEntries() {
       patternCache.set(key, filtered);
     }
   }
-  
   for (const [key, data] of suspiciousCache) {
     if (now - data.lastSeen > 3600000) {
       suspiciousCache.delete(key);
@@ -593,10 +520,8 @@ function cleanExpiredEntries() {
 function checkRateLimit(ip, suspicious = false, ddosScore = 0) {
   const now = Date.now();
   let baseLimit = 20;
-  
   if (suspicious) baseLimit = Math.floor(baseLimit * 0.6);
   if (ddosScore >= 3) baseLimit = Math.floor(baseLimit * 0.3);
-  
   const banStatus = isIPBanned(ip);
   if (banStatus.banned) {
     return { 
@@ -607,22 +532,16 @@ function checkRateLimit(ip, suspicious = false, ddosScore = 0) {
       level: banStatus.level
     };
   }
-  
   if (goodIPs.has(ip) && !suspicious && ddosScore === 0) {
     baseLimit = Math.floor(baseLimit * 1.5);
   }
-  
   const window = Math.floor(now / 60000);
   const key = `${ip}_${window}`;
-  
   const current = ipCache.get(key) || 0;
   ipCache.set(key, current + 1);
-  
   const allowed = current + 1 <= baseLimit;
-  
   if (!allowed) {
     const violations = current + 1 - baseLimit;
-    
     if (violations >= baseLimit * 1.5) {
       const banResult = banIP(ip, 'rate_limit_exceeded', violations);
       return { 
@@ -636,7 +555,6 @@ function checkRateLimit(ip, suspicious = false, ddosScore = 0) {
   } else if (current + 1 <= baseLimit * 0.5 && !suspicious && ddosScore === 0) {
     goodIPs.add(ip);
   }
-  
   return { 
     allowed, 
     count: current + 1, 
@@ -644,6 +562,148 @@ function checkRateLimit(ip, suspicious = false, ddosScore = 0) {
     violations: allowed ? 0 : current + 1 - baseLimit 
   };
 }
+
+// ... giữ nguyên các hàm createAdvancedErrorPage, getThemeConfig ở cuối file ...
+
+export default async function middleware(request) {
+  try {
+    stats.requests++;
+    if (stats.requests % 500 === 0) {
+      cleanExpiredEntries();
+    }
+    const url = new URL(request.url);
+    const { pathname } = url;
+    const method = request.method;
+    const userAgent = request.headers.get('user-agent') || '';
+    // Bỏ qua các file static
+    const staticExts = ['ico', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'css', 'js', 
+                       'woff', 'woff2', 'ttf', 'webp', 'map', 'txt', 'xml', 
+                       'pdf', 'zip', 'rar', 'mp4', 'mp3', 'avi', 'mov'];
+    const ext = pathname.split('.').pop().toLowerCase();
+    if (staticExts.includes(ext)) {
+      return;
+    }
+    // Admin stats endpoint
+    if (pathname === '/api/admin/stats') {
+      const ip = getIP(request);
+      if (ADMIN_IPS.includes(ip) || !ip) {
+        const banList = [];
+        for (const [ip, info] of bannedIPs.entries()) {
+          banList.push({
+            ip: ip.substring(0, 8) + '***',
+            timeLeft: Math.max(0, info.duration - (Date.now() - info.timestamp)),
+            reason: info.reason,
+            level: info.level
+          });
+          if (banList.length >= 50) break;
+        }
+        return new Response(JSON.stringify({
+          stats,
+          cacheStats: {
+            ipCache: ipCache.size,
+            burstCache: burstCache.size,
+            patternCache: patternCache.size,
+            suspiciousCache: suspiciousCache.size,
+            bannedIPs: bannedIPs.size,
+            goodIPs: goodIPs.size,
+            fingerprints: fingerprints.size
+          },
+          banDetails: banList,
+          uptime: Math.floor((Date.now() - stats.startTime) / 1000)
+        }), { headers: { 'Content-Type': 'application/json' } });
+      }
+      return createAdvancedErrorPage(401);
+    }
+    // Lấy IP
+    const ip = getIP(request);
+    if (!ip || !isValidIP(ip)) {
+      stats.blocked++;
+      console.log(`[${new Date().toISOString()}] INVALID_IP: ${ip || 'null'} - ${pathname}`);
+      return createAdvancedErrorPage(400, 'Invalid or missing IP address in request.');
+    }
+    // Kiểm tra Admin IP
+    if (ADMIN_IPS.includes(ip)) {
+      console.log(`[${new Date().toISOString()}] ADMIN_ACCESS: ${ip} - ${method} ${pathname}`);
+      return;
+    }
+    // Kiểm tra IP Việt Nam
+    const vietnam = isVN(ip);
+    if (!vietnam) {
+      stats.blocked++;
+      stats.foreignBlocked++;
+      console.log(`[${new Date().toISOString()}] GEO_BLOCK: ${ip} - ${pathname}`);
+      return createAdvancedErrorPage(403, 'This service is currently only available to users located in Vietnam.');
+    }
+    // Tạo fingerprint
+    const fingerprint = createFingerprint(request, ip);
+    fingerprints.set(ip, fingerprint);
+    // Kiểm tra burst traffic
+    const burstResult = detectBurstTraffic(ip);
+    if (burstResult.burst) {
+      stats.blocked++;
+      stats.burstBlocked++;
+      const banResult = banIP(ip, 'burst_traffic', burstResult.count);
+      console.log(`[${new Date().toISOString()}] BURST_BLOCK: ${ip} - Count: ${burstResult.count} - Level: ${banResult.level} - ${pathname}`);
+      return createAdvancedErrorPage(429, `Burst traffic detected. ${burstResult.count} requests in ${BURST_WINDOW/1000} seconds.`, banResult.duration, banResult.level);
+    }
+    // Kiểm tra DDoS patterns: path đã bị loại khỏi kiểm tra!
+    const ddosResult = detectDDoSPatterns(ip, pathname, userAgent, request.headers);
+    if (ddosResult.score >= 5) {
+      stats.blocked++;
+      stats.ddosBlocked++;
+      const banResult = banIP(ip, 'ddos_patterns', ddosResult.score);
+      console.log(`[${new Date().toISOString()}] DDOS_BLOCK: ${ip} - Score: ${ddosResult.score} - Reasons: ${ddosResult.reasons.join(',')} - Level: ${banResult.level} - ${pathname}`);
+      return createAdvancedErrorPage(403, `Malicious request patterns detected. Score: ${ddosResult.score}`, banResult.duration, banResult.level);
+    }
+    // Kiểm tra hoạt động đáng ngờ
+    const suspiciousActivity = detectSuspiciousActivity(ip, userAgent, pathname, method);
+    if (suspiciousActivity.suspicious) {
+      stats.suspicious++;
+      console.log(`[${new Date().toISOString()}] SUSPICIOUS: ${ip} - Score: ${suspiciousActivity.score} - Reasons: ${suspiciousActivity.reasons.join(',')} - ${pathname}`);
+    }
+    // Kiểm tra rate limit
+    const rateResult = checkRateLimit(ip, suspiciousActivity.suspicious, ddosResult.score);
+    if (rateResult.banned) {
+      stats.blocked++;
+      stats.vnBlocked++;
+      const timeLeft = rateResult.timeLeft || 0;
+      console.log(`[${new Date().toISOString()}] ${rateResult.timeLeft ? 'TEMP_BAN' : 'AUTO_BAN'}: ${ip} - Violations: ${rateResult.violations} - Level: ${rateResult.level || 1} - TimeLeft: ${Math.ceil(timeLeft/1000)}s - ${pathname}`);
+      return createAdvancedErrorPage(403, 
+        rateResult.timeLeft ? 
+          `Security ban active. Multiple violations detected. Level ${rateResult.level || 1} offense.` :
+          'Access denied due to repeated policy violations.', 
+        timeLeft,
+        rateResult.level || 1
+      );
+    }
+    if (!rateResult.allowed) {
+      stats.blocked++;
+      stats.vnBlocked++;
+      console.log(`[${new Date().toISOString()}] RATE_LIMIT: ${ip} - ${rateResult.count}/${rateResult.limit} - Violations: ${rateResult.violations} - ${pathname}`);
+      return createAdvancedErrorPage(429, `Request rate exceeded. You have made ${rateResult.count} requests when the limit is ${rateResult.limit} per minute.`);
+    }
+    // Robots.txt
+    if (pathname === '/robots.txt') {
+      return new Response('User-agent: *\nDisallow: /', {
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+    // Log ngẫu nhiên
+    if (Math.random() < 0.001) {
+      console.log(`[${new Date().toISOString()}] ALLOW: ${ip} - ${method} ${pathname} - ${rateResult.count}/${rateResult.limit}`);
+    }
+  } catch (error) {
+    stats.blocked++;
+    console.log(`[${new Date().toISOString()}] CRITICAL_ERROR: ${error.message}`);
+    return createAdvancedErrorPage(500, 'An unexpected error occurred while processing your request.');
+  }
+}
+
+export const config = {
+  runtime: 'edge',
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
+};
+
 
 function getThemeConfig(code) {
   const themes = {
