@@ -204,20 +204,74 @@ const VIETNAM_IP_RANGES = [
   ['222.252.0.0', '222.255.255.255']
 ];
 
-const ADMIN_IPS = ['127.0.0.1'];
+const SUSPICIOUS_UAS = [
+  'bot', 'spider', 'crawl', 'scraper', 'scan', 'hack', 'nikto', 'curl', 'wget', 
+  'python', 'go-http', 'masscan', 'nmap', 'sqlmap', 'fuzz', 'attack', 'exploit', 
+  'penetration', 'test', 'probe', 'automation', 'headless', 'phantom'
+];
+
+const SUSPICIOUS_PATHS = [
+  '/admin', '/wp-admin', '/phpmyadmin', '/.env', '/config', '/api/v1', 
+  '/wp-content', '/wp-includes', '/.git', '/backup', '/database'
+];
+
+const ADMIN_IPS = ['42.118.42.236'];
+
 const ipCache = new Map();
-const stats = { requests: 0, blocked: 0 };
+const suspiciousCache = new Map();
+const bannedIPs = new Set();
+const stats = { 
+  requests: 0, 
+  blocked: 0, 
+  suspicious: 0,
+  startTime: Date.now()
+};
 
 function getIP(request) {
-  const headers = ['x-vercel-forwarded-for', 'cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'];
+  const headers = [
+    'x-vercel-forwarded-for',
+    'cf-connecting-ip', 
+    'x-real-ip',
+    'x-forwarded-for'
+  ];
+  
   for (const h of headers) {
-    const ip = request.headers.get(h)?.split(',')[0]?.trim();
-    if (ip && /^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) return ip;
+    const value = request.headers.get(h);
+    if (value) {
+      const ip = value.split(',')[0].trim();
+      if (isValidIP(ip)) return ip;
+    }
   }
   return null;
 }
 
+function isValidIP(ip) {
+  if (!ip || typeof ip !== 'string') return false;
+  const parts = ip.split('.');
+  if (parts.length !== 4) return false;
+  
+  return parts.every(part => {
+    const num = parseInt(part, 10);
+    return !isNaN(num) && num >= 0 && num <= 255;
+  });
+}
+
+function isPrivateIP(ip) {
+  const parts = ip.split('.').map(Number);
+  const [a, b] = parts;
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254) ||
+    a === 0
+  );
+}
+
 function isVN(ip) {
+  if (isPrivateIP(ip)) return false;
+  
   const num = ip.split('.').reduce((a, b) => (a << 8) | parseInt(b), 0) >>> 0;
   return VIETNAM_IP_RANGES.some(([s, e]) => {
     const start = s.split('.').reduce((a, b) => (a << 8) | parseInt(b), 0) >>> 0;
@@ -226,32 +280,169 @@ function isVN(ip) {
   });
 }
 
-function checkLimit(ip, isVietnam) {
+function detectSuspiciousActivity(ip, userAgent, path, method) {
+  let suspicionScore = 0;
+  const reasons = [];
+  
+  if (SUSPICIOUS_UAS.some(ua => userAgent.toLowerCase().includes(ua))) {
+    suspicionScore += 3;
+    reasons.push('suspicious_ua');
+  }
+  
+  if (SUSPICIOUS_PATHS.some(p => path.toLowerCase().includes(p))) {
+    suspicionScore += 2;
+    reasons.push('suspicious_path');
+  }
+  
+  if (method !== 'GET' && method !== 'POST') {
+    suspicionScore += 1;
+    reasons.push('unusual_method');
+  }
+  
+  if (!userAgent || userAgent.length < 10) {
+    suspicionScore += 2;
+    reasons.push('minimal_ua');
+  }
+  
+  if (userAgent.length > 500) {
+    suspicionScore += 1;
+    reasons.push('oversized_ua');
+  }
+  
+  const existing = suspiciousCache.get(ip) || { score: 0, reasons: [], count: 0 };
+  existing.score = Math.max(existing.score, suspicionScore);
+  existing.reasons = [...new Set([...existing.reasons, ...reasons])];
+  existing.count++;
+  existing.lastSeen = Date.now();
+  
+  if (existing.score >= 3 || existing.count >= 5) {
+    suspiciousCache.set(ip, existing);
+    return { suspicious: true, score: existing.score, reasons: existing.reasons };
+  }
+  
+  if (suspicionScore > 0) {
+    suspiciousCache.set(ip, existing);
+  }
+  
+  return { suspicious: false, score: suspicionScore, reasons };
+}
+
+function checkRateLimit(ip, isVietnam, suspicious = false) {
   const now = Date.now();
-  const limit = isVietnam ? 20 : 3;
+  let limit = isVietnam ? 20 : 3;
+  
+  if (suspicious) limit = Math.floor(limit * 0.5);
+  if (bannedIPs.has(ip)) return { allowed: false, banned: true };
+  
   const window = Math.floor(now / 60000);
   const key = `${ip}_${window}`;
   
   const current = ipCache.get(key) || 0;
   ipCache.set(key, current + 1);
   
-  if (ipCache.size > 50000) {
-    const expired = Array.from(ipCache.keys()).filter(k => parseInt(k.split('_')[1]) < window - 2);
+  if (ipCache.size > 100000) {
+    const expired = Array.from(ipCache.keys()).filter(k => 
+      parseInt(k.split('_')[1]) < window - 5
+    );
     expired.forEach(k => ipCache.delete(k));
   }
   
-  return current + 1 <= limit;
+  const allowed = current + 1 <= limit;
+  
+  if (!allowed && current + 1 > limit * 2) {
+    bannedIPs.add(ip);
+    return { allowed: false, banned: true, violations: current + 1 };
+  }
+  
+  return { 
+    allowed, 
+    count: current + 1, 
+    limit, 
+    violations: allowed ? 0 : current + 1 - limit 
+  };
 }
 
-function createBlockPage(code, title, message) {
+function getThemeConfig(code) {
+  const themes = {
+    400: {
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      icon: '⚠️',
+      title: 'Bad Request',
+      message: 'The request could not be understood by the server.',
+      primaryColor: '#f5576c',
+      accentColor: '#f093fb'
+    },
+    401: {
+      gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+      icon: '🔐',
+      title: 'Unauthorized',
+      message: 'Authentication is required to access this resource.',
+      primaryColor: '#fcb69f',
+      accentColor: '#ffecd2'
+    },
+    403: {
+      gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+      icon: '🛡️',
+      title: 'Access Forbidden',
+      message: 'You do not have permission to access this resource.',
+      primaryColor: '#ee5a52',
+      accentColor: '#ff6b6b'
+    },
+    404: {
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      icon: '🔍',
+      title: 'Not Found',
+      message: 'The requested resource could not be found on this server.',
+      primaryColor: '#764ba2',
+      accentColor: '#667eea'
+    },
+    429: {
+      gradient: 'linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%)',
+      icon: '⏰',
+      title: 'Too Many Requests',
+      message: 'You have exceeded the allowed number of requests. Please wait before trying again.',
+      primaryColor: '#fab1a0',
+      accentColor: '#ffeaa7'
+    },
+    500: {
+      gradient: 'linear-gradient(135deg, #a8e6cf 0%, #88d8a3 100%)',
+      icon: '🔧',
+      title: 'Internal Server Error',
+      message: 'An unexpected error occurred. Please try again later.',
+      primaryColor: '#88d8a3',
+      accentColor: '#a8e6cf'
+    },
+    503: {
+      gradient: 'linear-gradient(135deg, #d1a3ff 0%, #a8e6cf 100%)',
+      icon: '🚧',
+      title: 'Service Unavailable',
+      message: 'The service is temporarily unavailable. Please try again later.',
+      primaryColor: '#a8e6cf',
+      accentColor: '#d1a3ff'
+    }
+  };
+  
+  return themes[code] || themes[500];
+}
+
+function createAdvancedErrorPage(code, customMessage = null) {
+  const theme = getThemeConfig(code);
+  const message = customMessage || theme.message;
+  
   return new Response(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>${theme.title} - ${code}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: ${theme.primaryColor};
+            --accent-color: ${theme.accentColor};
+            --background: ${theme.gradient};
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -260,30 +451,33 @@ function createBlockPage(code, title, message) {
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: var(--background);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #333;
+            color: #2d3748;
             overflow: hidden;
             position: relative;
         }
 
-        body::before {
-            content: '';
+        .animated-bg {
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-            animation: float 20s linear infinite;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            animation: float 15s ease-in-out infinite;
         }
 
         @keyframes float {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(-60px, -60px); }
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(1deg); }
+            66% { transform: translateY(-10px) rotate(-1deg); }
         }
 
         .container {
@@ -293,94 +487,78 @@ function createBlockPage(code, title, message) {
             padding: 3rem 2.5rem;
             box-shadow: 
                 0 32px 64px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(255, 255, 255, 0.2);
+                0 0 0 1px rgba(255, 255, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             text-align: center;
-            max-width: 480px;
+            max-width: 500px;
             width: 90%;
             position: relative;
-            z-index: 1;
-            transform: translateY(0);
-            animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+            animation: slideIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes slideUp {
+        @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(50px) scale(0.95);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
 
-        .icon-container {
-            position: relative;
-            margin-bottom: 2rem;
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            animation: bounce 2s ease-in-out infinite;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
         }
 
-        .icon {
-            font-size: 5rem;
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .error-code {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: pulse 2s ease-in-out infinite;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .code {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #667eea;
             margin-bottom: 1rem;
-            letter-spacing: 0.5px;
+            letter-spacing: -2px;
         }
 
-        .title {
-            font-size: 2.5rem;
-            font-weight: 700;
+        .error-title {
+            font-size: 2rem;
+            font-weight: 600;
             color: #2d3748;
             margin-bottom: 1rem;
-            line-height: 1.2;
-            background: linear-gradient(135deg, #2d3748, #4a5568);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            line-height: 1.3;
         }
 
-        .message {
-            font-size: 1.1rem;
-            color: #718096;
-            line-height: 1.6;
-            margin-bottom: 2.5rem;
-            font-weight: 400;
-        }
-
-        .decorative-line {
-            width: 80px;
-            height: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        .divider {
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             margin: 1.5rem auto;
             border-radius: 2px;
             position: relative;
             overflow: hidden;
         }
 
-        .decorative-line::before {
+        .divider::after {
             content: '';
             position: absolute;
             top: 0;
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
             animation: shimmer 2s infinite;
         }
 
@@ -389,102 +567,118 @@ function createBlockPage(code, title, message) {
             100% { left: 100%; }
         }
 
-        .info-grid {
+        .error-message {
+            font-size: 1.1rem;
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+
+        .status-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
             margin: 2rem 0;
             padding: 1.5rem;
-            background: rgba(102, 126, 234, 0.05);
+            background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.4));
             border-radius: 16px;
-            border: 1px solid rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(255,255,255,0.3);
         }
 
-        .info-item {
+        .status-item {
             text-align: center;
+            padding: 0.5rem;
         }
 
-        .info-label {
-            font-size: 0.875rem;
+        .status-label {
+            font-size: 0.85rem;
             color: #a0aec0;
             margin-bottom: 0.5rem;
             font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
 
-        .info-value {
-            font-size: 1.125rem;
+        .status-value {
+            font-size: 1.1rem;
             color: #4a5568;
             font-weight: 600;
         }
 
-        .retry-button {
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+        }
+
+        .btn {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
+            padding: 0.875rem 1.75rem;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
             text-decoration: none;
-            margin: 1rem 0.5rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
         }
 
-        .retry-button:hover {
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.8);
+            color: #4a5568;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
         }
 
-        .retry-button:active {
+        .btn:active {
             transform: translateY(0);
+        }
+
+        .security-notice {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.1));
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: #059669;
         }
 
         .footer {
             margin-top: 2rem;
             padding-top: 1.5rem;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             color: #a0aec0;
-            line-height: 1.5;
-        }
-
-        .security-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(34, 197, 94, 0.1);
-            color: #059669;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin: 1rem 0;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-        }
-
-        .particles {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 0;
+            line-height: 1.6;
         }
 
         .particle {
             position: absolute;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             pointer-events: none;
-            animation: particleFloat 8s linear infinite;
+            animation: particleFloat 12s linear infinite;
         }
 
         @keyframes particleFloat {
@@ -492,12 +686,8 @@ function createBlockPage(code, title, message) {
                 transform: translateY(100vh) rotate(0deg);
                 opacity: 0;
             }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
             100% {
                 transform: translateY(-10vh) rotate(360deg);
                 opacity: 0;
@@ -510,102 +700,130 @@ function createBlockPage(code, title, message) {
                 margin: 1rem;
             }
             
-            .title {
-                font-size: 2rem;
+            .error-code {
+                font-size: 3rem;
             }
             
-            .icon {
-                font-size: 4rem;
+            .error-title {
+                font-size: 1.5rem;
             }
             
-            .info-grid {
+            .status-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 280px;
+            }
+        }
+
+        .countdown {
+            font-weight: 600;
+            color: var(--primary-color);
         }
     </style>
 </head>
 <body>
-    <div class="particles">
-        <div class="particle" style="left: 10%; width: 4px; height: 4px; animation-delay: 0s;"></div>
-        <div class="particle" style="left: 20%; width: 6px; height: 6px; animation-delay: 1s;"></div>
-        <div class="particle" style="left: 30%; width: 3px; height: 3px; animation-delay: 2s;"></div>
-        <div class="particle" style="left: 40%; width: 5px; height: 5px; animation-delay: 3s;"></div>
-        <div class="particle" style="left: 50%; width: 4px; height: 4px; animation-delay: 4s;"></div>
-        <div class="particle" style="left: 60%; width: 6px; height: 6px; animation-delay: 5s;"></div>
-        <div class="particle" style="left: 70%; width: 3px; height: 3px; animation-delay: 6s;"></div>
-        <div class="particle" style="left: 80%; width: 5px; height: 5px; animation-delay: 7s;"></div>
-        <div class="particle" style="left: 90%; width: 4px; height: 4px; animation-delay: 8s;"></div>
-    </div>
+    <div class="animated-bg"></div>
+    
+    ${Array.from({length: 8}, (_, i) => `
+        <div class="particle" style="
+            left: ${10 + i * 11}%; 
+            width: ${3 + Math.random() * 4}px; 
+            height: ${3 + Math.random() * 4}px; 
+            animation-delay: ${i * 1.5}s;
+        "></div>
+    `).join('')}
 
     <div class="container">
-        <div class="icon-container">
-            <div class="icon">${code === 403 ? '🛡️' : code === 429 ? '⏰' : '🚫'}</div>
-        </div>
+        <div class="error-icon">${theme.icon}</div>
+        <div class="error-code">${code}</div>
+        <h1 class="error-title">${theme.title}</h1>
+        <div class="divider"></div>
+        <p class="error-message">${message}</p>
         
-        <div class="code">ERROR ${code}</div>
-        <h1 class="title">${title}</h1>
-        <div class="decorative-line"></div>
-        <p class="message">${message}</p>
-        
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label">Status</div>
-                <div class="info-value">Restricted</div>
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-label">Status</div>
+                <div class="status-value">Restricted</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Time</div>
-                <div class="info-value">${new Date().toLocaleTimeString()}</div>
+            <div class="status-item">
+                <div class="status-label">Time</div>
+                <div class="status-value">${new Date().toLocaleTimeString()}</div>
             </div>
         </div>
 
-        <div class="security-badge">
-            <span>🔒</span>
-            <span>Protected by Advanced Security</span>
+        <div class="security-notice">
+            <span style="font-size: 1.2rem;">🔒</span>
+            <span>This site is protected by advanced security systems</span>
         </div>
 
-        <button class="retry-button" onclick="window.location.reload()">
-            <span>🔄</span>
-            <span>Try Again</span>
-        </button>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="handleRetry()" id="retryBtn">
+                <span>🔄</span>
+                <span>Try Again</span>
+            </button>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <span>←</span>
+                <span>Go Back</span>
+            </button>
+        </div>
 
         <div class="footer">
-            <p><strong>Need Help?</strong></p>
-            <p>If you believe this is an error, please contact our support team.</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
+            <p><strong>Need assistance?</strong></p>
+            <p>If you continue to experience issues, please contact our support team.</p>
+            <p style="margin-top: 0.75rem; opacity: 0.7;">
                 ${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}
+                <br>Request ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}
             </p>
         </div>
     </div>
 
     <script>
+        function handleRetry() {
+            window.location.reload();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.querySelector('.container');
+            
             container.addEventListener('mouseenter', function() {
                 this.style.transform = 'translateY(-5px) scale(1.02)';
+                this.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             });
+            
             container.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateY(0) scale(1)';
             });
 
-            const retryButton = document.querySelector('.retry-button');
-            let countdown = 60;
-            const updateButton = () => {
-                if (countdown > 0) {
-                    retryButton.innerHTML = \`<span>⏳</span><span>Wait \${countdown}s</span>\`;
-                    retryButton.disabled = true;
-                    retryButton.style.opacity = '0.6';
-                    countdown--;
-                    setTimeout(updateButton, 1000);
-                } else {
-                    retryButton.innerHTML = '<span>🔄</span><span>Try Again</span>';
-                    retryButton.disabled = false;
-                    retryButton.style.opacity = '1';
+            ${code === 429 ? `
+                let countdown = 60;
+                const retryBtn = document.getElementById('retryBtn');
+                
+                function updateCountdown() {
+                    if (countdown > 0) {
+                        retryBtn.innerHTML = \`<span>⏳</span><span class="countdown">Wait \${countdown}s</span>\`;
+                        retryBtn.disabled = true;
+                        retryBtn.style.opacity = '0.6';
+                        retryBtn.style.cursor = 'not-allowed';
+                        countdown--;
+                        setTimeout(updateCountdown, 1000);
+                    } else {
+                        retryBtn.innerHTML = '<span>🔄</span><span>Try Again</span>';
+                        retryBtn.disabled = false;
+                        retryBtn.style.opacity = '1';
+                        retryBtn.style.cursor = 'pointer';
+                    }
                 }
-            };
-            
-            if (${code} === 429) {
-                updateButton();
-            }
+                
+                updateCountdown();
+            ` : ''}
         });
     </script>
 </body>
@@ -615,7 +833,8 @@ function createBlockPage(code, title, message) {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff'
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer'
     }
   });
 }
@@ -625,53 +844,88 @@ export default async function middleware(request) {
     stats.requests++;
     
     const url = new URL(request.url);
-    if (url.pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml|pdf)$/)) {
+    const { pathname, search } = url;
+    const method = request.method;
+    const userAgent = request.headers.get('user-agent') || '';
+    const referer = request.headers.get('referer') || '';
+    
+    if (pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|webp|map|txt|xml|pdf|zip|rar|mp4|mp3|avi|mov)$/)) {
       return;
     }
 
-    if (url.pathname === '/api/stats') {
-      return new Response(JSON.stringify({
-        requests: stats.requests,
-        blocked: stats.blocked,
-        uptime: Math.floor((Date.now() - (stats.startTime || Date.now())) / 1000)
-      }), { headers: { 'Content-Type': 'application/json' } });
+    if (pathname === '/api/admin/stats') {
+      const ip = getIP(request);
+      if (ADMIN_IPS.includes(ip) || !ip) {
+        return new Response(JSON.stringify({
+          stats,
+          activeConnections: ipCache.size,
+          suspiciousIPs: suspiciousCache.size,
+          bannedIPs: bannedIPs.size,
+          uptime: Math.floor((Date.now() - stats.startTime) / 1000)
+        }), { headers: { 'Content-Type': 'application/json' } });
+      }
+      return createAdvancedErrorPage(401);
     }
     
     const ip = getIP(request);
-    if (!ip) {
+    if (!ip || !isValidIP(ip)) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] BLOCK_NO_IP: ${url.pathname}`);
-      return createBlockPage(403, 'Access Denied', 'Your request could not be processed at this time.');
+      console.log(`[${new Date().toISOString()}] INVALID_IP: ${ip || 'null'} - ${pathname} - ${userAgent.substring(0, 100)}`);
+      return createAdvancedErrorPage(400, 'Invalid or missing IP address in request.');
     }
     
     if (ADMIN_IPS.includes(ip)) {
-      console.log(`[${new Date().toISOString()}] ADMIN: ${ip} - ${url.pathname}`);
+      console.log(`[${new Date().toISOString()}] ADMIN_ACCESS: ${ip} - ${method} ${pathname}`);
       return;
     }
     
-    const vietnam = isVN(ip);
-    const allowed = checkLimit(ip, vietnam);
-    
-    if (!allowed) {
+    if (bannedIPs.has(ip)) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] RATE_LIMIT: ${ip} - ${vietnam ? 'VN' : 'FOREIGN'} - ${url.pathname}`);
-      return createBlockPage(429, 'Too Many Requests', 'You have exceeded the allowed number of requests. Please wait before trying again.');
+      console.log(`[${new Date().toISOString()}] BANNED_IP: ${ip} - ${pathname}`);
+      return createAdvancedErrorPage(403, 'Your IP address has been permanently blocked due to suspicious activity.');
+    }
+    
+    const suspiciousActivity = detectSuspiciousActivity(ip, userAgent, pathname, method);
+    if (suspiciousActivity.suspicious) {
+      stats.suspicious++;
+      console.log(`[${new Date().toISOString()}] SUSPICIOUS: ${ip} - Score: ${suspiciousActivity.score} - Reasons: ${suspiciousActivity.reasons.join(',')} - ${pathname} - ${userAgent.substring(0, 100)}`);
+    }
+    
+    const vietnam = isVN(ip);
+    const rateResult = checkRateLimit(ip, vietnam, suspiciousActivity.suspicious);
+    
+    if (rateResult.banned) {
+      stats.blocked++;
+      console.log(`[${new Date().toISOString()}] AUTO_BAN: ${ip} - Violations: ${rateResult.violations} - Type: ${vietnam ? 'VN' : 'FOREIGN'} - ${pathname}`);
+      return createAdvancedErrorPage(403, 'Access denied due to repeated policy violations.');
+    }
+    
+    if (!rateResult.allowed) {
+      stats.blocked++;
+      console.log(`[${new Date().toISOString()}] RATE_LIMIT: ${ip} - ${rateResult.count}/${rateResult.limit} - Violations: ${rateResult.violations} - Type: ${vietnam ? 'VN' : 'FOREIGN'} - Suspicious: ${suspiciousActivity.suspicious} - ${pathname} - ${userAgent.substring(0, 100)}`);
+      return createAdvancedErrorPage(429, `Request rate exceeded. You have made ${rateResult.count} requests when the limit is ${rateResult.limit} per minute.`);
     }
     
     if (!vietnam) {
       stats.blocked++;
-      console.log(`[${new Date().toISOString()}] GEO_BLOCK: ${ip} - ${url.pathname}`);
-      return createBlockPage(403, 'Access Restricted', 'This service is currently only available to users in Vietnam.');
+      console.log(`[${new Date().toISOString()}] GEO_BLOCK: ${ip} - Country: ${request.headers.get('cf-ipcountry') || 'Unknown'} - ${pathname} - ${userAgent.substring(0, 100)}`);
+      return createAdvancedErrorPage(403, 'This service is currently only available to users located in Vietnam.');
     }
     
-    if (Math.random() < 0.01) {
-      console.log(`[${new Date().toISOString()}] ALLOW: ${ip} - ${url.pathname}`);
+    if (pathname === '/robots.txt') {
+      return new Response('User-agent: *\nDisallow: /', {
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+    
+    if (Math.random() < 0.005) {
+      console.log(`[${new Date().toISOString()}] ALLOW: ${ip} - ${method} ${pathname} - ${rateResult.count}/${rateResult.limit} - ${userAgent.substring(0, 50)}`);
     }
     
   } catch (error) {
     stats.blocked++;
-    console.log(`[${new Date().toISOString()}] ERROR: ${error.message}`);
-    return createBlockPage(503, 'Service Unavailable', 'The service is temporarily unavailable. Please try again later.');
+    console.log(`[${new Date().toISOString()}] CRITICAL_ERROR: ${error.message} - Stack: ${error.stack?.substring(0, 200)}`);
+    return createAdvancedErrorPage(500, 'An unexpected error occurred while processing your request.');
   }
 }
 
