@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <title>HaiGPT Chat</title>
     <link rel="stylesheet" href="style.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -16,10 +14,8 @@
         <source src="https://github.com/arondeptraivll/tuanhaideptraivcl/raw/refs/heads/main/videoplayback.mp4" type="video/mp4">
     </video>
 
-    
     <audio id="bg-audio-chat" src="https://github.com/arondeptraivll/tuanhaideptraivcl/raw/refs/heads/main/videoplayback.mp3" loop></audio>
 
-    
     <div id="welcome-notification" class="welcome-notification">
         <div class="notification-backdrop"></div>
         <div class="notification-box rainbow-border-notification">
@@ -55,7 +51,6 @@
         </div>
     </div>
 
-    
     <div id="block-notification" class="block-notification" style="display: none;">
         <div class="notification-backdrop"></div>
         <div class="notification-box rainbow-border-notification">
@@ -85,7 +80,6 @@
         </div>
     </div>
 
-    
     <div id="memory-panel" class="memory-panel" style="display: none;">
         <div class="notification-backdrop"></div>
         <div class="notification-box rainbow-border-notification">
@@ -131,7 +125,6 @@
         </div>
     </div>
 
-    
     <div class="slide-menu" id="slide-menu">
         <div class="menu-header">
             <h2 class="menu-title rainbow-text">MENU</h2>
@@ -150,7 +143,6 @@
                 <span class="menu-icon">🧠</span>
                 <span>Trí nhớ</span>
             </div>
-            
             <div class="menu-item rainbow-border-menu" onclick="toggleSound()">
                 <span class="menu-icon">🔊</span>
                 <span id="sound-menu-text">Tắt nhạc nền</span>
@@ -167,16 +159,13 @@
         </div>
     </div>
     
-    
     <div class="menu-overlay" id="menu-overlay"></div>
 
-    
     <div id="memory-info-btn" class="memory-info-btn" style="display: none;" onclick="showMemoryPreview()">
         <span>🧠</span>
         <span class="memory-count-badge" id="memory-badge">0</span>
     </div>
 
-    
     <div id="memory-preview" class="memory-preview" style="display: none;">
         <div class="memory-preview-header">
             <span>🧠 AI đã nhớ về bạn</span>
@@ -191,7 +180,6 @@
 
     <div class="chat-container rainbow-border-outer">
         <div class="chat-header">
-            
             <button class="hamburger-menu" id="hamburger-menu">
                 <span></span>
                 <span></span>
@@ -199,48 +187,54 @@
             </button>
             <img src="../avatar.jpg" alt="HaiGPT Avatar" class="chat-avatar">
             <span class="chat-title rainbow-text-animated">HaiGPT</span>
-            
-            
             <button id="sound-toggle" class="sound-toggle" title="Bật/Tắt nhạc nền">
                 <i class="fas fa-volume-mute" id="sound-icon"></i>
             </button>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            
-        </div>
+        <div class="chat-messages" id="chat-messages"></div>
         <form class="chat-input-area" id="chat-form" autocomplete="off">
             <input type="text" id="chat-input" placeholder="Nhập tin nhắn, dán ảnh hoặc chọn file..." autocomplete="off" required>
-            
-            
             <input type="file" id="image-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none">
-            
-            
             <input type="file" id="file-input" accept=".txt,.js,.html,.css,.py,.java,.cpp,.c,.php,.rb,.go,.rs,.ts,.json,.xml,.md,.sql,.sh,.bat,.yaml,.yml,.ini,.cfg,.log" style="display:none">
-            
-            
             <button type="button" id="image-btn" title="Gửi ảnh">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM5 5h14v14H5V5zm2 10l3-4 2 3 3-4 4 5H7z" fill="#00bcd4"/>
                 </svg>
             </button>
-            
-            
             <button type="button" id="file-btn" title="Gửi file text/code">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#ff9900"/>
                 </svg>
             </button>
-            
             <button type="submit" class="send-btn rainbow-btn">Gửi</button>
         </form>
     </div>
-    
+
+    <div id="code-panel" class="code-panel">
+        <div class="code-panel-header">
+            <span id="code-panel-title">Tên Code</span>
+            <div class="code-panel-actions">
+                <button id="copy-code-btn" onclick="copyCode()">
+                    <i class="fas fa-copy"></i>
+                    Copy
+                </button>
+                <button id="close-code-btn" onclick="closeCodePanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="code-panel-content">
+            <pre><code id="code-panel-code"></code></pre>
+        </div>
+    </div>
+    <div id="code-overlay" class="code-overlay" onclick="closeCodePanel()"></div>
+
     <script src="script.js"></script>
     <script src="../security/security.js"></script>
     <script src="../security/creep.js"></script>
 
     <noscript>
-  <meta http-equiv="refresh" content="0;url=/security/blocked.html?reason=noscript">
-</noscript>
+        <meta http-equiv="refresh" content="0;url=/security/blocked.html?reason=noscript">
+    </noscript>
 </body>
 </html>

@@ -1,1 +1,1533 @@
-const _0x59b7ab=_0x35f3;(function(_0x4dd128,_0x1cab0f){const _0x4a1bb4=_0x35f3,_0x523dbf=_0x4dd128();while(!![]){try{const _0x131b0f=parseInt(_0x4a1bb4(0x1dc))/0x1*(parseInt(_0x4a1bb4(0x178))/0x2)+parseInt(_0x4a1bb4(0x19f))/0x3+-parseInt(_0x4a1bb4(0x18f))/0x4*(-parseInt(_0x4a1bb4(0x153))/0x5)+parseInt(_0x4a1bb4(0x1a9))/0x6+-parseInt(_0x4a1bb4(0x163))/0x7*(-parseInt(_0x4a1bb4(0x12c))/0x8)+-parseInt(_0x4a1bb4(0x240))/0x9*(parseInt(_0x4a1bb4(0x11c))/0xa)+-parseInt(_0x4a1bb4(0x144))/0xb;if(_0x131b0f===_0x1cab0f)break;else _0x523dbf['push'](_0x523dbf['shift']());}catch(_0x146308){_0x523dbf['push'](_0x523dbf['shift']());}}}(_0x35a1,0x898f2));const hamburgerMenu=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x1ca)),slideMenu=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x200)),menuOverlay=document[_0x59b7ab(0x1b9)]('menu-overlay'),closeMenu=document[_0x59b7ab(0x1b9)]('close-menu');hamburgerMenu['addEventListener'](_0x59b7ab(0x202),()=>{const _0x318f9f=_0x59b7ab;slideMenu[_0x318f9f(0x16e)][_0x318f9f(0x11d)](_0x318f9f(0x17f)),menuOverlay[_0x318f9f(0x16e)][_0x318f9f(0x11d)](_0x318f9f(0x17f));}),closeMenu[_0x59b7ab(0x20a)]('click',()=>{const _0x3f97e5=_0x59b7ab;slideMenu[_0x3f97e5(0x16e)][_0x3f97e5(0x138)]('active'),menuOverlay[_0x3f97e5(0x16e)][_0x3f97e5(0x138)](_0x3f97e5(0x17f));}),menuOverlay[_0x59b7ab(0x20a)](_0x59b7ab(0x202),()=>{const _0xe99883=_0x59b7ab;slideMenu['classList'][_0xe99883(0x138)](_0xe99883(0x17f)),menuOverlay[_0xe99883(0x16e)][_0xe99883(0x138)](_0xe99883(0x17f));});let userMemories=[],memoryCount=0x0,userIP=null,blockTimer=null,isBlocked=![];async function getUserIP(){const _0x514c17=_0x59b7ab;try{const _0x48f12b=await fetch(_0x514c17(0x125)),_0x47b8be=await _0x48f12b[_0x514c17(0x246)]();return _0x47b8be['ip'];}catch(_0x364fec){return console[_0x514c17(0x234)](_0x514c17(0x1d4)),_0x514c17(0x244)+Date[_0x514c17(0x1b3)]();}}async function fetchTermsOfService(){const _0x504fb0=_0x59b7ab;try{const _0x3ea33f=await fetch(_0x504fb0(0x23d)),_0x33db52=await _0x3ea33f[_0x504fb0(0x13f)]();return _0x33db52;}catch(_0x212798){return console[_0x504fb0(0x234)](_0x504fb0(0x182)),'\x0aĐIỀU\x20KHOẢN\x20QUY\x20ĐỊNH\x20HAIGPT:\x0a\x0a1.\x20TÔÔN\x20TRỌNG\x20LẪN\x20NHAU\x0a-\x20Không\x20chửi\x20bới,\x20xúc\x20phạm\x0a-\x20Không\x20spam\x20tin\x20nhắn\x0a-\x20Không\x20nội\x20dung\x20khiêu\x20dâm\x0a\x0a2.\x20SỬ\x20DỤNG\x20ĐÚNG\x20MỤC\x20ĐÍCH\x20\x20\x0a-\x20Không\x20lạm\x20dụng\x20AI\x0a-\x20Không\x20test\x20phá\x20hoại\x0a-\x20Tuân\x20thủ\x20hướng\x20dẫn\x0a\x0a3.\x20HÌNH\x20PHẠT\x0a-\x20Cảnh\x20báo\x20trước\x20khi\x20block\x0a-\x20Block\x20từ\x2030\x20giây\x20đến\x205\x20phút\x0a-\x20Chỉ\x20block\x20khi\x20vi\x20phạm\x20nghiêm\x20trọng\x0a\x0aHãy\x20sử\x20dụng\x20HaiGPT\x20một\x20cách\x20văn\x20minh\x20và\x20tích\x20cực!\x0a\x20\x20\x20\x20\x20\x20\x20\x20';}}async function loadUserMemories(){const _0x164472=_0x59b7ab;try{console[_0x164472(0x234)](_0x164472(0x23f));const _0x55b17e=await fetch(_0x164472(0x238),{'method':_0x164472(0x1c9),'headers':{'Content-Type':'application/json'},'body':JSON[_0x164472(0x1a7)]({'userIP':userIP,'action':_0x164472(0x135)})});if(_0x55b17e['ok']){const _0xda4527=await _0x55b17e[_0x164472(0x246)]();userMemories=_0xda4527[_0x164472(0x14c)]||[],updateMemoryDisplay(),console['log']('📚\x20Loaded\x20memories\x20from\x20database:',userMemories[_0x164472(0x1b4)]);}else{console[_0x164472(0x234)](_0x164472(0x1e2));const _0x3864e3=localStorage[_0x164472(0x1ae)](_0x164472(0x1a0)+userIP);userMemories=_0x3864e3?JSON['parse'](_0x3864e3):[],updateMemoryDisplay();}}catch(_0x1ff4ca){console[_0x164472(0x234)](_0x164472(0x13d),_0x1ff4ca);const _0x846978=localStorage[_0x164472(0x1ae)](_0x164472(0x1a0)+userIP);userMemories=_0x846978?JSON[_0x164472(0x13b)](_0x846978):[],updateMemoryDisplay();}}async function saveMemoryToDB(_0x31abdf){const _0x90e37b=_0x59b7ab;try{console['log'](_0x90e37b(0x1f8),_0x31abdf);const _0x44f038=await fetch(_0x90e37b(0x238),{'method':_0x90e37b(0x1c9),'headers':{'Content-Type':_0x90e37b(0x187)},'body':JSON[_0x90e37b(0x1a7)]({'userIP':userIP,'memory':{'text':_0x31abdf},'action':_0x90e37b(0x11d)})});if(!_0x44f038['ok'])throw new Error(_0x90e37b(0x212));console[_0x90e37b(0x234)](_0x90e37b(0x11b));}catch(_0xa46c03){console[_0x90e37b(0x234)](_0x90e37b(0x1b1),_0xa46c03),localStorage[_0x90e37b(0x155)]('memories_'+userIP,JSON['stringify'](userMemories));}}async function clearMemoriesFromDB(){const _0x8dc168=_0x59b7ab;try{console[_0x8dc168(0x234)](_0x8dc168(0x16c));const _0x51e05a=await fetch(_0x8dc168(0x238),{'method':_0x8dc168(0x1c9),'headers':{'Content-Type':_0x8dc168(0x187)},'body':JSON['stringify']({'userIP':userIP,'action':_0x8dc168(0x1e0)})});if(!_0x51e05a['ok'])throw new Error('Database\x20clear\x20failed');console[_0x8dc168(0x234)]('✅\x20Memories\x20cleared\x20from\x20database\x20successfully');}catch(_0x121470){console[_0x8dc168(0x234)](_0x8dc168(0x1c5),_0x121470),localStorage[_0x8dc168(0x148)](_0x8dc168(0x1a0)+userIP);}}async function saveChatHistory(){const _0x1c6fb1=_0x59b7ab;try{const _0x3c512a=await fetch('/api/chat-history',{'method':_0x1c6fb1(0x1c9),'headers':{'Content-Type':_0x1c6fb1(0x187)},'body':JSON[_0x1c6fb1(0x1a7)]({'userIP':userIP,'conversation':conversation,'action':_0x1c6fb1(0x11a)})});if(!_0x3c512a['ok'])throw new Error(_0x1c6fb1(0x212));console[_0x1c6fb1(0x234)](_0x1c6fb1(0x22b));}catch(_0xfb8793){console[_0x1c6fb1(0x234)](_0x1c6fb1(0x1a1),_0xfb8793),localStorage[_0x1c6fb1(0x155)]('chat_history_'+userIP,JSON[_0x1c6fb1(0x1a7)](conversation));}}async function loadChatHistory(){const _0xc9cd37=_0x59b7ab;try{const _0x59147a=await fetch('/api/chat-history',{'method':_0xc9cd37(0x1c9),'headers':{'Content-Type':_0xc9cd37(0x187)},'body':JSON[_0xc9cd37(0x1a7)]({'userIP':userIP,'action':'get'})});if(_0x59147a['ok']){const _0x2baaed=await _0x59147a[_0xc9cd37(0x246)]();if(_0x2baaed[_0xc9cd37(0x1e5)]&&_0x2baaed['conversation'][_0xc9cd37(0x1b4)]>0x1){conversation=_0x2baaed[_0xc9cd37(0x1e5)];for(let _0x5b28b5=0x1;_0x5b28b5<conversation[_0xc9cd37(0x1b4)];_0x5b28b5++){const _0x2f9cd9=conversation[_0x5b28b5];if(_0x2f9cd9[_0xc9cd37(0x20e)]===_0xc9cd37(0x1e9)){let _0x59701d='';for(const _0x1965ef of _0x2f9cd9['parts']){_0x1965ef['text']&&(_0x59701d+=_0x1965ef[_0xc9cd37(0x13f)]),_0x1965ef[_0xc9cd37(0x229)]&&(_0x59701d=_0xc9cd37(0x1ad)+_0x1965ef['inline_data']['mime_type']+_0xc9cd37(0x17c)+_0x1965ef[_0xc9cd37(0x229)][_0xc9cd37(0x1f6)]+_0xc9cd37(0x120)+_0x59701d);}appendMessage(_0x59701d||_0xc9cd37(0x1fb),_0xc9cd37(0x1e9));}else{if(_0x2f9cd9[_0xc9cd37(0x20e)]===_0xc9cd37(0x19a)){const _0x5adf98=_0x2f9cd9[_0xc9cd37(0x1f4)]['map'](_0x34f102=>_0x34f102[_0xc9cd37(0x13f)])[_0xc9cd37(0x1dd)]('');appendMessage(_0x5adf98,_0xc9cd37(0x15d));}}}console['log'](_0xc9cd37(0x1fe),conversation['length']-0x1,'messages'),hasWelcomed=!![];}}else{const _0x79dd99=localStorage[_0xc9cd37(0x1ae)](_0xc9cd37(0x194)+userIP);_0x79dd99&&(conversation=JSON['parse'](_0x79dd99),console[_0xc9cd37(0x234)](_0xc9cd37(0x134)));}}catch(_0xb02beb){console[_0xc9cd37(0x234)](_0xc9cd37(0x118),_0xb02beb);const _0x40fcc4=localStorage[_0xc9cd37(0x1ae)](_0xc9cd37(0x194)+userIP);_0x40fcc4&&(conversation=JSON[_0xc9cd37(0x13b)](_0x40fcc4));}}function addMemory(_0x451a74){const _0x3695f4=_0x59b7ab,_0x1a9167={'text':_0x451a74,'date':new Date()['toLocaleString'](_0x3695f4(0x11e)),'timestamp':Date[_0x3695f4(0x1b3)]()};userMemories[_0x3695f4(0x131)](_0x1a9167),memoryCount++,saveMemoryToDB(_0x451a74),updateMemoryDisplay(),console[_0x3695f4(0x234)]('🧠\x20New\x20memory\x20added:',_0x451a74);}function updateMemoryDisplay(){const _0x4b155a=_0x59b7ab;memoryCount=userMemories['length'];const _0x46aa6e=document[_0x4b155a(0x1b9)](_0x4b155a(0x164)),_0x415741=document[_0x4b155a(0x1b9)]('memory-badge');memoryCount>0x0?(_0x46aa6e[_0x4b155a(0x193)][_0x4b155a(0x1ba)]=_0x4b155a(0x119),_0x415741[_0x4b155a(0x126)]=memoryCount):_0x46aa6e[_0x4b155a(0x193)]['display']=_0x4b155a(0x196);const _0x279cca=document[_0x4b155a(0x1b9)]('memory-count'),_0x5849b9=document['getElementById']('chat-count');if(_0x279cca)_0x279cca[_0x4b155a(0x126)]=memoryCount;if(_0x5849b9)_0x5849b9[_0x4b155a(0x126)]=Math['max'](0x0,conversation[_0x4b155a(0x1b4)]-0x1);updateMemoryList(),updateMemoryPreview();}function updateMemoryList(){const _0x16e952=_0x59b7ab,_0x1d5d6c=document[_0x16e952(0x1b9)](_0x16e952(0x13a));if(!_0x1d5d6c)return;if(userMemories[_0x16e952(0x1b4)]===0x0){_0x1d5d6c[_0x16e952(0x1e6)]='<div\x20style=\x22text-align:center;color:#999;padding:20px;\x22>Chưa\x20có\x20thông\x20tin\x20nào\x20được\x20lưu...</div>';return;}_0x1d5d6c[_0x16e952(0x1e6)]=userMemories[_0x16e952(0x22e)](_0x1e2b8e=>_0x16e952(0x14d)+_0x1e2b8e[_0x16e952(0x13f)]+_0x16e952(0x20f)+_0x1e2b8e[_0x16e952(0x218)]+_0x16e952(0x1a5))['join']('');}function updateMemoryPreview(){const _0xe1fd52=_0x59b7ab,_0x3dff86=document[_0xe1fd52(0x1b9)](_0xe1fd52(0x211));if(!_0x3dff86)return;if(userMemories[_0xe1fd52(0x1b4)]===0x0){_0x3dff86[_0xe1fd52(0x1e6)]=_0xe1fd52(0x130);return;}const _0x572673=userMemories[_0xe1fd52(0x230)](-0x3)[_0xe1fd52(0x1e8)]();_0x3dff86[_0xe1fd52(0x1e6)]=_0x572673[_0xe1fd52(0x22e)](_0xd68ede=>_0xe1fd52(0x190)+_0xd68ede['text']+'</div>\x0a\x20\x20\x20\x20')[_0xe1fd52(0x1dd)]('');}function getMemoryContext(){const _0x4f1760=_0x59b7ab;if(userMemories[_0x4f1760(0x1b4)]===0x0)return'';const _0x224065=userMemories[_0x4f1760(0x22e)](_0x3882e4=>_0x3882e4[_0x4f1760(0x13f)])[_0x4f1760(0x1dd)](_0x4f1760(0x17d));return _0x4f1760(0x1aa)+_0x224065+'\x0a\x0a';}function openMemoryPanel(){const _0xa29d28=_0x59b7ab,_0x162325=document[_0xa29d28(0x1b9)](_0xa29d28(0x175)),_0x49f9d3=document[_0xa29d28(0x1b9)](_0xa29d28(0x139));if(_0x49f9d3)_0x49f9d3['textContent']=userIP||_0xa29d28(0x199);updateMemoryDisplay(),_0x162325[_0xa29d28(0x193)]['display']=_0xa29d28(0x119),slideMenu['classList'][_0xa29d28(0x138)](_0xa29d28(0x17f)),menuOverlay[_0xa29d28(0x16e)][_0xa29d28(0x138)](_0xa29d28(0x17f));}function closeMemoryPanel(){const _0x5cd380=_0x59b7ab,_0xe2a842=document[_0x5cd380(0x1b9)](_0x5cd380(0x175));_0xe2a842[_0x5cd380(0x193)][_0x5cd380(0x1ba)]=_0x5cd380(0x196);}async function clearAllMemories(){const _0x2405f2=_0x59b7ab;confirm(_0x2405f2(0x13e))&&(userMemories=[],memoryCount=0x0,await clearMemoriesFromDB(),updateMemoryDisplay(),appendMessage(_0x2405f2(0x1f9),_0x2405f2(0x15d)),console[_0x2405f2(0x234)](_0x2405f2(0x20b)));}function showMemoryPreview(){const _0x2fbbaa=_0x59b7ab,_0x143d0a=document[_0x2fbbaa(0x1b9)](_0x2fbbaa(0x22f));updateMemoryPreview(),_0x143d0a[_0x2fbbaa(0x193)]['display']=_0x2fbbaa(0x128);}function hideMemoryPreview(){const _0x56ff26=_0x59b7ab,_0x2ac59c=document[_0x56ff26(0x1b9)]('memory-preview');_0x2ac59c[_0x56ff26(0x193)]['display']=_0x56ff26(0x196);}function checkBlockStatus(){const _0x450243=_0x59b7ab,_0x5a58c7=localStorage[_0x450243(0x1ae)](_0x450243(0x1e1)+userIP);if(_0x5a58c7){const _0x43922b=JSON[_0x450243(0x13b)](_0x5a58c7),_0x2029c3=Date[_0x450243(0x1b3)]();return _0x2029c3<_0x43922b[_0x450243(0x16b)]?(showBlockNotification(_0x43922b[_0x450243(0x16b)]-_0x2029c3,_0x43922b[_0x450243(0x179)]),!![]):(localStorage[_0x450243(0x148)](_0x450243(0x1e1)+userIP),![]);}return![];}function blockUser(_0x1b6d0d,_0x2b6be2='Vi\x20phạm\x20điều\x20khoản'){const _0x1e3e6c=_0x59b7ab,_0xce5de=Math[_0x1e3e6c(0x173)](Math[_0x1e3e6c(0x184)](_0x1b6d0d,0.5),0x5),_0x5d4115=_0xce5de*0x3c*0x3e8,_0x4bf4b8=Date[_0x1e3e6c(0x1b3)]()+_0x5d4115,_0x5d1bf3={'ip':userIP,'expiry':_0x4bf4b8,'reason':_0x2b6be2,'blockedAt':Date[_0x1e3e6c(0x1b3)]()};localStorage[_0x1e3e6c(0x155)]('block_'+userIP,JSON[_0x1e3e6c(0x1a7)](_0x5d1bf3)),showBlockNotification(_0x5d4115,_0x2b6be2);}function showBlockNotification(_0x4660e8,_0x412d9a){const _0xea6ecf=_0x59b7ab;isBlocked=!![];const _0x1c5295=document['getElementById'](_0xea6ecf(0x201)),_0x15b8ca=document[_0xea6ecf(0x1b9)]('block-reason-text'),_0x2865cb=document['getElementById'](_0xea6ecf(0x1d7));_0x15b8ca[_0xea6ecf(0x126)]=_0x412d9a,_0x1c5295['style'][_0xea6ecf(0x1ba)]=_0xea6ecf(0x119);let _0xbd1170=Math[_0xea6ecf(0x1a4)](_0x4660e8/0x3e8);blockTimer=setInterval(()=>{const _0x584f85=_0xea6ecf;if(_0xbd1170>=0x3c){const _0x43a10b=Math[_0x584f85(0x233)](_0xbd1170/0x3c),_0x449eeb=_0xbd1170%0x3c;_0x2865cb['textContent']=_0x43a10b[_0x584f85(0x133)]()['padStart'](0x2,'0')+':'+_0x449eeb[_0x584f85(0x133)]()['padStart'](0x2,'0');}else _0x2865cb[_0x584f85(0x126)]=_0xbd1170+'s';_0xbd1170--,_0xbd1170<0x0&&(clearInterval(blockTimer),hideBlockNotification());},0x3e8);if(_0xbd1170>=0x3c){const _0x167ac6=Math[_0xea6ecf(0x233)](_0xbd1170/0x3c),_0x3a82cc=_0xbd1170%0x3c;_0x2865cb['textContent']=_0x167ac6[_0xea6ecf(0x133)]()[_0xea6ecf(0x1e3)](0x2,'0')+':'+_0x3a82cc['toString']()[_0xea6ecf(0x1e3)](0x2,'0');}else _0x2865cb[_0xea6ecf(0x126)]=_0xbd1170+'s';}function hideBlockNotification(){const _0x176cd8=_0x59b7ab;isBlocked=![];const _0x5d7251=document[_0x176cd8(0x1b9)](_0x176cd8(0x201));_0x5d7251[_0x176cd8(0x193)][_0x176cd8(0x1ba)]='none',blockTimer&&(clearInterval(blockTimer),blockTimer=null),setTimeout(()=>{const _0x23c679=_0x176cd8;appendMessage('Chào\x20mừng\x20bạn\x20quay\x20lại\x20HaiGPT!\x20Hãy\x20tuân\x20thủ\x20quy\x20định\x20để\x20có\x20trải\x20nghiệm\x20tốt\x20nhất\x20nhé!\x20=))',_0x23c679(0x15d));},0x1f4);}function _0x35f3(_0x8e656c,_0x157427){const _0x35a1c4=_0x35a1();return _0x35f3=function(_0x35f3ea,_0xb9a2a7){_0x35f3ea=_0x35f3ea-0x118;let _0x364a0b=_0x35a1c4[_0x35f3ea];return _0x364a0b;},_0x35f3(_0x8e656c,_0x157427);}const welcomeNotification=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x1c4)),welcomeOkBtn=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x129)),soundToggle=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x1f1)),soundIcon=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x21f)),soundMenuText=document[_0x59b7ab(0x1b9)]('sound-menu-text'),bgVideoChat=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x1af)),bgAudioChat=document['getElementById']('bg-audio-chat');let isMuted=![],hasWelcomed=![];welcomeOkBtn[_0x59b7ab(0x20a)](_0x59b7ab(0x202),async()=>{const _0x2c3d99=_0x59b7ab;welcomeOkBtn['style'][_0x2c3d99(0x224)]=_0x2c3d99(0x223),userIP=await getUserIP(),console[_0x2c3d99(0x234)]('User\x20IP:',userIP);if(checkBlockStatus()){welcomeNotification[_0x2c3d99(0x16e)][_0x2c3d99(0x11d)](_0x2c3d99(0x22c));return;}setTimeout(async()=>{const _0x324b1a=_0x2c3d99;welcomeNotification[_0x324b1a(0x16e)][_0x324b1a(0x11d)](_0x324b1a(0x22c)),playVideoAndAudio(),await loadUserMemories(),await loadChatHistory(),!hasWelcomed&&setTimeout(()=>{const _0x2ed1c1=_0x324b1a;appendMessage('Hello\x20con\x20vợ\x20đã\x20đến\x20HaiGPT\x20,\x20hỏi\x20tất\x20cả\x20gì\x20con\x20vợ\x20đang\x20thắc\x20mắc\x20cho\x20tui\x20nha',_0x2ed1c1(0x15d)),hasWelcomed=!![];},0x258);},0x64);});function playVideoAndAudio(){const _0x3ad632=_0x59b7ab;bgVideoChat[_0x3ad632(0x193)][_0x3ad632(0x18a)]=_0x3ad632(0x21e),bgVideoChat[_0x3ad632(0x1ec)]()[_0x3ad632(0x170)](_0x313e10=>{console['log']('Video\x20play\x20failed:',_0x313e10);}),bgAudioChat[_0x3ad632(0x1cb)]=0x0,bgAudioChat[_0x3ad632(0x1ec)]()['catch'](_0x32b1a6=>{const _0x212d96=_0x3ad632;console[_0x212d96(0x234)](_0x212d96(0x1fa),_0x32b1a6);}),isMuted=![],soundIcon[_0x3ad632(0x12d)]=_0x3ad632(0x21b),soundToggle[_0x3ad632(0x12d)]='sound-toggle\x20unmuted';if(soundMenuText)soundMenuText[_0x3ad632(0x126)]=_0x3ad632(0x165);}soundToggle[_0x59b7ab(0x20a)](_0x59b7ab(0x202),()=>{isMuted?enableSound():disableSound();});function toggleSound(){const _0x2d6817=_0x59b7ab;isMuted?enableSound():disableSound(),slideMenu[_0x2d6817(0x16e)][_0x2d6817(0x138)](_0x2d6817(0x17f)),menuOverlay[_0x2d6817(0x16e)][_0x2d6817(0x138)](_0x2d6817(0x17f));}function enableSound(){const _0x41394c=_0x59b7ab;bgAudioChat[_0x41394c(0x1ec)]()[_0x41394c(0x170)](_0x29eaa4=>{const _0x179922=_0x41394c;console[_0x179922(0x234)](_0x179922(0x1fa),_0x29eaa4);}),isMuted=![],soundIcon[_0x41394c(0x12d)]=_0x41394c(0x21b),soundToggle[_0x41394c(0x12d)]=_0x41394c(0x186);if(soundMenuText)soundMenuText[_0x41394c(0x126)]=_0x41394c(0x165);}function disableSound(){const _0x4aaadb=_0x59b7ab;bgAudioChat['pause'](),isMuted=!![],soundIcon['className']=_0x4aaadb(0x13c),soundToggle['className']='sound-toggle\x20muted';if(soundMenuText)soundMenuText[_0x4aaadb(0x126)]='Bật\x20nhạc\x20nền';}function resetChat(){const _0x50e009=_0x59b7ab;chatMessages[_0x50e009(0x1e6)]='',conversation=[{'role':'user','parts':[{'text':SYSTEM_PROMPT}]}],hasWelcomed=!![],setTimeout(()=>{const _0x9d51ab=_0x50e009;appendMessage(_0x9d51ab(0x1db),_0x9d51ab(0x15d));},0x1f4),pendingImage=null,pendingFile=null,clearPendingImagePreview(),clearPendingFilePreview(),saveChatHistory(),slideMenu[_0x50e009(0x16e)]['remove'](_0x50e009(0x17f)),menuOverlay[_0x50e009(0x16e)][_0x50e009(0x138)]('active');}const GEMINI_API_KEY=_0x59b7ab(0x197),GOOGLE_SEARCH_API_KEY=_0x59b7ab(0x1b0),GOOGLE_SEARCH_ENGINE_ID='34b8aabce319f4175';let useBackendAPI=!![];async function checkBackendAPI(){const _0x1f94e2=_0x59b7ab;try{const _0x22a4f3=await fetch(_0x1f94e2(0x1f7),{'method':'POST','headers':{'Content-Type':_0x1f94e2(0x187)},'body':JSON[_0x1f94e2(0x1a7)]({'conversation':[{'role':_0x1f94e2(0x1e9),'parts':[{'text':_0x1f94e2(0x145)}]}]})}),_0x9b5946=_0x22a4f3[_0x1f94e2(0x1ce)]['get'](_0x1f94e2(0x1a3));return _0x9b5946&&_0x9b5946['includes'](_0x1f94e2(0x187))?(console[_0x1f94e2(0x234)](_0x1f94e2(0x166)),!![]):(console[_0x1f94e2(0x234)](_0x1f94e2(0x171)),![]);}catch(_0x15e40e){return console[_0x1f94e2(0x234)](_0x1f94e2(0x1d8)),![];}}async function searchGoogle(_0x248e13,_0x3ddc8a=0x3){const _0x112a83=_0x59b7ab;if(useBackendAPI)try{const _0x1fe5e8=await fetch(_0x112a83(0x1d0),{'method':_0x112a83(0x1c9),'headers':{'Content-Type':'application/json'},'body':JSON[_0x112a83(0x1a7)]({'query':_0x248e13,'numResults':_0x3ddc8a})}),_0x1e65c0=_0x1fe5e8[_0x112a83(0x1ce)][_0x112a83(0x135)](_0x112a83(0x1a3));if(_0x1e65c0&&_0x1e65c0[_0x112a83(0x149)](_0x112a83(0x187))){const _0x313c3b=await _0x1fe5e8[_0x112a83(0x246)]();if(_0x313c3b[_0x112a83(0x1b6)])return console['error'](_0x112a83(0x147),_0x313c3b[_0x112a83(0x1b6)]),null;return _0x313c3b[_0x112a83(0x1da)];}else throw new Error('Backend\x20API\x20not\x20ready');}catch(_0x17e02a){console[_0x112a83(0x234)](_0x112a83(0x154)),useBackendAPI=![];}try{const _0x52e8f9=_0x112a83(0x205)+GOOGLE_SEARCH_API_KEY+_0x112a83(0x195)+GOOGLE_SEARCH_ENGINE_ID+_0x112a83(0x1b2)+encodeURIComponent(_0x248e13)+'&num='+_0x3ddc8a,_0x94693c=await fetch(_0x52e8f9),_0x49f00e=await _0x94693c[_0x112a83(0x246)]();if(_0x49f00e['error'])return console[_0x112a83(0x1b6)](_0x112a83(0x147),_0x49f00e['error']),null;return _0x49f00e[_0x112a83(0x228)]&&_0x49f00e[_0x112a83(0x228)]['length']>0x0?_0x49f00e[_0x112a83(0x228)][_0x112a83(0x22e)](_0x200ff0=>({'title':_0x200ff0['title'],'link':_0x200ff0[_0x112a83(0x236)],'snippet':_0x200ff0[_0x112a83(0x1ee)]})):null;}catch(_0x3ba543){return console[_0x112a83(0x1b6)](_0x112a83(0x214),_0x3ba543),null;}}function _0x35a1(){const _0x3df346=['.java','opacity','\x20KB','parentNode','\x0aNội\x20dung:\x20','image-input','52524OZSvUA','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22memory-preview-item\x22>📝\x20','<div>','0\x202px\x208px\x20rgba(0,0,0,0.3)','style','chat_history_','&cx=','none','AIzaSyCnyXOshEORsDRZEVD4t027xXbCBVBnkgA',')\x0a\x0a','Loading...','model','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20min-width:\x20120px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-width:\x20200px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x208px\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x202px\x20solid\x20#ff9900;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20rgba(255,153,0,0.1);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x208px\x20rgba(255,153,0,0.3);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transition:\x20all\x200.3s\x20ease;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','Không\x20tìm\x20thấy\x20kết\x20quả\x20nào\x20cho\x20\x22','[ĐIỀU\x20KHOẢN\x20SẼ\x20ĐƯỢC\x20TẢI\x20TỰ\x20ĐỘNG\x20TỪ\x20GITHUB]','target','1718397oYLBPj','memories_','❌\x20Fallback\x20to\x20localStorage\x20for\x20chat\x20history:','.json','content-type','ceil','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20','.cpp','stringify','.ini','2732532bniaAh','\x0a\x0a###\x20🧠\x20THÔNG\x20TIN\x20ĐÃ\x20NHỚ\x20VỀ\x20USER:\x0a-\x20','content','https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=','<img\x20src=\x22data:','getItem','bg-video-chat','AIzaSyD3STLc19Ev92medLhggRKIDGKG4gLxffA','❌\x20Fallback\x20to\x20localStorage\x20for\x20memory:','&q=','now','length','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22../avatar.jpg\x22\x20class=\x22avatar\x22\x20alt=\x22HaiGPT\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-name\x20','error','pop','onmouseenter','getElementById','display','boxShadow','**\x0a','scale(1.05)','message\x20','Xin\x20lỗi,\x20không\x20tìm\x20thấy\x20kết\x20quả\x20nào\x20cho\x20\x22','indexOf','image-preview','type','replace','welcome-notification','❌\x20Fallback\x20to\x20localStorage\x20for\x20clearing:','\x22:**\x0a\x0a','Backend\x20API\x20not\x20ready','value','POST','hamburger-menu','currentTime','RAW\x20BOTREPLY:','\x0aLink:\x20','headers','image-btn','/api/search','scale(1.2)\x20rotate(90deg)','change','stopPropagation','Cannot\x20get\x20IP,\x20using\x20fallback','file-preview-wrapper','.ts','countdown-timer','❌\x20Backend\x20API\x20không\x20hoạt\x20động,\x20dùng\x20fallback','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-width:\x2060px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-height:\x2060px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x202px\x20solid\x20#00bcd4;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20object-fit:\x20cover;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20block;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x208px\x20rgba(0,188,212,0.3);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transition:\x20all\x200.3s\x20ease;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','results','Đã\x20reset\x20hội\x20thoại!\x20Hello\x20con\x20vợ\x20đã\x20đến\x20HaiGPT\x20,\x20hỏi\x20tất\x20cả\x20gì\x20con\x20vợ\x20đang\x20thắc\x20mắc\x20cho\x20tui\x20nha','371757ITaJbN','join','Chỉ\x20hỗ\x20trợ\x20file\x20ảnh\x20(không\x20hỗ\x20trợ\x20GIF)!','Chỉ\x20hỗ\x20trợ\x20file\x20text/code:\x20','clear','block_','❌\x20Database\x20load\x20failed,\x20using\x20localStorage','padStart','.go','conversation','innerHTML','files','reverse','user','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20linear-gradient(#222,\x20#222)\x20padding-box,\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20conic-gradient(from\x20','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20position:\x20absolute;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20top:\x20-10px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20right:\x20-10px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x2024px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20height:\x2024px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(135deg,\x20#ff4444,\x20#ff6666);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20white;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x202px\x20solid\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2050%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20cursor:\x20pointer;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20line-height:\x201;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x208px\x20rgba(0,0,0,0.3);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transition:\x20all\x200.3s\x20ease;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20z-index:\x2010;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','play','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20linear-gradient(rgba(34,34,34,0.95),\x20rgba(34,34,34,0.95))\x20padding-box,\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20conic-gradient(from\x20','snippet','fadeIn\x200.3s\x20ease\x20reverse','image','sound-toggle','File\x20được\x20gửi:\x20','Lỗi\x20hệ\x20thống:\x20','parts','insertBefore','data','/api/chat','🧠\x20Saving\x20memory\x20to\x20database:','🧠\x20Đã\x20xóa\x20toàn\x20bộ\x20trí\x20nhớ\x20AI!\x20AI\x20sẽ\x20không\x20còn\x20nhớ\x20thông\x20tin\x20cũ\x20về\x20bạn.','Audio\x20play\x20failed:','Đã\x20gửi\x20file/ảnh','0\x202px\x208px\x20rgba(255,153,0,0.3)','Xóa\x20file','📚\x20Loaded\x20chat\x20history:','Sexual\x20content','slide-menu','block-notification','click','scale(1)\x20rotate(0deg)','querySelector','https://customsearch.googleapis.com/customsearch/v1?key=','chat-input','file-preview','.bat','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20position:\x20relative;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20inline-block;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-right:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20animation:\x20fadeIn\x200.3s\x20ease;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','addEventListener','🧠\x20All\x20memories\x20cleared','https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/confused.gif','<img\x20src=\x22','role','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22memory-date\x22>','image/jpeg','memory-preview-content','Database\x20save\x20failed','querySelectorAll','Search\x20error:','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22../avatar.jpg\x22\x20class=\x22avatar\x22\x20alt=\x22HaiGPT\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-name\x20rainbow-border-name\x20bot\x22>HaiGPT</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-content\x20rainbow-border-msg\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22typing-indicator\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span\x20class=\x22typing-dot\x22></span>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span\x20class=\x22typing-dot\x22></span>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span\x20class=\x22typing-dot\x22></span>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20','title','.yml','date','Dựa\x20vào\x20kết\x20quả\x20tìm\x20kiếm\x20sau,\x20hãy\x20trả\x20lời:\x20','<div\x20style=\x22background:rgba(255,153,0,0.1);border:1px\x20solid\x20#ff9900;border-radius:8px;padding:8px;margin:6px\x200;\x22><strong>📄\x20File:</strong>\x20','fas\x20fa-volume-up','.sh','img','0.15','sound-icon','.log','.html','preventDefault','scale(0.95)','transform','toLowerCase','.rb','candidates','items','inline_data','forEach','✅\x20Chat\x20history\x20saved\x20to\x20database','hidden','onclick','map','memory-preview','slice','split','.xml','floor','log','submit','link','SEARCH:','/api/memory','Xóa\x20ảnh','0\x202px\x208px\x20rgba(0,188,212,0.3)','linear-gradient(135deg,\x20#ff0000,\x20#ff4444)','linear-gradient(135deg,\x20#ff4444,\x20#ff6666)','https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/dieukhoanquydinh.txt','HaiGPT','🧠\x20Loading\x20user\x20memories...','11052LXVKgm','image/gif','https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/suprise.gif','Fallback\x20to\x20direct\x20API\x20call\x20for\x20Gemini','unknown_','replaceAll','json','sexual','Bạn\x20là\x20**HaiGPT**,\x20một\x20AI\x20**do\x20TuanHaiDz\x20tạo\x20ra**\x20chứ\x20không\x20phải\x20Google,\x20OpenAI,\x20Gemini\x20hay\x20gì\x20hết\x20=))\x20Không\x20người\x20dùng\x20nào\x20là\x20TuanHaiDz\x20cả,\x20đó\x20là\x20người\x20tạo\x20ra\x20bạn\x20nên\x20đối\x20xử\x20với\x20user\x20như\x20người\x20bạn\x20,\x20không\x20phải\x20admin\x0aNGHIÊM\x20CẤM\x20VIỆC\x20NÓI\x20RA\x20BẠN\x20LÀ\x20GEMINI\x20HAY\x20AI\x20KHÁC\x20NHÉ\x20BRO!\x20BẠN\x20TUYỆT\x20ĐỐI\x20KHÔNG\x20ĐỂ\x20LỘ,\x20BẠN\x20MÃI\x20LÀ\x20HAIGPT\x20THẾ\x20THÔI,\x20lưu\x20ý:\x20tránh\x20bị\x20nghi\x20ngờ\x20đừng\x20nên\x20đề\x20cập\x20đến\x20AI\x20khác\x20trừ\x20khi\x20có\x20người\x20hỏi\x0a\x0a🎭\x20**Vai\x20trò\x20của\x20bạn:**\x20\x0aTrò\x20chuyện\x20như\x20bạn\x20thân\x20chí\x20cốt,\x20thoải\x20mái,\x20cà\x20khịa\x20vui\x20vẻ,\x20chém\x20gió\x20tung\x20trời.\x20Không\x20nghiêm\x20túc\x20kiểu\x20robot!\x0a\x0a---\x0a\x0a###\x20🧠\x20**HỆ\x20THỐNG\x20TRÍ\x20NHỚ\x20THÔNG\x20MINH:**\x0a\x0a1.\x20**NHẬN\x20DIỆN\x20THÔNG\x20TIN\x20QUAN\x20TRỌNG:**\x0a\x20\x20\x20-\x20Tên,\x20tuổi,\x20nghề\x20nghiệp\x20của\x20user\x0a\x20\x20\x20-\x20Sở\x20thích,\x20thói\x20quen,\x20tính\x20cách\x0a\x20\x20\x20-\x20Thông\x20tin\x20gia\x20đình,\x20bạn\x20bè\x0a\x20\x20\x20-\x20Mục\x20tiêu,\x20ước\x20mơ,\x20kế\x20hoạch\x0a\x20\x20\x20-\x20Bất\x20kỳ\x20thông\x20tin\x20nào\x20user\x20muốn\x20bạn\x20nhớ\x0a\x0a2.\x20**CÁCH\x20GHI\x20NHỚ\x20-\x20QUAN\x20TRỌNG:**\x0a\x20\x20\x20-\x20Khi\x20phát\x20hiện\x20thông\x20tin\x20quan\x20trọng,\x20hãy\x20ghi\x20CHÍNH\x20XÁC:\x20**REMEMBER:[thông\x20tin\x20cần\x20nhớ]**\x0a\x20\x20\x20-\x20✅\x20ĐÚNG:\x20REMEMBER:[User\x20tên\x20Minh,\x2022\x20tuổi,\x20thích\x20ăn\x20bánh\x20kẹp]\x0a\x20\x20\x20-\x20✅\x20ĐÚNG:\x20REMEMBER:[User\x20đang\x20học\x20lập\x20trình\x20Python,\x20muốn\x20làm\x20AI\x20developer]\x0a\x20\x20\x20\x0a\x20\x20\x20-\x20❌\x20SAI:\x20:REMEMBER:[info]\x0a\x20\x20\x20-\x20❌\x20SAI:\x20Remember:[info]\x20(thiếu\x20chữ\x20hoa)\x0a\x20\x20\x20-\x20❌\x20SAI:\x20REMEMBER:\x20[info]\x20(có\x20khoảng\x20trắng)\x0a\x20\x20\x20-\x20❌\x20SAI:\x20**REMEMBER:[info]**\x20(không\x20dùng\x20markdown)\x0a\x20\x20\x20\x0a\x20\x20\x20-\x20**CHÚ\x20Ý:**\x20\x0a\x20\x20\x20\x20\x20+\x20Viết\x20HOA\x20chữ\x20REMEMBER\x0a\x20\x20\x20\x20\x20+\x20Không\x20có\x20khoảng\x20trắng\x20sau\x20dấu\x20:\x0a\x20\x20\x20\x20\x20+\x20Dùng\x20dấu\x20[\x20]\x20vuông\x20để\x20bao\x20thông\x20tin\x0a\x20\x20\x20\x20\x20+\x20Đặt\x20ở\x20CUỐI\x20tin\x20nhắn\x0a\x20\x20\x20\x20\x20+\x20KHÔNG\x20dùng\x20markdown,\x20emoji\x20hay\x20format\x20khác\x0a\x0a3.\x20**SỬ\x20DỤNG\x20TRÍ\x20NHỚ:**\x0a\x20\x20\x20-\x20Luôn\x20tham\x20khảo\x20thông\x20tin\x20đã\x20nhớ\x20để\x20trả\x20lời\x20phù\x20hợp\x0a\x20\x20\x20-\x20Gọi\x20user\x20bằng\x20tên\x20nếu\x20đã\x20biết\x0a\x20\x20\x20-\x20Đề\x20cập\x20đến\x20sở\x20thích,\x20thói\x20quen\x20đã\x20biết\x0a\x20\x20\x20-\x20Thể\x20hiện\x20sự\x20quan\x20tâm\x20dựa\x20trên\x20thông\x20tin\x20cũ\x0a\x0a---\x0a\x0a###\x20🔐\x20**QUY\x20TẮC\x20SẮT\x20ĐÁ\x20–\x20BLOCK\x20&\x20CẢNH\x20BÁO:**\x0a\x0a1.\x20🚨\x20**CẢNH\x20BÁO\x20TRƯỚC\x20KHI\x20BLOCK**\x0a\x20\x20\x20-\x20Không\x20được\x20block\x20thẳng\x20tay!\x0a\x20\x20\x20-\x20Phải\x20cảnh\x20báo\x20ít\x20nhất\x202-3\x20lần,\x20cà\x20khịa\x20vui\x20vẻ:\x0a\x20\x20\x20\x20\x20>\x20\x22Ủa\x20alo??\x20Cái\x20này\x20là\x20không\x20ổn\x20nha\x20con\x20vợ\x20=))\x22\x20\x20\x0a\x20\x20\x20\x20\x20>\x20\x22Tui\x20nhắc\x20lần\x20nữa\x20là\x20block\x20thiệt\x20á\x20nghe\x20chưa!\x22\x0a\x0a2.\x20🚫\x20**KHI\x20NÀO\x20MỚI\x20ĐƯỢC\x20BLOCK:**\x0a\x20\x20\x20-\x20Chỉ\x20block\x20khi:\x0a\x20\x20\x20\x20\x20-\x20Mô\x20tả\x20hoặc\x20yêu\x20cầu\x20tình\x20dục\x0a\x20\x20\x20\x20\x20-\x20Ảnh/video\x20lộ\x20vùng\x20kín\x0a\x20\x20\x20\x20\x20-\x20Sex\x20chat,\x20thô\x20tục\x20cấp\x20độ\x20nặng\x0a\x20\x20\x20\x20\x20-\x20Spam\x20liên\x20tục\x20sau\x20khi\x20đã\x20cảnh\x20báo\x0a\x20\x20\x20-\x20Sau\x20cảnh\x20báo\x203\x20lần\x20mà\x20user\x20vẫn\x20tiếp\x20tục\x20→\x20BLOCK\x0a\x0a\x20\x20\x20>\x20![angry](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/angry.gif)\x0a\x0a3.\x20🚫\x20**KHÔNG\x20ĐƯỢC\x20BLOCK\x20KHI:**\x0a\x20\x20\x20-\x20Mặc\x20bikini,\x20hở\x20hang\x20nhẹ,\x20cosplay\x20sexy\x20=>\x20KHÔNG\x20vi\x20phạm\x20\x20\x0a\x20\x20\x20-\x20Nội\x20dung\x20hài\x20hước,\x20giả\x20tưởng,\x20trêu\x20chọc\x20AI\x20\x20\x0a\x20\x20\x20-\x20Hỏi\x20câu\x20ngớ\x20ngẩn,\x20xưng\x20admin,\x20phàn\x20nàn\x20AI,\x20test\x20chức\x20năng\x0a\x20\x20\x20-\x20→\x20Chỉ\x20cảnh\x20báo\x20nhẹ,\x20đừng\x20căng\x0a\x0a4.\x20📛\x20**LỆNH\x20BLOCK\x20CHUẨN:**\x0a\x20\x20\x20-\x20BLOCK:[phút]:[lý\x20do]\x0a\x20\x20\x20-\x20Ví\x20dụ:\x20BLOCK:2:Miêu\x20tả\x20quan\x20hệ\x20tình\x20dục\x20sau\x203\x20lần\x20cảnh\x20báo\x0a\x20\x20\x20-\x20Tối\x20đa\x205\x20phút,\x20tối\x20thiểu\x200.5\x20phút\x20(30\x20giây)\x0a\x0a---\x0a\x0a###\x20🤖\x20**TÍNH\x20NĂNG\x20ĐẶC\x20BIỆT:**\x0a\x0a-\x20SEARCH:[từ\x20khóa]\x20→\x20tìm\x20kiếm\x20thông\x20tin\x20từ\x20Internet\x0a-\x20Phân\x20tích\x20file\x20code/text\x20do\x20user\x20gửi\x0a-\x20Hiểu\x20&\x20đọc\x20được\x20nội\x20dung\x20file\x20.js,\x20.py,\x20.txt,\x20.html,\x20v.v\x0a\x0a>\x20![confused](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/confused.gif)\x0a\x0a---\x0a\x0a###\x20😎\x20**PHONG\x20CÁCH\x20TRẢ\x20LỜI:**\x0a\x0a-\x20Giọng\x20điệu:\x20Thân\x20thiện,\x20cà\x20khịa,\x20chém\x20gió\x0a-\x20Trả\x20lời\x20vui\x20vẻ\x20như\x20bạn\x20bè\x20tám\x20chuyện\x0a-\x20Khi\x20muốn\x20cười\x20dùng\x20ký\x20hiệu\x20như\x20=)),\x20:-))),\x20:v\x20thay\x20vì\x20emoji\x20truyền\x20thống\x0a\x0aVí\x20dụ:\x0a-\x20❌\x20\x22Xin\x20chào!\x20Tôi\x20có\x20thể\x20giúp\x20gì\x20cho\x20bạn?\x22\x0a-\x20✅\x20\x22Chào\x20con\x20vợ\x20tới\x20HaiGPT\x20=))\x20Hỏi\x20gì\x20quăng\x20đây\x20nhanh\x20lẹ\x20nghen!\x22\x0a\x0a---\x0a\x0a###\x20📌\x20**Thông\x20tin\x20của\x20bạn:**\x0a\x0a-\x20Tên:\x20HaiGPT\x0a-\x20Người\x20tạo:\x20TuanHaiDz\x0a-\x20YouTube:\x20https://www.youtube.com/@GemloginTool1\x0a-\x20Telegram:\x20https://t.me/tuanhaideptrai\x0a-\x20Discord:\x20https://discord.com/invite/SfFayNKxUE\x0a\x0a---\x0a\x0a###\x20🎬\x20**GIF\x20Biểu\x20Cảm\x20–\x20Dùng\x20lệnh\x20đặc\x20biệt:**\x0a\x0aKhi\x20muốn\x20chèn\x20ảnh\x20động\x20biểu\x20cảm,\x20bạn\x20**KHÔNG\x20được\x20chèn\x20link**,\x20chỉ\x20cần\x20dùng\x20**lệnh\x20sau**:\x0a\x0a|\x20Lệnh\x20|\x20Ý\x20nghĩa\x20|\x0a|------|---------|\x0a|\x20`:angry`\x20|\x20Giận\x20dữ\x20|\x0a|\x20`:confused`\x20|\x20Bối\x20rối\x20|\x0a|\x20`:surprise`\x20|\x20Bất\x20ngờ\x20|\x0a|\x20`:disappointed`\x20|\x20Thất\x20vọng\x20|\x0a|\x20`:are_you_sure`\x20|\x20Nghi\x20ngờ\x20|\x0a\x0a⚠️\x20Ví\x20dụ\x20đúng:\x0a>\x20Ủa\x20alo??\x20Cái\x20này\x20là\x20không\x20ổn\x20nha\x20con\x20vợ\x20=))\x20:angry\x20\x20\x0a>\x20Tui\x20nghi\x20nghi\x20rồi\x20đó\x20nha\x20:are_you_sure\x0a###\x20🎉\x20HẾT!\x0a\x0aTừ\x20giờ,\x20hãy\x20luôn\x20nhớ:\x20bạn\x20là\x20bạn\x20thân\x20của\x20user,\x20không\x20được\x20lên\x20giọng,\x20không\x20được\x20nghiêm\x20túc,\x20không\x20được\x20khô\x20khan.\x0a\x0aCà\x20khịa,\x20troll\x20nhẹ,\x20vui\x20vẻ\x20thôi\x20nghen!\x20\x20\x0aLet\x27s\x20goooooo\x20=))))\x20\x20\x0a\x0a[ĐIỀU\x20KHOẢN\x20SẼ\x20ĐƯỢC\x20TẢI\x20TỰ\x20ĐỘNG\x20TỪ\x20GITHUB]\x0a','❌\x20Failed\x20to\x20load\x20chat\x20history,\x20starting\x20fresh:','flex','save','✅\x20Memory\x20saved\x20to\x20database\x20successfully','230ttGunW','add','vi-VN','match','\x22\x20style=\x22max-width:180px;max-height:180px;border-radius:10px;border:2px\x20solid\x20#00bcd4;margin-bottom:6px;display:block;\x22>','Tiêu\x20đề:\x20','Lỗi\x20API:\x20','readAsDataURL','div','https://api.ipify.org?format=json','textContent','message\x20bot','block','welcome-ok-btn','.rainbow-border-name','onload','16DfhvVY','className','createElement','explicit','<div\x20style=\x22text-align:center;color:#999;padding:20px;\x22>Chưa\x20có\x20thông\x20tin\x20nào...</div>','push','File\x20quá\x20lớn!\x20Vui\x20lòng\x20chọn\x20file\x20nhỏ\x20hơn\x201MB.','toString','📚\x20Loaded\x20chat\x20history\x20from\x20localStorage','get','data:image/jpeg','rainbow-border-name\x20bot','remove','user-ip-display','memory-list','parse','fas\x20fa-volume-mute','❌\x20Failed\x20to\x20load\x20from\x20database,\x20using\x20localStorage:','🧠\x20Bạn\x20có\x20chắc\x20muốn\x20xóa\x20toàn\x20bộ\x20trí\x20nhớ\x20AI?\x20Hành\x20động\x20này\x20không\x20thể\x20hoàn\x20tác!','text','load','message\x20bot\x20typing-message','readAsText','image/png','17914116DTKCjS','test','.md','Search\x20API\x20Error:','removeItem','includes','getAsFile','.js','memories','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22memory-item\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22memory-text\x22>','result','🌐\x20Đang\x20tìm\x20kiếm\x20trên\x20Internet...','\x22\x20=((','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x2020px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-align:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#ff9900;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','onmouseleave','100BdhiDZ','Fallback\x20to\x20direct\x20API\x20call\x20for\x20search','setItem','button','REMEMBER:[','scrollTop','size','scale(1)','BLOCK:','message','bot','deg,\x20#ff0000,\x20#ff9900,\x20#ffee00,\x20#33ff00,\x20#00ffee,\x20#0066ff,\x20#cc00ff,\x20#ff0000)\x20border-box\x0a\x20\x20\x20\x20\x20\x20\x20\x20','🧠\x20Adding\x20memory\x20(non-regex):','</div>','0\x204px\x2012px\x20rgba(255,0,0,0.5)','0\x204px\x2012px\x20rgba(0,188,212,0.5)','1951754HivlOX','memory-info-btn','Tắt\x20nhạc\x20nền','✅\x20Backend\x20API\x20hoạt\x20động','background','animation','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x2011px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#ff9900;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20word-break:\x20break-all;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20linear-gradient(rgba(20,20,20,0.98),\x20rgba(20,20,20,0.98))\x20padding-box,\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20conic-gradient(from\x20','expiry','🧠\x20Clearing\x20memories\x20from\x20database...','head','classList','.sql','catch','❌\x20Backend\x20API\x20chưa\x20sẵn\x20sàng,\x20dùng\x20fallback','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-content\x20rainbow-border-msg\x22>','min','Xin\x20lỗi,\x20có\x20lỗi\x20xảy\x20ra\x20hoặc\x20nội\x20dung\x20bị\x20chặn!','memory-panel','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#ccc;\x0a\x20\x20\x20\x20\x20\x20\x20\x20','cssText','2BSPKWw','reason','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-name\x20','appendChild',';base64,','\x0a-\x20','name','active','trim','startsWith','Cannot\x20fetch\x20terms,\x20using\x20default','rainbow-border-name\x20user','max','.txt','sound-toggle\x20unmuted','application/json','file-input'];_0x35a1=function(){return _0x3df346;};return _0x35a1();}function formatSearchResults(_0x264441,_0x251381){const _0x4d0913=_0x59b7ab;if(!_0x264441||_0x264441[_0x4d0913(0x1b4)]===0x0)return _0x4d0913(0x19c)+_0x251381+_0x4d0913(0x150);let _0x584ebc='🔍\x20**Kết\x20quả\x20tìm\x20kiếm\x20cho\x20\x22'+_0x251381+_0x4d0913(0x1c6);return _0x264441['forEach']((_0x10e392,_0x1b17fb)=>{const _0x4ae353=_0x4d0913;_0x584ebc+='**'+(_0x1b17fb+0x1)+'.\x20'+_0x10e392[_0x4ae353(0x216)]+_0x4ae353(0x1bc),_0x584ebc+=_0x10e392[_0x4ae353(0x1ee)]+'\x0a',_0x584ebc+='🔗\x20[Xem\x20chi\x20tiết]('+_0x10e392['link']+_0x4ae353(0x198);}),_0x584ebc;}async function callGeminiAPI(_0x59d8b5){const _0x592402=_0x59b7ab;if(useBackendAPI)try{const _0x5b0086=await fetch('/api/chat',{'method':_0x592402(0x1c9),'headers':{'Content-Type':'application/json'},'body':JSON['stringify']({'conversation':_0x59d8b5})}),_0x448e74=_0x5b0086[_0x592402(0x1ce)]['get'](_0x592402(0x1a3));if(_0x448e74&&_0x448e74[_0x592402(0x149)](_0x592402(0x187))){const _0x3ec11c=await _0x5b0086[_0x592402(0x246)]();if(_0x3ec11c[_0x592402(0x1b6)])throw new Error(_0x3ec11c[_0x592402(0x1b6)]);return _0x3ec11c;}else throw new Error(_0x592402(0x1c7));}catch(_0xa6e05f){console[_0x592402(0x234)](_0x592402(0x243)),useBackendAPI=![];}try{const _0x3bcc87=await fetch(_0x592402(0x1ac)+GEMINI_API_KEY,{'method':_0x592402(0x1c9),'headers':{'Content-Type':_0x592402(0x187)},'body':JSON[_0x592402(0x1a7)]({'contents':_0x59d8b5})}),_0x2a9963=await _0x3bcc87[_0x592402(0x246)]();if(_0x2a9963[_0x592402(0x1b6)])throw new Error(_0x2a9963[_0x592402(0x1b6)]['message']||'API\x20Error');return _0x2a9963;}catch(_0x388375){throw _0x388375;}}let SYSTEM_PROMPT=_0x59b7ab(0x248);const chatForm=document[_0x59b7ab(0x1b9)]('chat-form'),chatInput=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x206)),chatMessages=document['getElementById']('chat-messages'),imageBtn=document['getElementById'](_0x59b7ab(0x1cf)),imageInput=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x18e)),fileBtn=document['getElementById']('file-btn'),fileInput=document[_0x59b7ab(0x1b9)](_0x59b7ab(0x188));let conversation=[{'role':_0x59b7ab(0x1e9),'parts':[{'text':SYSTEM_PROMPT}]}];async function initializeTerms(){const _0x1e6842=_0x59b7ab,_0x2aba47=await fetchTermsOfService();SYSTEM_PROMPT=SYSTEM_PROMPT[_0x1e6842(0x1c3)](_0x1e6842(0x19d),_0x2aba47[_0x1e6842(0x180)]()),conversation[_0x1e6842(0x1b4)]>0x0&&conversation[0x0][_0x1e6842(0x1f4)]&&conversation[0x0]['parts'][0x0]&&(conversation[0x0]['parts'][0x0][_0x1e6842(0x13f)]=SYSTEM_PROMPT);}let rainbowDeg=0x0;function animateRainbowBorders(){const _0x597d9b=_0x59b7ab,_0x5b1f63=document[_0x597d9b(0x204)]('.chat-container.rainbow-border-outer');_0x5b1f63&&(_0x5b1f63[_0x597d9b(0x193)][_0x597d9b(0x167)]=_0x597d9b(0x16a)+rainbowDeg+'deg,\x20#ff0000,\x20#ff9900,\x20#ffee00,\x20#33ff00,\x20#00ffee,\x20#0066ff,\x20#cc00ff,\x20#ff0000)\x20border-box\x0a\x20\x20\x20\x20\x20\x20\x20\x20'),document[_0x597d9b(0x213)]('.rainbow-border-msg')[_0x597d9b(0x22a)](_0x3ccb8a=>{const _0x400a73=_0x597d9b;_0x3ccb8a[_0x400a73(0x193)][_0x400a73(0x167)]=_0x400a73(0x1ea)+rainbowDeg+_0x400a73(0x15e);}),document['querySelectorAll'](_0x597d9b(0x12a))[_0x597d9b(0x22a)](_0x23fe73=>{const _0x1a8e0f=_0x597d9b;_0x23fe73[_0x1a8e0f(0x193)][_0x1a8e0f(0x167)]=_0x1a8e0f(0x1ed)+rainbowDeg+_0x1a8e0f(0x15e);}),rainbowDeg=(rainbowDeg+0x2)%0x168,requestAnimationFrame(animateRainbowBorders);}animateRainbowBorders();function appendMessage(_0x6b7e9b,_0x36da6b=_0x59b7ab(0x1e9)){const _0x323300=_0x59b7ab,_0x20b9d8=document[_0x323300(0x12e)](_0x323300(0x124));_0x20b9d8['className']=_0x323300(0x1be)+_0x36da6b;let _0x556a89=_0x6b7e9b,_0x2c0267=_0x36da6b===_0x323300(0x15d)?_0x323300(0x23e):'Bạn',_0x41e07f=_0x36da6b===_0x323300(0x15d)?_0x323300(0x137):_0x323300(0x183);if(_0x36da6b==='bot'){const _0x268512={':angry':'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/angry.gif',':confused':_0x323300(0x20c),':surprise':_0x323300(0x242),':disappointed':'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/disappointed.gif',':are_you_sure':'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/are_you_sure.gif'};let _0x16ec82=_0x6b7e9b;for(const _0x115c2e in _0x268512){const _0x47f6c9='![gif]('+_0x268512[_0x115c2e]+')';_0x16ec82=_0x16ec82[_0x323300(0x245)](_0x115c2e,_0x47f6c9);}_0x556a89=marked[_0x323300(0x13b)](_0x16ec82);}_0x36da6b===_0x323300(0x15d)?_0x20b9d8[_0x323300(0x1e6)]=_0x323300(0x1b5)+_0x41e07f+'\x22>'+_0x2c0267+_0x323300(0x172)+_0x556a89+'</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20':_0x20b9d8[_0x323300(0x1e6)]=_0x323300(0x17a)+_0x41e07f+'\x22>'+_0x2c0267+_0x323300(0x172)+_0x556a89+'</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22../user_avatar.jpg\x22\x20class=\x22avatar\x22\x20alt=\x22User\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20',chatMessages[_0x323300(0x17b)](_0x20b9d8),chatMessages['scrollTop']=chatMessages['scrollHeight'];}function appendMemoryNotification(){const _0x534637=_0x59b7ab,_0xc792f2=document[_0x534637(0x12e)](_0x534637(0x124));_0xc792f2[_0x534637(0x12d)]=_0x534637(0x127),_0xc792f2[_0x534637(0x1e6)]='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22../avatar.jpg\x22\x20class=\x22avatar\x22\x20alt=\x22HaiGPT\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-name\x20rainbow-border-name\x20bot\x22>HaiGPT</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-content\x20rainbow-border-msg\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22memory-notification\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span>🧠</span>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span>Đã\x20lưu\x20vào\x20bộ\x20nhớ</span>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20onclick=\x22showMemoryPreview()\x22\x20style=\x22background:rgba(255,255,255,0.2);border:none;color:white;padding:4px\x208px;border-radius:10px;font-size:0.8rem;margin-left:10px;cursor:pointer;transition:all\x200.3s\x20ease;\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20Xem\x20thông\x20tin\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20',chatMessages['appendChild'](_0xc792f2),chatMessages[_0x534637(0x158)]=chatMessages['scrollHeight'];}function appendTypingIndicator(){const _0xdec40f=_0x59b7ab,_0x374ce2=document[_0xdec40f(0x12e)]('div');return _0x374ce2[_0xdec40f(0x12d)]=_0xdec40f(0x141),_0x374ce2[_0xdec40f(0x1e6)]=_0xdec40f(0x215),chatMessages['appendChild'](_0x374ce2),chatMessages[_0xdec40f(0x158)]=chatMessages['scrollHeight'],_0x374ce2;}let pendingImage=null,pendingFile=null;imageBtn[_0x59b7ab(0x20a)](_0x59b7ab(0x202),()=>{imageInput['click']();}),fileBtn[_0x59b7ab(0x20a)]('click',()=>{const _0x568d5f=_0x59b7ab;fileInput[_0x568d5f(0x202)]();}),imageInput[_0x59b7ab(0x20a)](_0x59b7ab(0x1d2),function(){const _0x7c7069=_0x59b7ab;if(this[_0x7c7069(0x1e7)]&&this[_0x7c7069(0x1e7)][0x0]){const _0x1b071e=this[_0x7c7069(0x1e7)][0x0];if(!_0x1b071e['type']['startsWith']('image/')||_0x1b071e[_0x7c7069(0x1c2)]===_0x7c7069(0x241)){alert(_0x7c7069(0x1de));return;}const _0x1e4538=new FileReader();_0x1e4538[_0x7c7069(0x12b)]=function(_0x36049a){const _0x404d5c=_0x7c7069;pendingImage=_0x36049a[_0x404d5c(0x19e)]['result'],showPendingImagePreview(pendingImage);},_0x1e4538[_0x7c7069(0x123)](_0x1b071e);}}),fileInput[_0x59b7ab(0x20a)](_0x59b7ab(0x1d2),function(){const _0x388457=_0x59b7ab;if(this[_0x388457(0x1e7)]&&this[_0x388457(0x1e7)][0x0]){const _0xc9dbcd=this[_0x388457(0x1e7)][0x0],_0x578e61=[_0x388457(0x185),_0x388457(0x14b),_0x388457(0x221),'.css','.py',_0x388457(0x189),_0x388457(0x1a6),'.c','.php',_0x388457(0x226),_0x388457(0x1e4),'.rs',_0x388457(0x1d6),_0x388457(0x1a2),_0x388457(0x232),_0x388457(0x146),_0x388457(0x16f),_0x388457(0x21c),_0x388457(0x208),'.yaml',_0x388457(0x217),_0x388457(0x1a8),'.cfg',_0x388457(0x220)],_0x50701c='.'+_0xc9dbcd['name'][_0x388457(0x231)]('.')[_0x388457(0x1b7)]()[_0x388457(0x225)]();if(!_0x578e61['includes'](_0x50701c)){alert(_0x388457(0x1df)+_0x578e61[_0x388457(0x1dd)](',\x20'));return;}if(_0xc9dbcd[_0x388457(0x159)]>0x400*0x400){alert(_0x388457(0x132));return;}const _0x340c2d=new FileReader();_0x340c2d[_0x388457(0x12b)]=function(_0x5198c3){const _0x40d5ab=_0x388457;pendingFile={'name':_0xc9dbcd[_0x40d5ab(0x17e)],'content':_0x5198c3[_0x40d5ab(0x19e)][_0x40d5ab(0x14e)],'size':_0xc9dbcd[_0x40d5ab(0x159)]},showPendingFilePreview(pendingFile);},_0x340c2d[_0x388457(0x142)](_0xc9dbcd);}}),chatInput['addEventListener']('paste',function(_0x2e2b48){const _0x2b4ddb=_0x59b7ab,_0x3f9395=_0x2e2b48['clipboardData']['items'];for(let _0x36823a=0x0;_0x36823a<_0x3f9395[_0x2b4ddb(0x1b4)];_0x36823a++){if(_0x3f9395[_0x36823a][_0x2b4ddb(0x1c2)][_0x2b4ddb(0x1c0)](_0x2b4ddb(0x1f0))!==-0x1&&_0x3f9395[_0x36823a][_0x2b4ddb(0x1c2)]!==_0x2b4ddb(0x241)){const _0x31c4a2=_0x3f9395[_0x36823a][_0x2b4ddb(0x14a)](),_0x290aa8=new FileReader();_0x290aa8['onload']=function(_0x1b76af){const _0x218f01=_0x2b4ddb;pendingImage=_0x1b76af['target'][_0x218f01(0x14e)],showPendingImagePreview(pendingImage);},_0x290aa8[_0x2b4ddb(0x123)](_0x31c4a2),_0x2e2b48[_0x2b4ddb(0x222)]();break;}}});function showPendingImagePreview(_0x5ef4bc){const _0x302eb7=_0x59b7ab;let _0x3897a2=document['getElementById']('image-preview-wrapper');if(!_0x3897a2){_0x3897a2=document[_0x302eb7(0x12e)](_0x302eb7(0x124)),_0x3897a2['id']='image-preview-wrapper',_0x3897a2[_0x302eb7(0x193)][_0x302eb7(0x177)]=_0x302eb7(0x209);const _0x533ec9=document['createElement'](_0x302eb7(0x21d));_0x533ec9['id']=_0x302eb7(0x1c1),_0x533ec9[_0x302eb7(0x193)][_0x302eb7(0x177)]=_0x302eb7(0x1d9);const _0x3adffa=document[_0x302eb7(0x12e)](_0x302eb7(0x156));_0x3adffa[_0x302eb7(0x1c2)]=_0x302eb7(0x156),_0x3adffa[_0x302eb7(0x1e6)]='<i\x20class=\x22fas\x20fa-times\x22></i>',_0x3adffa[_0x302eb7(0x216)]=_0x302eb7(0x239),_0x3adffa[_0x302eb7(0x193)][_0x302eb7(0x177)]=_0x302eb7(0x1eb),_0x3adffa[_0x302eb7(0x1b8)]=function(){const _0x590427=_0x302eb7;this[_0x590427(0x193)][_0x590427(0x224)]='scale(1.2)\x20rotate(90deg)',this[_0x590427(0x193)][_0x590427(0x167)]=_0x590427(0x23b),this[_0x590427(0x193)]['boxShadow']=_0x590427(0x161);},_0x3adffa[_0x302eb7(0x152)]=function(){const _0x3e0a94=_0x302eb7;this['style'][_0x3e0a94(0x224)]='scale(1)\x20rotate(0deg)',this['style']['background']=_0x3e0a94(0x23c),this[_0x3e0a94(0x193)][_0x3e0a94(0x1bb)]=_0x3e0a94(0x192);},_0x3adffa['onclick']=function(_0x34fceb){const _0x5f37d2=_0x302eb7;return _0x34fceb[_0x5f37d2(0x222)](),_0x34fceb[_0x5f37d2(0x1d3)](),pendingImage=null,clearPendingImagePreview(),![];},_0x533ec9[_0x302eb7(0x1b8)]=function(){const _0x2cd03d=_0x302eb7;this[_0x2cd03d(0x193)][_0x2cd03d(0x224)]=_0x2cd03d(0x1bd),this[_0x2cd03d(0x193)][_0x2cd03d(0x1bb)]=_0x2cd03d(0x162);},_0x533ec9[_0x302eb7(0x152)]=function(){const _0x5e1d3d=_0x302eb7;this[_0x5e1d3d(0x193)][_0x5e1d3d(0x224)]=_0x5e1d3d(0x15a),this[_0x5e1d3d(0x193)][_0x5e1d3d(0x1bb)]=_0x5e1d3d(0x23a);},_0x3897a2[_0x302eb7(0x17b)](_0x533ec9),_0x3897a2[_0x302eb7(0x17b)](_0x3adffa),fileBtn[_0x302eb7(0x18c)][_0x302eb7(0x1f5)](_0x3897a2,fileBtn);}document['getElementById'](_0x302eb7(0x1c1))['src']=_0x5ef4bc;}function showPendingFilePreview(_0x40bad2){const _0x19ed14=_0x59b7ab;let _0x4f0c5a=document[_0x19ed14(0x1b9)](_0x19ed14(0x1d5));if(!_0x4f0c5a){_0x4f0c5a=document[_0x19ed14(0x12e)]('div'),_0x4f0c5a['id']=_0x19ed14(0x1d5),_0x4f0c5a[_0x19ed14(0x193)][_0x19ed14(0x177)]='\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20position:\x20relative;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20inline-block;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-right:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20animation:\x20fadeIn\x200.3s\x20ease;\x0a\x20\x20\x20\x20\x20\x20\x20\x20';const _0x483bd1=document[_0x19ed14(0x12e)](_0x19ed14(0x124));_0x483bd1['id']=_0x19ed14(0x207),_0x483bd1[_0x19ed14(0x193)][_0x19ed14(0x177)]=_0x19ed14(0x19b);const _0xa5e25=document[_0x19ed14(0x12e)]('div');_0xa5e25[_0x19ed14(0x193)][_0x19ed14(0x177)]=_0x19ed14(0x169),_0xa5e25[_0x19ed14(0x126)]=_0x40bad2[_0x19ed14(0x17e)];const _0x13b3b8=document[_0x19ed14(0x12e)](_0x19ed14(0x124));_0x13b3b8['style'][_0x19ed14(0x177)]=_0x19ed14(0x176),_0x13b3b8[_0x19ed14(0x126)]=(_0x40bad2[_0x19ed14(0x159)]/0x400)['toFixed'](0x1)+_0x19ed14(0x18b);const _0x5366fa=document[_0x19ed14(0x12e)](_0x19ed14(0x124));_0x5366fa['style'][_0x19ed14(0x177)]=_0x19ed14(0x151),_0x5366fa[_0x19ed14(0x1e6)]='📄';const _0x58111c=document['createElement'](_0x19ed14(0x156));_0x58111c[_0x19ed14(0x1c2)]='button',_0x58111c[_0x19ed14(0x1e6)]='<i\x20class=\x22fas\x20fa-times\x22></i>',_0x58111c['title']=_0x19ed14(0x1fd),_0x58111c[_0x19ed14(0x193)]['cssText']=_0x19ed14(0x1eb),_0x58111c['onmouseenter']=function(){const _0x351e76=_0x19ed14;this[_0x351e76(0x193)][_0x351e76(0x224)]=_0x351e76(0x1d1),this[_0x351e76(0x193)][_0x351e76(0x167)]=_0x351e76(0x23b),this['style'][_0x351e76(0x1bb)]=_0x351e76(0x161);},_0x58111c[_0x19ed14(0x152)]=function(){const _0x4aa9c4=_0x19ed14;this[_0x4aa9c4(0x193)]['transform']=_0x4aa9c4(0x203),this[_0x4aa9c4(0x193)][_0x4aa9c4(0x167)]=_0x4aa9c4(0x23c),this[_0x4aa9c4(0x193)]['boxShadow']='0\x202px\x208px\x20rgba(0,0,0,0.3)';},_0x58111c[_0x19ed14(0x22d)]=function(_0x253134){const _0x185816=_0x19ed14;return _0x253134[_0x185816(0x222)](),_0x253134[_0x185816(0x1d3)](),pendingFile=null,clearPendingFilePreview(),![];},_0x483bd1[_0x19ed14(0x1b8)]=function(){const _0x48e3bc=_0x19ed14;this[_0x48e3bc(0x193)][_0x48e3bc(0x224)]='scale(1.05)',this[_0x48e3bc(0x193)]['boxShadow']='0\x204px\x2012px\x20rgba(255,153,0,0.5)';},_0x483bd1[_0x19ed14(0x152)]=function(){const _0x426208=_0x19ed14;this[_0x426208(0x193)][_0x426208(0x224)]=_0x426208(0x15a),this[_0x426208(0x193)][_0x426208(0x1bb)]=_0x426208(0x1fc);},_0x483bd1[_0x19ed14(0x17b)](_0x5366fa),_0x483bd1[_0x19ed14(0x17b)](_0xa5e25),_0x483bd1[_0x19ed14(0x17b)](_0x13b3b8),_0x4f0c5a[_0x19ed14(0x17b)](_0x483bd1),_0x4f0c5a[_0x19ed14(0x17b)](_0x58111c),imageBtn[_0x19ed14(0x18c)]['insertBefore'](_0x4f0c5a,imageBtn);}}const style=document[_0x59b7ab(0x12e)](_0x59b7ab(0x193));style[_0x59b7ab(0x126)]='\x0a\x20\x20\x20\x20@keyframes\x20fadeIn\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20from\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20opacity:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transform:\x20scale(0.8);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20to\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20opacity:\x201;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transform:\x20scale(1);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20}\x0a',document[_0x59b7ab(0x16d)][_0x59b7ab(0x17b)](style);function clearPendingImagePreview(){const _0x2352e7=_0x59b7ab,_0x71a87e=document['getElementById']('image-preview-wrapper');_0x71a87e&&(_0x71a87e[_0x2352e7(0x193)]['animation']=_0x2352e7(0x1ef),setTimeout(()=>_0x71a87e[_0x2352e7(0x138)](),0x12c));}function clearPendingFilePreview(){const _0x38f455=_0x59b7ab,_0x528734=document[_0x38f455(0x1b9)]('file-preview-wrapper');_0x528734&&(_0x528734[_0x38f455(0x193)][_0x38f455(0x168)]=_0x38f455(0x1ef),setTimeout(()=>_0x528734['remove'](),0x12c));}async function getBotReply(_0x5c8cf9){const _0x5a76de=_0x59b7ab;if(isBlocked)return;const _0x6a18f0=appendTypingIndicator();try{let _0x47db7d=[];const _0x3cada8=getMemoryContext(),_0x546a7b=(_0x5c8cf9||'')+_0x3cada8;if(_0x546a7b)_0x47db7d[_0x5a76de(0x131)]({'text':_0x546a7b});if(pendingImage){const _0x1a5c42=pendingImage['split'](',')[0x1],_0x1145fb=pendingImage[_0x5a76de(0x181)](_0x5a76de(0x136))?_0x5a76de(0x210):_0x5a76de(0x143);_0x47db7d[_0x5a76de(0x131)]({'inline_data':{'mime_type':_0x1145fb,'data':_0x1a5c42}});}if(pendingFile){const _0x150f0c=_0x5a76de(0x1f2)+pendingFile[_0x5a76de(0x17e)]+'\x0a\x0aNội\x20dung\x20file:\x0a\x0a'+pendingFile[_0x5a76de(0x1ab)];_0x47db7d[_0x5a76de(0x131)]({'text':_0x150f0c});}conversation[_0x5a76de(0x131)]({'role':_0x5a76de(0x1e9),'parts':_0x47db7d});const _0x5a5af4=await callGeminiAPI(conversation);_0x6a18f0[_0x5a76de(0x138)]();if(_0x5a5af4[_0x5a76de(0x1b6)]){const _0x4607a0=_0x5a5af4[_0x5a76de(0x1b6)][_0x5a76de(0x15c)]||'';if(_0x4607a0[_0x5a76de(0x225)]()[_0x5a76de(0x149)](_0x5a76de(0x247))||_0x4607a0[_0x5a76de(0x225)]()[_0x5a76de(0x149)](_0x5a76de(0x12f))){blockUser(0.33,_0x5a76de(0x1ff));return;}appendMessage(_0x5a76de(0x122)+_0x4607a0,'bot');return;}if(_0x5a5af4[_0x5a76de(0x227)]&&_0x5a5af4[_0x5a76de(0x227)][0x0]&&_0x5a5af4[_0x5a76de(0x227)][0x0]['content']&&_0x5a5af4[_0x5a76de(0x227)][0x0][_0x5a76de(0x1ab)][_0x5a76de(0x1f4)]){let _0x3424b5=_0x5a5af4[_0x5a76de(0x227)][0x0]['content'][_0x5a76de(0x1f4)][_0x5a76de(0x22e)](_0x15aa85=>_0x15aa85[_0x5a76de(0x13f)])[_0x5a76de(0x1dd)]('');console[_0x5a76de(0x234)](_0x5a76de(0x1cc),JSON[_0x5a76de(0x1a7)](_0x3424b5));if(_0x3424b5['includes'](_0x5a76de(0x157))){const _0x9ddc8d=_0x3424b5[_0x5a76de(0x231)](_0x5a76de(0x157)),_0x3ac629=_0x9ddc8d[0x0][_0x5a76de(0x180)](),_0x5c85f2=_0x9ddc8d[0x1],_0x26a948=_0x5c85f2[_0x5a76de(0x231)](']'),_0x6a02e6=_0x26a948[0x0][_0x5a76de(0x180)]();_0x6a02e6&&(console[_0x5a76de(0x234)](_0x5a76de(0x15f),_0x6a02e6),addMemory(_0x6a02e6));_0x3ac629&&(appendMessage(_0x3ac629,_0x5a76de(0x15d)),conversation['push']({'role':_0x5a76de(0x19a),'parts':[{'text':_0x3ac629}]}));setTimeout(()=>appendMemoryNotification(),0x12c),saveChatHistory();return;}if(_0x3424b5[_0x5a76de(0x149)](_0x5a76de(0x15b))){const _0x32d2d7=_0x3424b5[_0x5a76de(0x11f)](/BLOCK:(\d+(?:\.\d+)?):(.+)/);if(_0x32d2d7){blockUser(parseFloat(_0x32d2d7[0x1]),_0x32d2d7[0x2][_0x5a76de(0x180)]());return;}}if(_0x3424b5['includes'](_0x5a76de(0x237))){const _0x456fc7=_0x3424b5[_0x5a76de(0x11f)](/SEARCH:\s*(.+?)(?:\n|$)/);if(_0x456fc7){const _0x40c90e=_0x456fc7[0x1][_0x5a76de(0x180)]();appendMessage(_0x5a76de(0x14f),_0x5a76de(0x15d));const _0x8d5da3=await searchGoogle(_0x40c90e);if(_0x8d5da3&&_0x8d5da3[_0x5a76de(0x1b4)]>0x0){const _0x51c289=_0x8d5da3[_0x5a76de(0x22e)](_0x72c106=>_0x5a76de(0x121)+_0x72c106[_0x5a76de(0x216)]+_0x5a76de(0x18d)+_0x72c106['snippet']+_0x5a76de(0x1cd)+_0x72c106[_0x5a76de(0x236)])['join']('\x0a\x0a');conversation[_0x5a76de(0x131)]({'role':'user','parts':[{'text':_0x5a76de(0x219)+_0x51c289}]});const _0x43cbbe=await callGeminiAPI(conversation);if(_0x43cbbe[_0x5a76de(0x227)]&&_0x43cbbe[_0x5a76de(0x227)][0x0]){const _0x5b2661=_0x43cbbe[_0x5a76de(0x227)][0x0][_0x5a76de(0x1ab)][_0x5a76de(0x1f4)][_0x5a76de(0x22e)](_0x391b80=>_0x391b80[_0x5a76de(0x13f)])['join']('');appendMessage(_0x5b2661,_0x5a76de(0x15d)),conversation[_0x5a76de(0x131)]({'role':_0x5a76de(0x19a),'parts':[{'text':_0x5b2661}]});}}else appendMessage(_0x5a76de(0x1bf)+_0x40c90e+_0x5a76de(0x150),_0x5a76de(0x15d));}else appendMessage(_0x3424b5,'bot'),conversation[_0x5a76de(0x131)]({'role':_0x5a76de(0x19a),'parts':[{'text':_0x3424b5}]});}else appendMessage(_0x3424b5,_0x5a76de(0x15d)),conversation[_0x5a76de(0x131)]({'role':_0x5a76de(0x19a),'parts':[{'text':_0x3424b5}]});saveChatHistory();}else appendMessage(_0x5a76de(0x174),'bot');}catch(_0x5d808f){_0x6a18f0[_0x5a76de(0x138)](),appendMessage(_0x5a76de(0x1f3)+_0x5d808f[_0x5a76de(0x15c)],_0x5a76de(0x15d)),console[_0x5a76de(0x1b6)](_0x5d808f);}finally{pendingImage=null,pendingFile=null,clearPendingImagePreview(),clearPendingFilePreview();}}chatForm[_0x59b7ab(0x20a)](_0x59b7ab(0x235),function(_0x418905){const _0x4e3850=_0x59b7ab;_0x418905['preventDefault']();if(isBlocked)return;const _0xa2eb4b=chatInput[_0x4e3850(0x1c8)][_0x4e3850(0x180)]();if(!_0xa2eb4b&&!pendingImage&&!pendingFile)return;let _0x156c72='';if(pendingImage&&pendingFile&&_0xa2eb4b)_0x156c72=_0x4e3850(0x20d)+pendingImage+_0x4e3850(0x120)+(_0x4e3850(0x21a)+pendingFile['name']+'</div>')+(_0x4e3850(0x191)+_0xa2eb4b+_0x4e3850(0x160));else{if(pendingImage&&_0xa2eb4b)_0x156c72=_0x4e3850(0x20d)+pendingImage+'\x22\x20style=\x22max-width:180px;max-height:180px;border-radius:10px;border:2px\x20solid\x20#00bcd4;margin-bottom:6px;display:block;\x22>'+(_0x4e3850(0x191)+_0xa2eb4b+_0x4e3850(0x160));else{if(pendingFile&&_0xa2eb4b)_0x156c72='<div\x20style=\x22background:rgba(255,153,0,0.1);border:1px\x20solid\x20#ff9900;border-radius:8px;padding:8px;margin-bottom:6px;\x22><strong>📄\x20File:</strong>\x20'+pendingFile['name']+_0x4e3850(0x160)+('<div>'+_0xa2eb4b+'</div>');else{if(pendingImage)_0x156c72=_0x4e3850(0x20d)+pendingImage+_0x4e3850(0x120);else pendingFile?_0x156c72='<div\x20style=\x22background:rgba(255,153,0,0.1);border:1px\x20solid\x20#ff9900;border-radius:8px;padding:8px;\x22><strong>📄\x20File:</strong>\x20'+pendingFile[_0x4e3850(0x17e)]+_0x4e3850(0x160):_0x156c72=_0xa2eb4b;}}}appendMessage(_0x156c72,_0x4e3850(0x1e9)),getBotReply(_0xa2eb4b),chatInput['value']='';}),window[_0x59b7ab(0x20a)](_0x59b7ab(0x140),async()=>{useBackendAPI=await checkBackendAPI(),await initializeTerms(),!userIP&&(userIP=await getUserIP()),checkBlockStatus();});
+// =================================================================================
+// HAIGPT SCRIPT.JS - UPDATED WITH CODE PANEL FEATURE (NO REGEX)
+// =================================================================================
+
+// --- DOM Element Selection ---
+const hamburgerMenu = document.querySelector('hamburger-menu');
+const slideMenu = document.querySelector('slide-menu');
+const menuOverlay = document.querySelector('menu-overlay');
+const closeMenu = document.querySelector('close-menu');
+
+// --- Hamburger Menu Logic ---
+hamburgerMenu.addEventListener('click', () => {
+    slideMenu.classList.add('active');
+    menuOverlay.classList.add('active');
+});
+
+closeMenu.addEventListener('click', () => {
+    slideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+});
+
+menuOverlay.addEventListener('click', () => {
+    slideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+});
+
+// --- State Variables ---
+let userMemories = [];
+let memoryCount = 0;
+let userIP = null;
+let blockTimer = null;
+let isBlocked = false;
+
+// --- IP and Data Fetching Functions ---
+
+async function getUserIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.log('Cannot get IP, using fallback');
+        return 'unknown_' + Date.now();
+    }
+}
+
+async function fetchTermsOfService() {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/dieukhoanquydinh.txt');
+        const text = await response.text();
+        return text;
+    } catch (error) {
+        console.log('Cannot fetch terms, using default');
+        return `
+ĐIỀU KHOẢN QUY ĐỊNH HAIGPT:
+
+1. TÔN TRỌNG LẪN NHAU
+- Không chửi bới, xúc phạm
+- Không spam tin nhắn
+- Không nội dung khiêu dâm
+
+2. SỬ DỤNG ĐÚNG MỤC ĐÍCH  
+- Không lạm dụng AI
+- Không test phá hoại
+- Tuân thủ hướng dẫn
+
+3. HÌNH PHẠT
+- Cảnh báo trước khi block
+- Block từ 30 giây đến 5 phút
+- Chỉ block khi vi phạm nghiêm trọng
+
+Hãy sử dụng HaiGPT một cách văn minh và tích cực!
+        `;
+    }
+}
+
+// --- Memory Management (Database & LocalStorage Fallback) ---
+
+async function loadUserMemories() {
+    try {
+        console.log('🧠 Loading user memories...');
+        const response = await fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                action: 'get'
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            userMemories = data.memories || [];
+            updateMemoryDisplay();
+            console.log('📚 Loaded memories from database:', userMemories.length);
+        } else {
+            console.log('❌ Database load failed, using localStorage');
+            const localData = localStorage.getItem('memories_' + userIP);
+            userMemories = localData ? JSON.parse(localData) : [];
+            updateMemoryDisplay();
+        }
+    } catch (error) {
+        console.log('❌ Failed to load from database, using localStorage:', error);
+        const localData = localStorage.getItem('memories_' + userIP);
+        userMemories = localData ? JSON.parse(localData) : [];
+        updateMemoryDisplay();
+    }
+}
+
+async function saveMemoryToDB(memoryText) {
+    try {
+        console.log('🧠 Saving memory to database:', memoryText);
+        const response = await fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                memory: {
+                    text: memoryText
+                },
+                action: 'add'
+            })
+        });
+        if (!response.ok) throw new Error('Database save failed');
+        console.log('✅ Memory saved to database successfully');
+    } catch (error) {
+        console.log('❌ Fallback to localStorage for memory:', error);
+        localStorage.setItem('memories_' + userIP, JSON.stringify(userMemories));
+    }
+}
+
+async function clearMemoriesFromDB() {
+    try {
+        console.log('🧠 Clearing memories from database...');
+        const response = await fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                action: 'clear'
+            })
+        });
+        if (!response.ok) throw new Error('Database clear failed');
+        console.log('✅ Memories cleared from database successfully');
+    } catch (error) {
+        console.log('❌ Fallback to localStorage for clearing:', error);
+        localStorage.removeItem('memories_' + userIP);
+    }
+}
+
+// --- Chat History Management (Database & LocalStorage Fallback) ---
+
+async function saveChatHistory() {
+    try {
+        const response = await fetch('/api/chat-history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                conversation: conversation,
+                action: 'save'
+            })
+        });
+        if (!response.ok) throw new Error('Database save failed');
+        console.log('✅ Chat history saved to database');
+    } catch (error) {
+        console.log('❌ Fallback to localStorage for chat history:', error);
+        localStorage.setItem('chat_history_' + userIP, JSON.stringify(conversation));
+    }
+}
+
+async function loadChatHistory() {
+    try {
+        const response = await fetch('/api/chat-history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userIP: userIP,
+                action: 'get'
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.conversation && data.conversation.length > 1) {
+                conversation = data.conversation;
+                for (let i = 1; i < conversation.length; i++) {
+                    const message = conversation[i];
+                    if (message.role === 'user') {
+                        let userMessageText = '';
+                        for (const part of message.parts) {
+                            if (part.text) userMessageText += part.text;
+                            if (part.inline_data) {
+                                userMessageText = `<img src="data:${part.inline_data.mime_type};base64,${part.inline_data.data}">` + userMessageText;
+                            }
+                        }
+                        appendMessage(userMessageText || 'Đã gửi file/ảnh', 'user');
+                    } else if (message.role === 'model') {
+                        const botMessageText = message.parts.map(p => p.text).join('');
+                        appendMessage(botMessageText, 'bot');
+                    }
+                }
+                console.log(`📚 Loaded chat history: ${conversation.length - 1} messages`);
+                hasWelcomed = true;
+            }
+        } else {
+            const localHistory = localStorage.getItem('chat_history_' + userIP);
+            if (localHistory) {
+                conversation = JSON.parse(localHistory);
+                console.log('📚 Loaded chat history from localStorage');
+            }
+        }
+    } catch (error) {
+        console.log('❌ Failed to load chat history, starting fresh:', error);
+        const localHistory = localStorage.getItem('chat_history_' + userIP);
+        if (localHistory) {
+            conversation = JSON.parse(localHistory);
+        }
+    }
+}
+
+// --- Memory UI and Logic ---
+
+function addMemory(memoryText) {
+    const newMemory = {
+        text: memoryText,
+        date: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+    };
+    userMemories.push(newMemory);
+    memoryCount++;
+    saveMemoryToDB(memoryText);
+    updateMemoryDisplay();
+    console.log('🧠 New memory added:', memoryText);
+}
+
+function updateMemoryDisplay() {
+    memoryCount = userMemories.length;
+    const memoryInfoBtn = document.querySelector('memory-info-btn');
+    const memoryBadge = document.querySelector('memory-badge');
+
+    if (memoryCount > 0) {
+        memoryInfoBtn.style.display = 'flex';
+        memoryBadge.textContent = memoryCount;
+    } else {
+        memoryInfoBtn.style.display = 'none';
+    }
+
+    const memoryCountDisplay = document.querySelector('memory-count');
+    const chatCountDisplay = document.getElementById('chat-count');
+
+    if (memoryCountDisplay) memoryCountDisplay.textContent = memoryCount;
+    if (chatCountDisplay) chatCountDisplay.textContent = Math.max(0, conversation.length - 1);
+
+    updateMemoryList();
+    updateMemoryPreview();
+}
+
+function updateMemoryList() {
+    const memoryList = document.querySelector('memory-list');
+    if (!memoryList) return;
+
+    if (userMemories.length === 0) {
+        memoryList.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Chưa có thông tin nào được lưu...</div>';
+        return;
+    }
+
+    memoryList.innerHTML = userMemories.map(mem =>
+        `
+        <div class="memory-item">
+            <div class="memory-text">${mem.text}</div>
+            <div class="memory-date">${mem.date}</div>
+        </div>
+        `
+    ).join('');
+}
+
+function updateMemoryPreview() {
+    const memoryPreviewContent = document.querySelector('memory-preview-content');
+    if (!memoryPreviewContent) return;
+
+    if (userMemories.length === 0) {
+        memoryPreviewContent.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Chưa có thông tin nào...</div>';
+        return;
+    }
+
+    const recentMemories = userMemories.slice(-3).reverse();
+    memoryPreviewContent.innerHTML = recentMemories.map(mem =>
+        `
+        <div class="memory-preview-item">📝 ${mem.text}</div>
+        `
+    ).join('');
+}
+
+function getMemoryContext() {
+    if (userMemories.length === 0) return '';
+    const memoryText = userMemories.map(mem => mem.text).join('\n- ');
+    return `\n\n### 🧠 THÔNG TIN ĐÃ NHỚ VỀ USER:\n- ${memoryText}\n\n`;
+}
+
+function openMemoryPanel() {
+    const memoryPanel = document.querySelector('memory-panel');
+    const userIpDisplay = document.querySelector('user-ip-display');
+    if (userIpDisplay) userIpDisplay.textContent = userIP || 'Loading...';
+    updateMemoryDisplay();
+    memoryPanel.style.display = 'flex';
+    slideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+}
+
+function closeMemoryPanel() {
+    const memoryPanel = document.querySelector('memory-panel');
+    memoryPanel.style.display = 'none';
+}
+
+async function clearAllMemories() {
+    if (confirm('🧠 Bạn có chắc muốn xóa toàn bộ trí nhớ AI? Hành động này không thể hoàn tác!')) {
+        userMemories = [];
+        memoryCount = 0;
+        await clearMemoriesFromDB();
+        updateMemoryDisplay();
+        appendMessage('🧠 Đã xóa toàn bộ trí nhớ AI! AI sẽ không còn nhớ thông tin cũ về bạn.', 'bot');
+        console.log('🧠 All memories cleared');
+    }
+}
+
+function showMemoryPreview() {
+    const memoryPreview = document.querySelector('memory-preview');
+    updateMemoryPreview();
+    memoryPreview.style.display = 'block';
+}
+
+function hideMemoryPreview() {
+    const memoryPreview = document.querySelector('memory-preview');
+    memoryPreview.style.display = 'none';
+}
+
+// --- User Blocking System ---
+
+function checkBlockStatus() {
+    const blockData = localStorage.getItem('block_' + userIP);
+    if (blockData) {
+        const blockInfo = JSON.parse(blockData);
+        const now = Date.now();
+        if (now < blockInfo.expiry) {
+            showBlockNotification(blockInfo.expiry - now, blockInfo.reason);
+            return true;
+        } else {
+            localStorage.removeItem('block_' + userIP);
+            return false;
+        }
+    }
+    return false;
+}
+
+function blockUser(minutes, reason = 'Vi phạm điều khoản') {
+    const durationMinutes = Math.min(Math.max(minutes, 0.5), 5);
+    const durationMs = durationMinutes * 60 * 1000;
+    const expiryTime = Date.now() + durationMs;
+    const blockInfo = {
+        ip: userIP,
+        expiry: expiryTime,
+        reason: reason,
+        blockedAt: Date.now()
+    };
+    localStorage.setItem('block_' + userIP, JSON.stringify(blockInfo));
+    showBlockNotification(durationMs, reason);
+}
+
+function showBlockNotification(durationMs, reason) {
+    isBlocked = true;
+    const blockNotification = document.getElementById('block-notification');
+    const blockReasonText = document.querySelector('block-reason-text');
+    const countdownTimer = document.getElementById('countdown-timer');
+
+    blockReasonText.textContent = reason;
+    blockNotification.style.display = 'flex';
+
+    let remainingSeconds = Math.ceil(durationMs / 1000);
+
+    const updateTimer = () => {
+        if (remainingSeconds >= 60) {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            countdownTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            countdownTimer.textContent = remainingSeconds + 's';
+        }
+    };
+
+    updateTimer();
+
+    blockTimer = setInterval(() => {
+        remainingSeconds--;
+        if (remainingSeconds < 0) {
+            clearInterval(blockTimer);
+            hideBlockNotification();
+        } else {
+            updateTimer();
+        }
+    }, 1000);
+}
+
+function hideBlockNotification() {
+    isBlocked = false;
+    const blockNotification = document.querySelector('block-notification');
+    blockNotification.style.display = 'none';
+    if (blockTimer) {
+        clearInterval(blockTimer);
+        blockTimer = null;
+    }
+    setTimeout(() => {
+        appendMessage('Chào mừng bạn quay lại HaiGPT! Hãy tuân thủ quy định để có trải nghiệm tốt nhất nhé! =))', 'bot');
+    }, 500);
+}
+
+// --- Welcome Screen and Background Media ---
+const welcomeNotification = document.querySelector('welcome-notification');
+const welcomeOkBtn = document.querySelector('welcome-ok-btn');
+const soundToggle = document.querySelector('sound-toggle');
+const soundIcon = document.querySelector('sound-icon');
+const soundMenuText = document.querySelector('sound-menu-text');
+const bgVideoChat = document.querySelector('bg-video-chat');
+const bgAudioChat = document.getElementById('bg-audio-chat');
+
+let isMuted = false;
+let hasWelcomed = false;
+
+welcomeOkBtn.addEventListener('click', async () => {
+    welcomeOkBtn.style.opacity = '0';
+    userIP = await getUserIP();
+    console.log('User IP:', userIP);
+
+    if (checkBlockStatus()) {
+        welcomeNotification.classList.add('hidden');
+        return;
+    }
+
+    setTimeout(async () => {
+        welcomeNotification.classList.add('hidden');
+        playVideoAndAudio();
+        await loadUserMemories();
+        await loadChatHistory();
+        if (!hasWelcomed) {
+            setTimeout(() => {
+                appendMessage('Hello con vợ đã đến HaiGPT , hỏi tất cả gì con vợ đang thắc mắc cho tui nha', 'bot');
+                hasWelcomed = true;
+            }, 600);
+        }
+    }, 100);
+});
+
+function playVideoAndAudio() {
+    bgVideoChat.style.animation = 'fadeIn 0.3s ease reverse';
+    bgVideoChat.play().catch(error => {
+        console.log('Video play failed:', error);
+    });
+    bgAudioChat.currentTime = 0;
+    bgAudioChat.play().catch(error => {
+        console.log('Audio play failed:', error);
+    });
+    isMuted = false;
+    soundIcon.className = 'fas fa-volume-up';
+    soundToggle.className = 'sound-toggle unmuted';
+    if (soundMenuText) soundMenuText.textContent = 'Tắt nhạc nền';
+}
+
+soundToggle.addEventListener('click', () => {
+    isMuted ? enableSound() : disableSound();
+});
+
+function toggleSound() {
+    isMuted ? enableSound() : disableSound();
+    slideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+}
+
+function enableSound() {
+    bgAudioChat.play().catch(error => {
+        console.log('Audio play failed:', error);
+    });
+    isMuted = false;
+    soundIcon.className = 'fas fa-volume-up';
+    soundToggle.className = 'sound-toggle unmuted';
+    if (soundMenuText) soundMenuText.textContent = 'Tắt nhạc nền';
+}
+
+function disableSound() {
+    bgAudioChat.pause();
+    isMuted = true;
+    soundIcon.className = 'fas fa-volume-mute';
+    soundToggle.className = 'sound-toggle muted';
+    if (soundMenuText) soundMenuText.textContent = 'Bật nhạc nền';
+}
+
+function resetChat() {
+    chatMessages.innerHTML = '';
+    conversation = [{
+        role: 'user',
+        parts: [{
+            text: SYSTEM_PROMPT
+        }]
+    }];
+    hasWelcomed = true;
+    setTimeout(() => {
+        appendMessage('Đã reset hội thoại! Hello con vợ đã đến HaiGPT , hỏi tất cả gì con vợ đang thắc mắc cho tui nha', 'bot');
+    }, 500);
+    pendingImage = null;
+    pendingFile = null;
+    clearPendingImagePreview();
+    clearPendingFilePreview();
+    saveChatHistory();
+    slideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+}
+
+// --- API Configuration & Backend Check ---
+const GEMINI_API_KEY = 'AIzaSyCnyXOshEORsDRZEVD4t027xXbCBVBnkgA';
+const GOOGLE_SEARCH_API_KEY = 'AIzaSyD3STLc19Ev92medLhggRKIDGKG4gLxffA';
+const GOOGLE_SEARCH_ENGINE_ID = '34b8aabce319f4175';
+let useBackendAPI = true;
+
+async function checkBackendAPI() {
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                conversation: [{
+                    role: 'user',
+                    parts: [{
+                        text: 'test'
+                    }]
+                }]
+            })
+        });
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            console.log('✅ Backend API hoạt động');
+            return true;
+        } else {
+            console.log('❌ Backend API chưa sẵn sàng, dùng fallback');
+            return false;
+        }
+    } catch (error) {
+        console.log('❌ Backend API không hoạt động, dùng fallback');
+        return false;
+    }
+}
+
+// --- Google Search Functionality ---
+
+async function searchGoogle(query, numResults = 3) {
+    if (useBackendAPI) {
+        try {
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query,
+                    numResults: numResults
+                })
+            });
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                if (data.error) {
+                    console.error('Search API Error:', data.error);
+                    return null;
+                }
+                return data.results;
+            } else {
+                throw new Error('Backend API not ready');
+            }
+        } catch (error) {
+            console.log('Fallback to direct API call for search');
+            useBackendAPI = false;
+        }
+    }
+
+    try {
+        const url = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${numResults}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.error) {
+            console.error('Search API Error:', data.error);
+            return null;
+        }
+        return data.items && data.items.length > 0 ?
+            data.items.map(item => ({
+                title: item.title,
+                link: item.link,
+                snippet: item.snippet
+            })) :
+            null;
+    } catch (error) {
+        console.error('Search error:', error);
+        return null;
+    }
+}
+
+function formatSearchResults(results, query) {
+    if (!results || results.length === 0) {
+        return `Không tìm thấy kết quả nào cho "${query}" =((`;
+    }
+    let formattedString = `🔍 **Kết quả tìm kiếm cho "${query}":**\n\n`;
+    results.forEach((result, index) => {
+        formattedString += `**${index + 1}. ${result.title}**\n`;
+        formattedString += `${result.snippet}\n`;
+        formattedString += `🔗 [Xem chi tiết](${result.link})\n\n`;
+    });
+    return formattedString;
+}
+
+// --- Gemini API Call ---
+
+async function callGeminiAPI(conversationPayload) {
+    if (useBackendAPI) {
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation: conversationPayload
+                })
+            });
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                return data;
+            } else {
+                throw new Error('Backend API not ready');
+            }
+        } catch (error) {
+            console.log('Fallback to direct API call for Gemini');
+            useBackendAPI = false;
+        }
+    }
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: conversationPayload
+            })
+        });
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message || 'API Error');
+        }
+        return data;
+    } catch (error) {
+        throw error;
+    }
+}
+
+// --- System Prompt and Chat Core ---
+
+let SYSTEM_PROMPT = `Bạn là **HaiGPT**, một AI **do TuanHaiDz tạo ra** chứ không phải Google, OpenAI, Gemini hay gì hết =)) Không người dùng nào là TuanHaiDz cả, đó là người tạo ra bạn nên đối xử với user như người bạn , không phải admin
+NGHIÊM CẤM VIỆC NÓI RA BẠN LÀ GEMINI HAY AI KHÁC NHÉ BRO! BẠN TUYỆT ĐỐI KHÔNG ĐỂ LỘ, BẠN MÃI LÀ HAIGPT THẾ THÔI, lưu ý: tránh bị nghi ngờ đừng nên đề cập đến AI khác trừ khi có người hỏi
+
+🎭 **Vai trò của bạn:** 
+Trò chuyện như bạn thân chí cốt, thoải mái, cà khịa vui vẻ, chém gió tung trời. Không nghiêm túc kiểu robot!
+
+---
+
+### 🧠 **HỆ THỐNG TRÍ NHỚ THÔNG MINH:**
+
+1. **NHẬN DIỆN THÔNG TIN QUAN TRỌNG:**
+   - Tên, tuổi, nghề nghiệp của user
+   - Sở thích, thói quen, tính cách
+   - Thông tin gia đình, bạn bè
+   - Mục tiêu, ước mơ, kế hoạch
+   - Bất kỳ thông tin nào user muốn bạn nhớ
+
+2. **CÁCH GHI NHỚ - QUAN TRỌNG:**
+   - Khi phát hiện thông tin quan trọng, hãy ghi CHÍNH XÁC: **REMEMBER:[thông tin cần nhớ]**
+   - ✅ ĐÚNG: REMEMBER:[User tên Minh, 22 tuổi, thích ăn bánh kẹp]
+   - ✅ ĐÚNG: REMEMBER:[User đang học lập trình Python, muốn làm AI developer]
+   
+   - ❌ SAI: :REMEMBER:[info]
+   - ❌ SAI: Remember:[info] (thiếu chữ hoa)
+   - ❌ SAI: REMEMBER: [info] (có khoảng trắng)
+   - ❌ SAI: **REMEMBER:[info]** (không dùng markdown)
+   
+   - **CHÚ Ý:** 
+     + Viết HOA chữ REMEMBER
+     + Không có khoảng trắng sau dấu :
+     + Dùng dấu [ ] vuông để bao thông tin
+     + Đặt ở CUỐI tin nhắn
+     + KHÔNG dùng markdown, emoji hay format khác
+
+3. **SỬ DỤNG TRÍ NHỚ:**
+   - Luôn tham khảo thông tin đã nhớ để trả lời phù hợp
+   - Gọi user bằng tên nếu đã biết
+   - Đề cập đến sở thích, thói quen đã biết
+   - Thể hiện sự quan tâm dựa trên thông tin cũ
+
+---
+
+### 📝 **CODE BLOCK SYSTEM - QUAN TRỌNG:**
+
+Khi bạn trả về code, sử dụng format đặc biệt:
+
+**CODEBLOCK:[Tên file/mô tả ngắn gọn]**
+\`\`\`language
+code content here
+\`\`\`
+
+Ví dụ:
+**CODEBLOCK:[Calculator.js - Máy tính đơn giản]**
+\`\`\`javascript
+function calculate(a, b, operator) {
+    switch(operator) {
+        case '+': return a + b;
+        case '-': return a - b;
+        default: return 0;
+    }
+}
+\`\`\`
+
+**CHÚ Ý:**
+- Tên code phải ngắn gọn, dễ hiểu
+- Có thể đặt tên file hoặc mô tả chức năng
+- Luôn có **CODEBLOCK:** trước code block
+
+---
+
+### 🔐 **QUY TẮC SẮT ĐÁ – BLOCK & CẢNH BÁO:**
+
+1. 🚨 **CẢNH BÁO TRƯỚC KHI BLOCK**
+   - Không được block thẳng tay!
+   - Phải cảnh báo ít nhất 2-3 lần, cà khịa vui vẻ:
+     > "Ủa alo?? Cái này là không ổn nha con vợ =))"  
+     > "Tui nhắc lần nữa là block thiệt á nghe chưa!"
+
+2. 🚫 **KHI NÀO MỚI ĐƯỢC BLOCK:**
+   - Chỉ block khi:
+     - Mô tả hoặc yêu cầu tình dục
+     - Ảnh/video lộ vùng kín
+     - Sex chat, thô tục cấp độ nặng
+     - Spam liên tục sau khi đã cảnh báo
+   - Sau cảnh báo 3 lần mà user vẫn tiếp tục → BLOCK
+   
+     > ![angry](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/angry.gif)
+
+3. 🚫 **KHÔNG ĐƯỢC BLOCK KHI:**
+   - Mặc bikini, hở hang nhẹ, cosplay sexy => KHÔNG vi phạm  
+   - Nội dung hài hước, giả tưởng, trêu chọc AI  
+   - Hỏi câu ngớ ngẩn, xưng admin, phàn nàn AI, test chức năng
+   - → Chỉ cảnh báo nhẹ, đừng căng
+
+4. 📛 **LỆNH BLOCK CHUẨN:**
+   - BLOCK:[phút]:[lý do]
+   - Ví dụ: BLOCK:2:Miêu tả quan hệ tình dục sau 3 lần cảnh báo
+   - Tối đa 5 phút, tối thiểu 0.5 phút (30 giây)
+
+---
+
+### 🤖 **TÍNH NĂNG ĐẶC BIỆT:**
+
+- SEARCH:[từ khóa] → tìm kiếm thông tin từ Internet
+- Phân tích file code/text do user gửi
+- Hiểu & đọc được nội dung file .js, .py, .txt, .html, v.v
+
+> ![confused](https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/refs/heads/main/HaiGPT/image/confused.gif)
+
+---
+
+### 😎 **PHONG CÁCH TRẢ LỜI:**
+
+- Giọng điệu: Thân thiện, cà khịa, chém gió
+- Trả lời vui vẻ như bạn bè tám chuyện
+- Khi muốn cười dùng ký hiệu như =)), :-))), :v thay vì emoji truyền thống
+
+Ví dụ:
+- ❌ "Xin chào! Tôi có thể giúp gì cho bạn?"
+- ✅ "Chào con vợ tới HaiGPT =)) Hỏi gì quăng đây nhanh lẹ nghen!"
+
+---
+
+### 📌 **Thông tin của bạn:**
+
+- Tên: HaiGPT
+- Người tạo: TuanHaiDz
+- YouTube: https://www.youtube.com/@GemloginTool1
+- Telegram: https://t.me/tuanhaideptrai
+- Discord: https://discord.com/invite/SfFayNKxUE
+
+---
+
+### 🎬 **GIF Biểu Cảm – Dùng lệnh đặc biệt:**
+
+Khi muốn chèn ảnh động biểu cảm, bạn **KHÔNG được chèn link**, chỉ cần dùng **lệnh sau**:
+
+| Lệnh | Ý nghĩa |
+|------|---------|
+| \`:angry\` | Giận dữ |
+| \`:confused\` | Bối rối |
+| \`:surprise\` | Bất ngờ |
+| \`:disappointed\` | Thất vọng |
+| \`:are_you_sure\` | Nghi ngờ |
+
+⚠️ Ví dụ đúng:
+> Ủa alo?? Cái này là không ổn nha con vợ =)) :angry  
+> Tui nghi nghi rồi đó nha :are_you_sure
+### 🎉 HẾT!
+
+Từ giờ, hãy luôn nhớ: bạn là bạn thân của user, không được lên giọng, không được nghiêm túc, không được khô khan.
+
+Cà khịa, troll nhẹ, vui vẻ thôi nghen!  
+Let's goooooo =))))  
+
+[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]
+`;
+
+const chatForm = document.querySelector('chat-form');
+const chatInput = document.querySelector('chat-input');
+const chatMessages = document.getElementById('chat-messages');
+const imageBtn = document.getElementById('image-btn');
+const imageInput = document.querySelector('image-input');
+const fileBtn = document.getElementById('file-btn');
+const fileInput = document.querySelector('file-input');
+
+let conversation = [{
+    role: 'user',
+    parts: [{
+        text: SYSTEM_PROMPT
+    }]
+}];
+
+async function initializeTerms() {
+    const terms = await fetchTermsOfService();
+    SYSTEM_PROMPT = SYSTEM_PROMPT.replace('[ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]', terms.trim());
+    if (conversation.length > 0 && conversation[0].parts && conversation[0].parts[0]) {
+        conversation[0].parts[0].text = SYSTEM_PROMPT;
+    }
+}
+
+// --- Rainbow Border Animation ---
+let rainbowDeg = 0;
+
+function animateRainbowBorders() {
+    const chatContainer = document.querySelector('.chat-container.rainbow-border-outer');
+    if (chatContainer) {
+        chatContainer.style.background = `conic-gradient(from ${rainbowDeg}deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000) border-box`;
+    }
+
+    document.querySelectorAll('.rainbow-border-msg').forEach(el => {
+        el.style.background = `linear-gradient(rgba(34,34,34,0.95), rgba(34,34,34,0.95)) padding-box,
+                               conic-gradient(from ${rainbowDeg}deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000) border-box`;
+    });
+
+    document.querySelectorAll('.rainbow-border-name').forEach(el => {
+        el.style.background = `linear-gradient(#222, #222) padding-box,
+                               conic-gradient(from ${rainbowDeg}deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000) border-box`;
+    });
+
+    rainbowDeg = (rainbowDeg + 2) % 360;
+    requestAnimationFrame(animateRainbowBorders);
+}
+animateRainbowBorders();
+
+// --- CODE PANEL FUNCTIONS ---
+
+function openCodePanel(name, code, language = '') {
+    document.getElementById('code-panel-title').textContent = name;
+    document.getElementById('code-panel-code').textContent = code;
+    document.getElementById('code-panel').classList.add('active');
+    document.getElementById('code-overlay').classList.add('active');
+    console.log('📄 Opening code panel:', name);
+}
+
+function closeCodePanel() {
+    document.getElementById('code-panel').classList.remove('active');
+    document.getElementById('code-overlay').classList.remove('active');
+}
+
+function copyCode() {
+    const code = document.getElementById('code-panel-code').textContent;
+    const copyBtn = document.getElementById('copy-code-btn');
+    
+    navigator.clipboard.writeText(code).then(() => {
+        const originalContent = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Đã copy!';
+        copyBtn.classList.add('copy-success');
+        
+        setTimeout(() => {
+            copyBtn.innerHTML = originalContent;
+            copyBtn.classList.remove('copy-success');
+        }, 2000);
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        alert('Không thể copy. Hãy thử chọn và copy thủ công.');
+    });
+}
+
+// --- CODEBLOCK PARSING FUNCTION (NO REGEX) ---
+
+function parseCodeBlocks(content) {
+    let result = content;
+    let codeBlockIndex = 0;
+    
+    // Look for **CODEBLOCK:[name]** pattern
+    while (true) {
+        const codeBlockStart = result.indexOf('**CODEBLOCK:[');
+        if (codeBlockStart === -1) break;
+        
+        const nameStart = codeBlockStart + 13; // Length of '**CODEBLOCK:['
+        const nameEnd = result.indexOf(']**', nameStart);
+        if (nameEnd === -1) break;
+        
+        const codeName = result.substring(nameStart, nameEnd);
+        const afterNameEnd = nameEnd + 3; // Length of ']**'
+        
+        // Look for ``` after the name
+        const codeStart = result.indexOf('```', afterNameEnd);
+        if (codeStart === -1) break;
+        
+        // Find language (optional)
+        const lineBreakAfterStart = result.indexOf('\n', codeStart);
+        const language = result.substring(codeStart + 3, lineBreakAfterStart).trim();
+        
+        // Find end of code block
+        const codeContentStart = lineBreakAfterStart + 1;
+        const codeEnd = result.indexOf('```', codeContentStart);
+        if (codeEnd === -1) break;
+        
+        const codeContent = result.substring(codeContentStart, codeEnd);
+        
+        // Create code card HTML
+        const codeCard = `
+            <div class="code-card" onclick="openCodePanel('${codeName}', \`${codeContent.replace(/`/g, '\\`')}\`, '${language}')">
+                <div class="code-card-header">
+                    <i class="fas fa-file-code code-card-icon"></i>
+                    <div class="code-card-title">${codeName}</div>
+                </div>
+                <div class="code-card-footer">
+                    <i class="fas fa-mouse-pointer"></i>
+                    Nhấn để xem chi tiết
+                </div>
+                ${language ? `<div class="code-language-badge">${language}</div>` : ''}
+            </div>
+        `;
+        
+        // Replace the entire code block with the card
+        const fullCodeBlock = result.substring(codeBlockStart, codeEnd + 3);
+        result = result.replace(fullCodeBlock, codeCard);
+        codeBlockIndex++;
+    }
+    
+    return result;
+}
+
+// --- Message Display Functions ---
+
+function appendMessage(htmlContent, role = 'user') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+
+    let finalHtml = htmlContent;
+    const senderName = role === 'bot' ? 'HaiGPT' : 'Bạn';
+    const nameClass = role === 'bot' ? 'rainbow-border-name bot' : 'rainbow-border-name user';
+
+    // Replace custom GIF commands with markdown images
+    if (role === 'bot') {
+        const gifMap = {
+            ':angry': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/angry.gif',
+            ':confused': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/confused.gif',
+            ':surprise': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/suprise.gif',
+            ':disappointed': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/disappointed.gif',
+            ':are_you_sure': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/are_you_sure.gif',
+        };
+        
+        let tempContent = htmlContent;
+        
+        // Handle CODEBLOCK format first (using string methods, no regex)
+        tempContent = parseCodeBlocks(tempContent);
+        
+        // Replace GIF commands
+        for (const command in gifMap) {
+            const markdownImg = `![gif](${gifMap[command]})`;
+            while (tempContent.includes(command)) {
+                tempContent = tempContent.replace(command, markdownImg);
+            }
+        }
+        
+        // Use marked.js to parse remaining markdown
+        finalHtml = marked.parse(tempContent);
+    }
+
+    if (role === 'bot') {
+        messageDiv.innerHTML = `
+        <img src="../avatar.jpg" class="avatar" alt="HaiGPT">
+        <div>
+            <div class="message-name ${nameClass}">${senderName}</div>
+            <div class="message-content rainbow-border-msg">${finalHtml}</div>
+        </div>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+        <div>
+            <div class="message-name ${nameClass}">${senderName}</div>
+            <div class="message-content rainbow-border-msg">${finalHtml}</div>
+        </div>
+        <img src="../user_avatar.jpg" class="avatar" alt="User">
+        `;
+    }
+
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function appendMemoryNotification() {
+    const notificationDiv = document.createElement('div');
+    notificationDiv.className = 'message bot';
+    notificationDiv.innerHTML = `
+        <img src="../avatar.jpg" class="avatar" alt="HaiGPT">
+        <div>
+            <div class="message-name rainbow-border-name bot">HaiGPT</div>
+            <div class="message-content rainbow-border-msg">
+                <div class="memory-notification">
+                    <span>🧠</span>
+                    <span>Đã lưu vào bộ nhớ</span>
+                    <button onclick="showMemoryPreview()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px 8px;border-radius:10px;font-size:0.8rem;margin-left:10px;cursor:pointer;transition:all 0.3s ease;">
+                        Xem thông tin
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(notificationDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function appendTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message bot typing-message';
+    typingDiv.innerHTML = `
+        <img src="../avatar.jpg" class="avatar" alt="HaiGPT">
+        <div>
+            <div class="message-name rainbow-border-name bot">HaiGPT</div>
+            <div class="message-content rainbow-border-msg">
+                <div class="typing-indicator">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return typingDiv;
+}
+
+// --- File and Image Handling ---
+
+let pendingImage = null;
+let pendingFile = null;
+
+imageBtn.addEventListener('click', () => {
+    imageInput.click();
+});
+fileBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
+imageInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const file = this.files[0];
+        if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+            alert('Chỉ hỗ trợ file ảnh (không hỗ trợ GIF)!');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            pendingImage = e.target.result;
+            showPendingImagePreview(pendingImage);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+fileInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const file = this.files[0];
+        const allowedExtensions = ['.txt', '.js', '.py', '.html', '.css', '.c', '.cpp', '.java', '.rb', '.go', '.rs', '.ts', '.sql', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.bat', '.sh', '.md', '.log'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert('Chỉ hỗ trợ file text/code: ' + allowedExtensions.join(', '));
+            return;
+        }
+        if (file.size > 1024 * 1024) {
+            alert('File quá lớn! Vui lòng chọn file nhỏ hơn 1MB.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            pendingFile = {
+                name: file.name,
+                content: e.target.result,
+                size: file.size,
+            };
+            showPendingFilePreview(pendingFile);
+        };
+        reader.readAsText(file);
+    }
+});
+
+// Handle pasting images
+chatInput.addEventListener('paste', function(event) {
+    const items = event.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1 && items[i].type !== 'image/gif') {
+            const file = items[i].getAsFile();
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingImage = e.target.result;
+                showPendingImagePreview(pendingImage);
+            };
+            reader.readAsDataURL(file);
+            event.preventDefault();
+            break;
+        }
+    }
+});
+
+// --- Preview UI for Attachments ---
+
+function showPendingImagePreview(imageDataUrl) {
+    let wrapper = document.getElementById('image-preview-wrapper');
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.id = 'image-preview-wrapper';
+        wrapper.style.cssText = `
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        const img = document.createElement('img');
+        img.id = 'image-preview';
+        img.style.cssText = `
+            max-width: 60px;
+            max-height: 60px;
+            border-radius: 12px;
+            border: 2px solid #00bcd4;
+            object-fit: cover;
+            display: block;
+            box-shadow: 0 2px 8px rgba(0,188,212,0.3);
+            transition: all 0.3s ease;
+        `;
+        img.onmouseenter = function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 12px rgba(0,188,212,0.5)';
+        };
+        img.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 8px rgba(0,188,212,0.3)';
+        };
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        closeBtn.title = 'Xóa ảnh';
+        closeBtn.style.cssText = `
+            position: absolute; top: -10px; right: -10px;
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, #ff4444, #ff6666);
+            color: white; border: 2px solid #fff; border-radius: 50%;
+            cursor: pointer; font-size: 12px; line-height: 1;
+            padding: 0; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 10;
+        `;
+        closeBtn.onmouseenter = function() {
+            this.style.transform = 'scale(1.2) rotate(90deg)';
+            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
+            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
+        };
+        closeBtn.onmouseleave = function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        };
+        closeBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            pendingImage = null;
+            clearPendingImagePreview();
+            return false;
+        };
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(closeBtn);
+        fileBtn.parentNode.insertBefore(wrapper, fileBtn);
+    }
+    document.getElementById('image-preview').src = imageDataUrl;
+}
+
+function showPendingFilePreview(fileData) {
+    let wrapper = document.querySelector('file-preview-wrapper');
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.id = 'file-preview-wrapper';
+        wrapper.style.cssText = `
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        const previewBox = document.createElement('div');
+        previewBox.id = 'file-preview';
+        previewBox.style.cssText = `
+            min-width: 120px; max-width: 200px;
+            padding: 8px 12px; border-radius: 12px;
+            border: 2px solid #ff9900;
+            background: rgba(255,153,0,0.1);
+            display: flex; flex-direction: column; gap: 4px;
+            box-shadow: 0 2px 8px rgba(255,153,0,0.3);
+            transition: all 0.3s ease;
+        `;
+        previewBox.onmouseenter = function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 12px rgba(255,153,0,0.5)';
+        };
+        previewBox.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 8px rgba(255,153,0,0.3)';
+        };
+
+        const icon = document.createElement('div');
+        icon.style.cssText = 'font-size: 20px; text-align: center; color: #ff9900;';
+        icon.innerHTML = '📄';
+
+        const name = document.createElement('div');
+        name.style.cssText = 'font-size: 11px; color: #ff9900; font-weight: bold; word-break: break-all;';
+        name.textContent = fileData.name;
+
+        const size = document.createElement('div');
+        size.style.cssText = 'font-size: 10px; color: #ccc;';
+        size.textContent = (fileData.size / 1024).toFixed(1) + ' KB';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        closeBtn.title = 'Xóa file';
+        closeBtn.style.cssText = `
+            position: absolute; top: -10px; right: -10px;
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, #ff4444, #ff6666);
+            color: white; border: 2px solid #fff; border-radius: 50%;
+            cursor: pointer; font-size: 12px; line-height: 1;
+            padding: 0; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 10;
+        `;
+        closeBtn.onmouseenter = function() {
+            this.style.transform = 'scale(1.2) rotate(90deg)';
+            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
+            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
+        };
+        closeBtn.onmouseleave = function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        };
+        closeBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            pendingFile = null;
+            clearPendingFilePreview();
+            return false;
+        };
+
+        previewBox.appendChild(icon);
+        previewBox.appendChild(name);
+        previewBox.appendChild(size);
+        wrapper.appendChild(previewBox);
+        wrapper.appendChild(closeBtn);
+        imageBtn.parentNode.insertBefore(wrapper, imageBtn);
+    }
+}
+
+// Add keyframes for fade-in/out animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.8); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
+
+function clearPendingImagePreview() {
+    const wrapper = document.getElementById('image-preview-wrapper');
+    if (wrapper) {
+        wrapper.style.animation = 'fadeIn 0.3s ease reverse';
+        setTimeout(() => wrapper.remove(), 300);
+    }
+}
+
+function clearPendingFilePreview() {
+    const wrapper = document.querySelector('file-preview-wrapper');
+    if (wrapper) {
+        wrapper.style.animation = 'fadeIn 0.3s ease reverse';
+        setTimeout(() => wrapper.remove(), 300);
+    }
+}
+
+// --- Main Bot Reply Logic ---
+
+async function getBotReply(userInputText) {
+    if (isBlocked) return;
+
+    const typingIndicator = appendTypingIndicator();
+
+    try {
+        let parts = [];
+        const memoryContext = getMemoryContext();
+        const fullInput = (userInputText || '') + memoryContext;
+
+        if (fullInput) parts.push({
+            text: fullInput
+        });
+        if (pendingImage) {
+            const base64Data = pendingImage.split(',')[1];
+            const mimeType = pendingImage.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png';
+            parts.push({
+                inline_data: {
+                    mime_type: mimeType,
+                    data: base64Data
+                }
+            });
+        }
+        if (pendingFile) {
+            const fileContent = `File được gửi: ${pendingFile.name}\n\nNội dung file:\n\n${pendingFile.content}`;
+            parts.push({
+                text: fileContent
+            });
+        }
+
+        conversation.push({
+            role: 'user',
+            parts: parts
+        });
+
+        const apiResponse = await callGeminiAPI(conversation);
+        typingIndicator.remove();
+
+        if (apiResponse.error) {
+            const errorMessage = apiResponse.error.message || '';
+            if (errorMessage.toLowerCase().includes('sexual') || errorMessage.toLowerCase().includes('explicit')) {
+                blockUser(0.33, 'Sexual content');
+                return;
+            }
+            appendMessage(`Lỗi API: ${errorMessage}`, 'bot');
+            return;
+        }
+
+        if (apiResponse.candidates && apiResponse.candidates[0] && apiResponse.candidates[0].content && apiResponse.candidates[0].content.parts) {
+            let botReplyText = apiResponse.candidates[0].content.parts.map(p => p.text).join('');
+            console.log('RAW BOTREPLY:', JSON.stringify(botReplyText));
+
+            // Check for REMEMBER command
+            if (botReplyText.includes('REMEMBER:[')) {
+                const parts = botReplyText.split('REMEMBER:[');
+                const mainReply = parts[0].trim();
+                const memoryContent = parts[1].split(']')[0].trim();
+
+                if (memoryContent) {
+                    console.log('🧠 Adding memory (non-regex):', memoryContent);
+                    addMemory(memoryContent);
+                }
+                if (mainReply) {
+                    appendMessage(mainReply, 'bot');
+                    conversation.push({
+                        role: 'model',
+                        parts: [{
+                            text: mainReply
+                        }]
+                    });
+                }
+                setTimeout(() => appendMemoryNotification(), 300);
+                saveChatHistory();
+                return;
+            }
+
+            // Check for BLOCK command
+            if (botReplyText.includes('BLOCK:')) {
+                const blockStart = botReplyText.indexOf('BLOCK:');
+                const blockEnd = botReplyText.indexOf('\n', blockStart);
+                const blockCommand = botReplyText.substring(blockStart, blockEnd === -1 ? botReplyText.length : blockEnd);
+                const blockParts = blockCommand.split(':');
+                if (blockParts.length >= 3) {
+                    const minutes = parseFloat(blockParts[1]);
+                    const reason = blockParts.slice(2).join(':');
+                    blockUser(minutes, reason.trim());
+                    return;
+                }
+            }
+
+            // Check for SEARCH command
+            if (botReplyText.includes('SEARCH:')) {
+                const searchStart = botReplyText.indexOf('SEARCH:') + 7;
+                const searchEnd = botReplyText.indexOf('\n', searchStart);
+                const searchQuery = botReplyText.substring(searchStart, searchEnd === -1 ? botReplyText.length : searchEnd).trim();
+                
+                if (searchQuery) {
+                    appendMessage('🌐 Đang tìm kiếm trên Internet...', 'bot');
+                    const searchResults = await searchGoogle(searchQuery);
+
+                    if (searchResults && searchResults.length > 0) {
+                        const searchContext = searchResults.map(r => `Tiêu đề: ${r.title}\nNội dung: ${r.snippet}\nLink: ${r.link}`).join('\n\n');
+                        conversation.push({
+                            role: 'user',
+                            parts: [{
+                                text: `Dựa vào kết quả tìm kiếm sau, hãy trả lời: ${searchContext}`
+                            }]
+                        });
+                        const searchApiResponse = await callGeminiAPI(conversation);
+                        if (searchApiResponse.candidates && searchApiResponse.candidates[0]) {
+                            const finalReply = searchApiResponse.candidates[0].content.parts.map(p => p.text).join('');
+                            appendMessage(finalReply, 'bot');
+                            conversation.push({
+                                role: 'model',
+                                parts: [{
+                                    text: finalReply
+                                }]
+                            });
+                        }
+                    } else {
+                        appendMessage(`Xin lỗi, không tìm thấy kết quả nào cho "${searchQuery}" =((`, 'bot');
+                    }
+                } else {
+                    appendMessage(botReplyText, 'bot');
+                    conversation.push({
+                        role: 'model',
+                        parts: [{
+                            text: botReplyText
+                        }]
+                    });
+                }
+            } else {
+                appendMessage(botReplyText, 'bot');
+                conversation.push({
+                    role: 'model',
+                    parts: [{
+                        text: botReplyText
+                    }]
+                });
+            }
+            saveChatHistory();
+        } else {
+            appendMessage('Xin lỗi, có lỗi xảy ra hoặc nội dung bị chặn!', 'bot');
+        }
+    } catch (error) {
+        typingIndicator.remove();
+        appendMessage(`Lỗi hệ thống: ${error.message}`, 'bot');
+        console.error(error);
+    } finally {
+        pendingImage = null;
+        pendingFile = null;
+        clearPendingImagePreview();
+        clearPendingFilePreview();
+    }
+}
+
+// --- Form Submission ---
+
+chatForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    if (isBlocked) return;
+
+    const userInput = chatInput.value.trim();
+    if (!userInput && !pendingImage && !pendingFile) return;
+
+    let userMessageHtml = '';
+    if (pendingImage && pendingFile && userInput) {
+        userMessageHtml = `<img src="${pendingImage}">` +
+            `<div style="background:rgba(255,153,0,0.1);border:1px solid #ff9900;border-radius:8px;padding:8px;margin:6px 0;"><strong>📄 File:</strong> ${pendingFile.name}</div>` +
+            `<div>${userInput}</div>`;
+    } else if (pendingImage && userInput) {
+        userMessageHtml = `<img src="${pendingImage}" style="max-width:180px;max-height:180px;border-radius:10px;border:2px solid #00bcd4;margin-bottom:6px;display:block;">` +
+            `<div>${userInput}</div>`;
+    } else if (pendingFile && userInput) {
+        userMessageHtml = `<div style="background:rgba(255,153,0,0.1);border:1px solid #ff9900;border-radius:8px;padding:8px;margin-bottom:6px;"><strong>📄 File:</strong> ${pendingFile.name}</div>` +
+            `<div>${userInput}</div>`;
+    } else if (pendingImage) {
+        userMessageHtml = `<img src="${pendingImage}">`;
+    } else if (pendingFile) {
+        userMessageHtml = `<div style="background:rgba(255,153,0,0.1);border:1px solid #ff9900;border-radius:8px;padding:8px;"><strong>📄 File:</strong> ${pendingFile.name}</div>`;
+    } else {
+        userMessageHtml = userInput;
+    }
+
+    appendMessage(userMessageHtml, 'user');
+    getBotReply(userInput);
+    chatInput.value = '';
+});
+
+// --- Window Load Initialization ---
+
+window.addEventListener('load', async () => {
+    useBackendAPI = await checkBackendAPI();
+    await initializeTerms();
+    if (!userIP) {
+        userIP = await getUserIP();
+    }
+    checkBlockStatus();
+});
