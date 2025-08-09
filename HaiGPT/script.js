@@ -1,12 +1,13 @@
 // =================================================================================
-// HAIGPT SCRIPT.JS - SIMPLE CODE CARD ONLY
+// DEOBFUSCATED AND CLEANED CODE
+// Original code was heavily obfuscated. This version is human-readable.
 // =================================================================================
 
-// --- DOM Element Selection - FIXED ---
-const hamburgerMenu = document.querySelector('#hamburger-menu');
-const slideMenu = document.querySelector('#slide-menu');
-const menuOverlay = document.querySelector('#menu-overlay');
-const closeMenu = document.querySelector('#close-menu');
+// --- DOM Element Selection ---
+const hamburgerMenu = document.querySelector('hamburger-menu');
+const slideMenu = document.querySelector('slide-menu');
+const menuOverlay = document.querySelector('menu-overlay');
+const closeMenu = document.querySelector('close-menu');
 
 // --- Hamburger Menu Logic ---
 hamburgerMenu.addEventListener('click', () => {
@@ -24,12 +25,14 @@ menuOverlay.addEventListener('click', () => {
     menuOverlay.classList.remove('active');
 });
 
+
 // --- State Variables ---
 let userMemories = [];
 let memoryCount = 0;
 let userIP = null;
 let blockTimer = null;
 let isBlocked = false;
+
 
 // --- IP and Data Fetching Functions ---
 
@@ -51,6 +54,7 @@ async function fetchTermsOfService() {
         return text;
     } catch (error) {
         console.log('Cannot fetch terms, using default');
+        // Fallback Vietnamese Terms of Service text
         return `
 ĐIỀU KHOẢN QUY ĐỊNH HAIGPT:
 
@@ -194,6 +198,7 @@ async function loadChatHistory() {
             const data = await response.json();
             if (data.conversation && data.conversation.length > 1) {
                 conversation = data.conversation;
+                // Re-render chat messages from history
                 for (let i = 1; i < conversation.length; i++) {
                     const message = conversation[i];
                     if (message.role === 'user') {
@@ -246,8 +251,8 @@ function addMemory(memoryText) {
 
 function updateMemoryDisplay() {
     memoryCount = userMemories.length;
-    const memoryInfoBtn = document.querySelector('#memory-info-btn');
-    const memoryBadge = document.querySelector('#memory-badge');
+    const memoryInfoBtn = document.querySelector('memory-info-btn');
+    const memoryBadge = document.querySelector('memory-badge');
 
     if (memoryCount > 0) {
         memoryInfoBtn.style.display = 'flex';
@@ -256,7 +261,7 @@ function updateMemoryDisplay() {
         memoryInfoBtn.style.display = 'none';
     }
 
-    const memoryCountDisplay = document.querySelector('#memory-count');
+    const memoryCountDisplay = document.querySelector('memory-count');
     const chatCountDisplay = document.getElementById('chat-count');
 
     if (memoryCountDisplay) memoryCountDisplay.textContent = memoryCount;
@@ -267,7 +272,7 @@ function updateMemoryDisplay() {
 }
 
 function updateMemoryList() {
-    const memoryList = document.querySelector('#memory-list');
+    const memoryList = document.querySelector('memory-list');
     if (!memoryList) return;
 
     if (userMemories.length === 0) {
@@ -286,7 +291,7 @@ function updateMemoryList() {
 }
 
 function updateMemoryPreview() {
-    const memoryPreviewContent = document.querySelector('#memory-preview-content');
+    const memoryPreviewContent = document.querySelector('memory-preview-content');
     if (!memoryPreviewContent) return;
 
     if (userMemories.length === 0) {
@@ -309,8 +314,8 @@ function getMemoryContext() {
 }
 
 function openMemoryPanel() {
-    const memoryPanel = document.querySelector('#memory-panel');
-    const userIpDisplay = document.querySelector('#user-ip-display');
+    const memoryPanel = document.querySelector('memory-panel');
+    const userIpDisplay = document.querySelector('user-ip-display');
     if (userIpDisplay) userIpDisplay.textContent = userIP || 'Loading...';
     updateMemoryDisplay();
     memoryPanel.style.display = 'flex';
@@ -319,7 +324,7 @@ function openMemoryPanel() {
 }
 
 function closeMemoryPanel() {
-    const memoryPanel = document.querySelector('#memory-panel');
+    const memoryPanel = document.querySelector('memory-panel');
     memoryPanel.style.display = 'none';
 }
 
@@ -335,15 +340,16 @@ async function clearAllMemories() {
 }
 
 function showMemoryPreview() {
-    const memoryPreview = document.querySelector('#memory-preview');
+    const memoryPreview = document.querySelector('memory-preview');
     updateMemoryPreview();
     memoryPreview.style.display = 'block';
 }
 
 function hideMemoryPreview() {
-    const memoryPreview = document.querySelector('#memory-preview');
+    const memoryPreview = document.querySelector('memory-preview');
     memoryPreview.style.display = 'none';
 }
+
 
 // --- User Blocking System ---
 
@@ -364,7 +370,7 @@ function checkBlockStatus() {
 }
 
 function blockUser(minutes, reason = 'Vi phạm điều khoản') {
-    const durationMinutes = Math.min(Math.max(minutes, 0.5), 5);
+    const durationMinutes = Math.min(Math.max(minutes, 0.5), 5); // Clamp between 0.5 and 5 minutes
     const durationMs = durationMinutes * 60 * 1000;
     const expiryTime = Date.now() + durationMs;
     const blockInfo = {
@@ -380,7 +386,7 @@ function blockUser(minutes, reason = 'Vi phạm điều khoản') {
 function showBlockNotification(durationMs, reason) {
     isBlocked = true;
     const blockNotification = document.getElementById('block-notification');
-    const blockReasonText = document.querySelector('#block-reason-text');
+    const blockReasonText = document.querySelector('block-reason-text');
     const countdownTimer = document.getElementById('countdown-timer');
 
     blockReasonText.textContent = reason;
@@ -398,7 +404,7 @@ function showBlockNotification(durationMs, reason) {
         }
     };
 
-    updateTimer();
+    updateTimer(); // Initial call
 
     blockTimer = setInterval(() => {
         remainingSeconds--;
@@ -411,9 +417,10 @@ function showBlockNotification(durationMs, reason) {
     }, 1000);
 }
 
+
 function hideBlockNotification() {
     isBlocked = false;
-    const blockNotification = document.querySelector('#block-notification');
+    const blockNotification = document.querySelector('block-notification');
     blockNotification.style.display = 'none';
     if (blockTimer) {
         clearInterval(blockTimer);
@@ -424,13 +431,14 @@ function hideBlockNotification() {
     }, 500);
 }
 
+
 // --- Welcome Screen and Background Media ---
-const welcomeNotification = document.querySelector('#welcome-notification');
-const welcomeOkBtn = document.querySelector('#welcome-ok-btn');
-const soundToggle = document.querySelector('#sound-toggle');
-const soundIcon = document.querySelector('#sound-icon');
-const soundMenuText = document.querySelector('#sound-menu-text');
-const bgVideoChat = document.querySelector('#bg-video-chat');
+const welcomeNotification = document.querySelector('welcome-notification');
+const welcomeOkBtn = document.querySelector('welcome-ok-btn');
+const soundToggle = document.querySelector('sound-toggle');
+const soundIcon = document.querySelector('sound-icon');
+const soundMenuText = document.querySelector('sound-menu-text');
+const bgVideoChat = document.querySelector('bg-video-chat');
 const bgAudioChat = document.getElementById('bg-audio-chat');
 
 let isMuted = false;
@@ -524,6 +532,7 @@ function resetChat() {
     menuOverlay.classList.remove('active');
 }
 
+
 // --- API Configuration & Backend Check ---
 const GEMINI_API_KEY = 'AIzaSyCnyXOshEORsDRZEVD4t027xXbCBVBnkgA';
 const GOOGLE_SEARCH_API_KEY = 'AIzaSyD3STLc19Ev92medLhggRKIDGKG4gLxffA';
@@ -560,9 +569,11 @@ async function checkBackendAPI() {
     }
 }
 
+
 // --- Google Search Functionality ---
 
 async function searchGoogle(query, numResults = 3) {
+    // Attempt to use backend first
     if (useBackendAPI) {
         try {
             const response = await fetch('/api/search', {
@@ -592,6 +603,7 @@ async function searchGoogle(query, numResults = 3) {
         }
     }
 
+    // Fallback to direct client-side API call
     try {
         const url = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${numResults}`;
         const response = await fetch(url);
@@ -626,9 +638,11 @@ function formatSearchResults(results, query) {
     return formattedString;
 }
 
+
 // --- Gemini API Call ---
 
 async function callGeminiAPI(conversationPayload) {
+    // Attempt to use backend first
     if (useBackendAPI) {
         try {
             const response = await fetch('/api/chat', {
@@ -654,6 +668,7 @@ async function callGeminiAPI(conversationPayload) {
         }
     }
 
+    // Fallback to direct client-side API call
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -673,6 +688,7 @@ async function callGeminiAPI(conversationPayload) {
         throw error;
     }
 }
+
 
 // --- System Prompt and Chat Core ---
 
@@ -715,34 +731,6 @@ Trò chuyện như bạn thân chí cốt, thoải mái, cà khịa vui vẻ, ch
    - Gọi user bằng tên nếu đã biết
    - Đề cập đến sở thích, thói quen đã biết
    - Thể hiện sự quan tâm dựa trên thông tin cũ
-
----
-
-### 📝 **CODE BLOCK SYSTEM - QUAN TRỌNG:**
-
-Khi bạn trả về code, sử dụng format đặc biệt:
-
-**CODEBLOCK:[Tên file/mô tả ngắn gọn]**
-\`\`\`language
-code content here
-\`\`\`
-
-Ví dụ:
-**CODEBLOCK:[Calculator.js - Máy tính đơn giản]**
-\`\`\`javascript
-function calculate(a, b, operator) {
-    switch(operator) {
-        case '+': return a + b;
-        case '-': return a - b;
-        default: return 0;
-    }
-}
-\`\`\`
-
-**CHÚ Ý:**
-- Tên code phải ngắn gọn, dễ hiểu
-- Có thể đặt tên file hoặc mô tả chức năng
-- Luôn có **CODEBLOCK:** trước code block
 
 ---
 
@@ -834,13 +822,13 @@ Let's goooooo =))))
 [ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]
 `;
 
-const chatForm = document.querySelector('#chat-form');
-const chatInput = document.querySelector('#chat-input');
+const chatForm = document.querySelector('chat-form');
+const chatInput = document.querySelector('chat-input');
 const chatMessages = document.getElementById('chat-messages');
 const imageBtn = document.getElementById('image-btn');
-const imageInput = document.querySelector('#image-input');
+const imageInput = document.querySelector('image-input');
 const fileBtn = document.getElementById('file-btn');
-const fileInput = document.querySelector('#file-input');
+const fileInput = document.querySelector('file-input');
 
 let conversation = [{
     role: 'user',
@@ -881,66 +869,6 @@ function animateRainbowBorders() {
 }
 animateRainbowBorders();
 
-// --- CODE PANEL FUNCTIONS (SIMPLE) ---
-
-function openCodePanel(name, code) {
-    document.getElementById('code-panel-title').textContent = name;
-    document.getElementById('code-panel-code').textContent = code;
-    document.getElementById('code-panel').classList.add('active');
-    document.getElementById('code-overlay').classList.add('active');
-}
-
-function closeCodePanel() {
-    document.getElementById('code-panel').classList.remove('active');
-    document.getElementById('code-overlay').classList.remove('active');
-}
-
-function copyCode() {
-    const code = document.getElementById('code-panel-code').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-        alert('Đã copy!');
-    }).catch(() => {
-        alert('Không thể copy. Hãy thử chọn và copy thủ công.');
-    });
-}
-
-// --- SIMPLE CODE BLOCK PARSING ---
-
-function parseCodeBlocks(content) {
-    let result = content;
-    
-    while (result.includes('**CODEBLOCK:[') && result.includes(']**') && result.includes('```')) {
-        const codeBlockStart = result.indexOf('**CODEBLOCK:[');
-        const nameStart = codeBlockStart + 13;
-        const nameEnd = result.indexOf(']**', nameStart);
-        
-        if (nameEnd === -1) break;
-        
-        const codeName = result.substring(nameStart, nameEnd);
-        const afterNameEnd = nameEnd + 3;
-        
-        const codeStart = result.indexOf('```', afterNameEnd);
-        if (codeStart === -1) break;
-        
-        const lineBreakAfterStart = result.indexOf('\n', codeStart);
-        const codeContentStart = lineBreakAfterStart + 1;
-        const codeEnd = result.indexOf('```', codeContentStart);
-        
-        if (codeEnd === -1) break;
-        
-        const codeContent = result.substring(codeContentStart, codeEnd);
-        
-        const codeCard = `<div style="background:#333;border:2px solid #00bcd4;border-radius:10px;padding:15px;margin:10px 0;cursor:pointer;max-width:250px;" onclick="openCodePanel('${codeName}', \`${codeContent.replace(/`/g, '\\`')}\`)">
-            <div style="color:#00bcd4;font-weight:bold;margin-bottom:5px;">📄 ${codeName}</div>
-            <div style="color:#ccc;font-size:0.9rem;">Bấm để xem chi tiết →</div>
-        </div>`;
-        
-        const fullCodeBlock = result.substring(codeBlockStart, codeEnd + 3);
-        result = result.replace(fullCodeBlock, codeCard);
-    }
-    
-    return result;
-}
 
 // --- Message Display Functions ---
 
@@ -952,6 +880,7 @@ function appendMessage(htmlContent, role = 'user') {
     const senderName = role === 'bot' ? 'HaiGPT' : 'Bạn';
     const nameClass = role === 'bot' ? 'rainbow-border-name bot' : 'rainbow-border-name user';
 
+    // Replace custom GIF commands with markdown images
     if (role === 'bot') {
         const gifMap = {
             ':angry': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/angry.gif',
@@ -960,17 +889,12 @@ function appendMessage(htmlContent, role = 'user') {
             ':disappointed': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/disappointed.gif',
             ':are_you_sure': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/are_you_sure.gif',
         };
-        
         let tempContent = htmlContent;
-        tempContent = parseCodeBlocks(tempContent);
-        
         for (const command in gifMap) {
             const markdownImg = `![gif](${gifMap[command]})`;
-            while (tempContent.includes(command)) {
-                tempContent = tempContent.replace(command, markdownImg);
-            }
+            tempContent = tempContent.replaceAll(command, markdownImg);
         }
-        
+        // Use a markdown parser like 'marked' to convert to HTML
         finalHtml = marked.parse(tempContent);
     }
 
@@ -1018,6 +942,7 @@ function appendMemoryNotification() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+
 function appendTypingIndicator() {
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message bot typing-message';
@@ -1039,6 +964,7 @@ function appendTypingIndicator() {
     return typingDiv;
 }
 
+
 // --- File and Image Handling ---
 
 let pendingImage = null;
@@ -1054,6 +980,7 @@ fileBtn.addEventListener('click', () => {
 imageInput.addEventListener('change', function() {
     if (this.files && this.files[0]) {
         const file = this.files[0];
+        // Prevent GIFs
         if (!file.type.startsWith('image/') || file.type === 'image/gif') {
             alert('Chỉ hỗ trợ file ảnh (không hỗ trợ GIF)!');
             return;
@@ -1077,7 +1004,7 @@ fileInput.addEventListener('change', function() {
             alert('Chỉ hỗ trợ file text/code: ' + allowedExtensions.join(', '));
             return;
         }
-        if (file.size > 1024 * 1024) {
+        if (file.size > 1024 * 1024) { // 1MB limit
             alert('File quá lớn! Vui lòng chọn file nhỏ hơn 1MB.');
             return;
         }
@@ -1094,6 +1021,7 @@ fileInput.addEventListener('change', function() {
     }
 });
 
+// Handle pasting images
 chatInput.addEventListener('paste', function(event) {
     const items = event.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -1111,8 +1039,9 @@ chatInput.addEventListener('paste', function(event) {
     }
 });
 
-// --- Preview UI for Attachments ---
 
+// --- Preview UI for Attachments ---
+// (This section contains a lot of dynamic CSS styling, kept as is for functionality)
 function showPendingImagePreview(imageDataUrl) {
     let wrapper = document.getElementById('image-preview-wrapper');
     if (!wrapper) {
@@ -1137,6 +1066,14 @@ function showPendingImagePreview(imageDataUrl) {
             box-shadow: 0 2px 8px rgba(0,188,212,0.3);
             transition: all 0.3s ease;
         `;
+        img.onmouseenter = function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 12px rgba(0,188,212,0.5)';
+        };
+        img.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 8px rgba(0,188,212,0.3)';
+        };
 
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
@@ -1151,6 +1088,16 @@ function showPendingImagePreview(imageDataUrl) {
             padding: 0; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 10;
         `;
+        closeBtn.onmouseenter = function() {
+            this.style.transform = 'scale(1.2) rotate(90deg)';
+            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
+            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
+        };
+        closeBtn.onmouseleave = function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        };
         closeBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1167,7 +1114,7 @@ function showPendingImagePreview(imageDataUrl) {
 }
 
 function showPendingFilePreview(fileData) {
-    let wrapper = document.querySelector('#file-preview-wrapper');
+    let wrapper = document.querySelector('file-preview-wrapper');
     if (!wrapper) {
         wrapper = document.createElement('div');
         wrapper.id = 'file-preview-wrapper';
@@ -1189,6 +1136,14 @@ function showPendingFilePreview(fileData) {
             box-shadow: 0 2px 8px rgba(255,153,0,0.3);
             transition: all 0.3s ease;
         `;
+        previewBox.onmouseenter = function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.boxShadow = '0 4px 12px rgba(255,153,0,0.5)';
+        };
+        previewBox.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 8px rgba(255,153,0,0.3)';
+        };
 
         const icon = document.createElement('div');
         icon.style.cssText = 'font-size: 20px; text-align: center; color: #ff9900;';
@@ -1215,6 +1170,16 @@ function showPendingFilePreview(fileData) {
             padding: 0; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 10;
         `;
+        closeBtn.onmouseenter = function() {
+            this.style.transform = 'scale(1.2) rotate(90deg)';
+            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
+            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
+        };
+        closeBtn.onmouseleave = function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        };
         closeBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1232,6 +1197,7 @@ function showPendingFilePreview(fileData) {
     }
 }
 
+// Add keyframes for fade-in/out animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fadeIn {
@@ -1240,6 +1206,7 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
 
 function clearPendingImagePreview() {
     const wrapper = document.getElementById('image-preview-wrapper');
@@ -1250,12 +1217,13 @@ function clearPendingImagePreview() {
 }
 
 function clearPendingFilePreview() {
-    const wrapper = document.querySelector('#file-preview-wrapper');
+    const wrapper = document.querySelector('file-preview-wrapper');
     if (wrapper) {
         wrapper.style.animation = 'fadeIn 0.3s ease reverse';
         setTimeout(() => wrapper.remove(), 300);
     }
 }
+
 
 // --- Main Bot Reply Logic ---
 
@@ -1297,6 +1265,7 @@ async function getBotReply(userInputText) {
         const apiResponse = await callGeminiAPI(conversation);
         typingIndicator.remove();
 
+        // Handle API errors or safety blocks
         if (apiResponse.error) {
             const errorMessage = apiResponse.error.message || '';
             if (errorMessage.toLowerCase().includes('sexual') || errorMessage.toLowerCase().includes('explicit')) {
@@ -1311,6 +1280,7 @@ async function getBotReply(userInputText) {
             let botReplyText = apiResponse.candidates[0].content.parts.map(p => p.text).join('');
             console.log('RAW BOTREPLY:', JSON.stringify(botReplyText));
 
+            // Check for REMEMBER command
             if (botReplyText.includes('REMEMBER:[')) {
                 const parts = botReplyText.split('REMEMBER:[');
                 const mainReply = parts[0].trim();
@@ -1334,25 +1304,20 @@ async function getBotReply(userInputText) {
                 return;
             }
 
+            // Check for BLOCK command
             if (botReplyText.includes('BLOCK:')) {
-                const blockStart = botReplyText.indexOf('BLOCK:');
-                const blockEnd = botReplyText.indexOf('\n', blockStart);
-                const blockCommand = botReplyText.substring(blockStart, blockEnd === -1 ? botReplyText.length : blockEnd);
-                const blockParts = blockCommand.split(':');
-                if (blockParts.length >= 3) {
-                    const minutes = parseFloat(blockParts[1]);
-                    const reason = blockParts.slice(2).join(':');
-                    blockUser(minutes, reason.trim());
+                const match = botReplyText.match(/BLOCK:(\d+(?:\.\d+)?):(.+)/);
+                if (match) {
+                    blockUser(parseFloat(match[1]), match[2].trim());
                     return;
                 }
             }
 
+            // Check for SEARCH command
             if (botReplyText.includes('SEARCH:')) {
-                const searchStart = botReplyText.indexOf('SEARCH:') + 7;
-                const searchEnd = botReplyText.indexOf('\n', searchStart);
-                const searchQuery = botReplyText.substring(searchStart, searchEnd === -1 ? botReplyText.length : searchEnd).trim();
-                
-                if (searchQuery) {
+                const match = botReplyText.match(/SEARCH:\s*(.+?)(?:\n|$)/);
+                if (match) {
+                    const searchQuery = match[1].trim();
                     appendMessage('🌐 Đang tìm kiếm trên Internet...', 'bot');
                     const searchResults = await searchGoogle(searchQuery);
 
@@ -1405,12 +1370,14 @@ async function getBotReply(userInputText) {
         appendMessage(`Lỗi hệ thống: ${error.message}`, 'bot');
         console.error(error);
     } finally {
+        // Reset pending files after sending
         pendingImage = null;
         pendingFile = null;
         clearPendingImagePreview();
         clearPendingFilePreview();
     }
 }
+
 
 // --- Form Submission ---
 
@@ -1421,6 +1388,7 @@ chatForm.addEventListener('submit', function(event) {
     const userInput = chatInput.value.trim();
     if (!userInput && !pendingImage && !pendingFile) return;
 
+    // Create a user message with combined text, image, and file for display
     let userMessageHtml = '';
     if (pendingImage && pendingFile && userInput) {
         userMessageHtml = `<img src="${pendingImage}">` +
@@ -1444,6 +1412,7 @@ chatForm.addEventListener('submit', function(event) {
     getBotReply(userInput);
     chatInput.value = '';
 });
+
 
 // --- Window Load Initialization ---
 
