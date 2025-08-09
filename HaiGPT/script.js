@@ -839,11 +839,7 @@ Let's goooooo =))))
     let rainbowDeg = 0;
 
     function animateRainbowBorders() {
-        const chatContainer = document.querySelector('.chat-container.rainbow-border-outer');
-        if (chatContainer) {
-            chatContainer.style.background = `conic-gradient(from ${rainbowDeg}deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000) border-box`;
-        }
-
+        
         document.querySelectorAll('.rainbow-border-msg').forEach(el => {
             el.style.background = `linear-gradient(rgba(34,34,34,0.95), rgba(34,34,34,0.95)) padding-box,
                                    conic-gradient(from ${rainbowDeg}deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000) border-box`;
