@@ -1,5 +1,5 @@
 // =================================================================================
-// HAIGPT SCRIPT.JS - FIXED SELECTORS
+// HAIGPT SCRIPT.JS - SIMPLE CODE CARD ONLY
 // =================================================================================
 
 // --- DOM Element Selection - FIXED ---
@@ -881,14 +881,13 @@ function animateRainbowBorders() {
 }
 animateRainbowBorders();
 
-// --- CODE PANEL FUNCTIONS ---
+// --- CODE PANEL FUNCTIONS (SIMPLE) ---
 
-function openCodePanel(name, code, language = '') {
+function openCodePanel(name, code) {
     document.getElementById('code-panel-title').textContent = name;
     document.getElementById('code-panel-code').textContent = code;
     document.getElementById('code-panel').classList.add('active');
     document.getElementById('code-overlay').classList.add('active');
-    console.log('📄 Opening code panel:', name);
 }
 
 function closeCodePanel() {
@@ -898,75 +897,46 @@ function closeCodePanel() {
 
 function copyCode() {
     const code = document.getElementById('code-panel-code').textContent;
-    const copyBtn = document.getElementById('copy-code-btn');
-    
     navigator.clipboard.writeText(code).then(() => {
-        const originalContent = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fas fa-check"></i> Đã copy!';
-        copyBtn.classList.add('copy-success');
-        
-        setTimeout(() => {
-            copyBtn.innerHTML = originalContent;
-            copyBtn.classList.remove('copy-success');
-        }, 2000);
-    }).catch(err => {
-        console.error('Copy failed:', err);
+        alert('Đã copy!');
+    }).catch(() => {
         alert('Không thể copy. Hãy thử chọn và copy thủ công.');
     });
 }
 
-// --- CODEBLOCK PARSING FUNCTION (NO REGEX) ---
+// --- SIMPLE CODE BLOCK PARSING ---
 
 function parseCodeBlocks(content) {
     let result = content;
-    let codeBlockIndex = 0;
     
-    // Look for **CODEBLOCK:[name]** pattern
-    while (true) {
+    while (result.includes('**CODEBLOCK:[') && result.includes(']**') && result.includes('```')) {
         const codeBlockStart = result.indexOf('**CODEBLOCK:[');
-        if (codeBlockStart === -1) break;
-        
-        const nameStart = codeBlockStart + 13; // Length of '**CODEBLOCK:['
+        const nameStart = codeBlockStart + 13;
         const nameEnd = result.indexOf(']**', nameStart);
+        
         if (nameEnd === -1) break;
         
         const codeName = result.substring(nameStart, nameEnd);
-        const afterNameEnd = nameEnd + 3; // Length of ']**'
+        const afterNameEnd = nameEnd + 3;
         
-        // Look for ``` after the name
         const codeStart = result.indexOf('```', afterNameEnd);
         if (codeStart === -1) break;
         
-        // Find language (optional)
         const lineBreakAfterStart = result.indexOf('\n', codeStart);
-        const language = result.substring(codeStart + 3, lineBreakAfterStart).trim();
-        
-        // Find end of code block
         const codeContentStart = lineBreakAfterStart + 1;
         const codeEnd = result.indexOf('```', codeContentStart);
+        
         if (codeEnd === -1) break;
         
         const codeContent = result.substring(codeContentStart, codeEnd);
         
-        // Create code card HTML
-        const codeCard = `
-            <div class="code-card" onclick="openCodePanel('${codeName}', \`${codeContent.replace(/`/g, '\\`')}\`, '${language}')">
-                <div class="code-card-header">
-                    <i class="fas fa-file-code code-card-icon"></i>
-                    <div class="code-card-title">${codeName}</div>
-                </div>
-                <div class="code-card-footer">
-                    <i class="fas fa-mouse-pointer"></i>
-                    Nhấn để xem chi tiết
-                </div>
-                ${language ? `<div class="code-language-badge">${language}</div>` : ''}
-            </div>
-        `;
+        const codeCard = `<div style="background:#333;border:2px solid #00bcd4;border-radius:10px;padding:15px;margin:10px 0;cursor:pointer;max-width:250px;" onclick="openCodePanel('${codeName}', \`${codeContent.replace(/`/g, '\\`')}\`)">
+            <div style="color:#00bcd4;font-weight:bold;margin-bottom:5px;">📄 ${codeName}</div>
+            <div style="color:#ccc;font-size:0.9rem;">Bấm để xem chi tiết →</div>
+        </div>`;
         
-        // Replace the entire code block with the card
         const fullCodeBlock = result.substring(codeBlockStart, codeEnd + 3);
         result = result.replace(fullCodeBlock, codeCard);
-        codeBlockIndex++;
     }
     
     return result;
@@ -982,7 +952,6 @@ function appendMessage(htmlContent, role = 'user') {
     const senderName = role === 'bot' ? 'HaiGPT' : 'Bạn';
     const nameClass = role === 'bot' ? 'rainbow-border-name bot' : 'rainbow-border-name user';
 
-    // Replace custom GIF commands with markdown images
     if (role === 'bot') {
         const gifMap = {
             ':angry': 'https://raw.githubusercontent.com/arondeptraivll/tuanhaideptraivcl/main/HaiGPT/image/angry.gif',
@@ -993,11 +962,8 @@ function appendMessage(htmlContent, role = 'user') {
         };
         
         let tempContent = htmlContent;
-        
-        // Handle CODEBLOCK format first (using string methods, no regex)
         tempContent = parseCodeBlocks(tempContent);
         
-        // Replace GIF commands
         for (const command in gifMap) {
             const markdownImg = `![gif](${gifMap[command]})`;
             while (tempContent.includes(command)) {
@@ -1005,7 +971,6 @@ function appendMessage(htmlContent, role = 'user') {
             }
         }
         
-        // Use marked.js to parse remaining markdown
         finalHtml = marked.parse(tempContent);
     }
 
@@ -1129,7 +1094,6 @@ fileInput.addEventListener('change', function() {
     }
 });
 
-// Handle pasting images
 chatInput.addEventListener('paste', function(event) {
     const items = event.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -1173,14 +1137,6 @@ function showPendingImagePreview(imageDataUrl) {
             box-shadow: 0 2px 8px rgba(0,188,212,0.3);
             transition: all 0.3s ease;
         `;
-        img.onmouseenter = function() {
-            this.style.transform = 'scale(1.05)';
-            this.style.boxShadow = '0 4px 12px rgba(0,188,212,0.5)';
-        };
-        img.onmouseleave = function() {
-            this.style.transform = 'scale(1)';
-            this.style.boxShadow = '0 2px 8px rgba(0,188,212,0.3)';
-        };
 
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
@@ -1195,16 +1151,6 @@ function showPendingImagePreview(imageDataUrl) {
             padding: 0; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 10;
         `;
-        closeBtn.onmouseenter = function() {
-            this.style.transform = 'scale(1.2) rotate(90deg)';
-            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
-            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
-        };
-        closeBtn.onmouseleave = function() {
-            this.style.transform = 'scale(1) rotate(0deg)';
-            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
-            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-        };
         closeBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1243,14 +1189,6 @@ function showPendingFilePreview(fileData) {
             box-shadow: 0 2px 8px rgba(255,153,0,0.3);
             transition: all 0.3s ease;
         `;
-        previewBox.onmouseenter = function() {
-            this.style.transform = 'scale(1.05)';
-            this.style.boxShadow = '0 4px 12px rgba(255,153,0,0.5)';
-        };
-        previewBox.onmouseleave = function() {
-            this.style.transform = 'scale(1)';
-            this.style.boxShadow = '0 2px 8px rgba(255,153,0,0.3)';
-        };
 
         const icon = document.createElement('div');
         icon.style.cssText = 'font-size: 20px; text-align: center; color: #ff9900;';
@@ -1277,16 +1215,6 @@ function showPendingFilePreview(fileData) {
             padding: 0; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 10;
         `;
-        closeBtn.onmouseenter = function() {
-            this.style.transform = 'scale(1.2) rotate(90deg)';
-            this.style.background = 'linear-gradient(135deg, #ff0000, #ff4444)';
-            this.style.boxShadow = '0 4px 12px rgba(255,0,0,0.5)';
-        };
-        closeBtn.onmouseleave = function() {
-            this.style.transform = 'scale(1) rotate(0deg)';
-            this.style.background = 'linear-gradient(135deg, #ff4444, #ff6666)';
-            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-        };
         closeBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1304,7 +1232,6 @@ function showPendingFilePreview(fileData) {
     }
 }
 
-// Add keyframes for fade-in/out animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fadeIn {
@@ -1384,7 +1311,6 @@ async function getBotReply(userInputText) {
             let botReplyText = apiResponse.candidates[0].content.parts.map(p => p.text).join('');
             console.log('RAW BOTREPLY:', JSON.stringify(botReplyText));
 
-            // Check for REMEMBER command
             if (botReplyText.includes('REMEMBER:[')) {
                 const parts = botReplyText.split('REMEMBER:[');
                 const mainReply = parts[0].trim();
@@ -1408,7 +1334,6 @@ async function getBotReply(userInputText) {
                 return;
             }
 
-            // Check for BLOCK command
             if (botReplyText.includes('BLOCK:')) {
                 const blockStart = botReplyText.indexOf('BLOCK:');
                 const blockEnd = botReplyText.indexOf('\n', blockStart);
@@ -1422,7 +1347,6 @@ async function getBotReply(userInputText) {
                 }
             }
 
-            // Check for SEARCH command
             if (botReplyText.includes('SEARCH:')) {
                 const searchStart = botReplyText.indexOf('SEARCH:') + 7;
                 const searchEnd = botReplyText.indexOf('\n', searchStart);
