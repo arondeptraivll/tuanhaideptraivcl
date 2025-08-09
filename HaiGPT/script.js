@@ -1,12 +1,12 @@
 // =================================================================================
-// HAIGPT SCRIPT.JS - UPDATED WITH CODE PANEL FEATURE (NO REGEX)
+// HAIGPT SCRIPT.JS - FIXED SELECTORS
 // =================================================================================
 
-// --- DOM Element Selection ---
-const hamburgerMenu = document.querySelector('hamburger-menu');
-const slideMenu = document.querySelector('slide-menu');
-const menuOverlay = document.querySelector('menu-overlay');
-const closeMenu = document.querySelector('close-menu');
+// --- DOM Element Selection - FIXED ---
+const hamburgerMenu = document.querySelector('#hamburger-menu');
+const slideMenu = document.querySelector('#slide-menu');
+const menuOverlay = document.querySelector('#menu-overlay');
+const closeMenu = document.querySelector('#close-menu');
 
 // --- Hamburger Menu Logic ---
 hamburgerMenu.addEventListener('click', () => {
@@ -246,8 +246,8 @@ function addMemory(memoryText) {
 
 function updateMemoryDisplay() {
     memoryCount = userMemories.length;
-    const memoryInfoBtn = document.querySelector('memory-info-btn');
-    const memoryBadge = document.querySelector('memory-badge');
+    const memoryInfoBtn = document.querySelector('#memory-info-btn');
+    const memoryBadge = document.querySelector('#memory-badge');
 
     if (memoryCount > 0) {
         memoryInfoBtn.style.display = 'flex';
@@ -256,7 +256,7 @@ function updateMemoryDisplay() {
         memoryInfoBtn.style.display = 'none';
     }
 
-    const memoryCountDisplay = document.querySelector('memory-count');
+    const memoryCountDisplay = document.querySelector('#memory-count');
     const chatCountDisplay = document.getElementById('chat-count');
 
     if (memoryCountDisplay) memoryCountDisplay.textContent = memoryCount;
@@ -267,7 +267,7 @@ function updateMemoryDisplay() {
 }
 
 function updateMemoryList() {
-    const memoryList = document.querySelector('memory-list');
+    const memoryList = document.querySelector('#memory-list');
     if (!memoryList) return;
 
     if (userMemories.length === 0) {
@@ -286,7 +286,7 @@ function updateMemoryList() {
 }
 
 function updateMemoryPreview() {
-    const memoryPreviewContent = document.querySelector('memory-preview-content');
+    const memoryPreviewContent = document.querySelector('#memory-preview-content');
     if (!memoryPreviewContent) return;
 
     if (userMemories.length === 0) {
@@ -309,8 +309,8 @@ function getMemoryContext() {
 }
 
 function openMemoryPanel() {
-    const memoryPanel = document.querySelector('memory-panel');
-    const userIpDisplay = document.querySelector('user-ip-display');
+    const memoryPanel = document.querySelector('#memory-panel');
+    const userIpDisplay = document.querySelector('#user-ip-display');
     if (userIpDisplay) userIpDisplay.textContent = userIP || 'Loading...';
     updateMemoryDisplay();
     memoryPanel.style.display = 'flex';
@@ -319,7 +319,7 @@ function openMemoryPanel() {
 }
 
 function closeMemoryPanel() {
-    const memoryPanel = document.querySelector('memory-panel');
+    const memoryPanel = document.querySelector('#memory-panel');
     memoryPanel.style.display = 'none';
 }
 
@@ -335,13 +335,13 @@ async function clearAllMemories() {
 }
 
 function showMemoryPreview() {
-    const memoryPreview = document.querySelector('memory-preview');
+    const memoryPreview = document.querySelector('#memory-preview');
     updateMemoryPreview();
     memoryPreview.style.display = 'block';
 }
 
 function hideMemoryPreview() {
-    const memoryPreview = document.querySelector('memory-preview');
+    const memoryPreview = document.querySelector('#memory-preview');
     memoryPreview.style.display = 'none';
 }
 
@@ -380,7 +380,7 @@ function blockUser(minutes, reason = 'Vi phạm điều khoản') {
 function showBlockNotification(durationMs, reason) {
     isBlocked = true;
     const blockNotification = document.getElementById('block-notification');
-    const blockReasonText = document.querySelector('block-reason-text');
+    const blockReasonText = document.querySelector('#block-reason-text');
     const countdownTimer = document.getElementById('countdown-timer');
 
     blockReasonText.textContent = reason;
@@ -413,7 +413,7 @@ function showBlockNotification(durationMs, reason) {
 
 function hideBlockNotification() {
     isBlocked = false;
-    const blockNotification = document.querySelector('block-notification');
+    const blockNotification = document.querySelector('#block-notification');
     blockNotification.style.display = 'none';
     if (blockTimer) {
         clearInterval(blockTimer);
@@ -425,12 +425,12 @@ function hideBlockNotification() {
 }
 
 // --- Welcome Screen and Background Media ---
-const welcomeNotification = document.querySelector('welcome-notification');
-const welcomeOkBtn = document.querySelector('welcome-ok-btn');
-const soundToggle = document.querySelector('sound-toggle');
-const soundIcon = document.querySelector('sound-icon');
-const soundMenuText = document.querySelector('sound-menu-text');
-const bgVideoChat = document.querySelector('bg-video-chat');
+const welcomeNotification = document.querySelector('#welcome-notification');
+const welcomeOkBtn = document.querySelector('#welcome-ok-btn');
+const soundToggle = document.querySelector('#sound-toggle');
+const soundIcon = document.querySelector('#sound-icon');
+const soundMenuText = document.querySelector('#sound-menu-text');
+const bgVideoChat = document.querySelector('#bg-video-chat');
 const bgAudioChat = document.getElementById('bg-audio-chat');
 
 let isMuted = false;
@@ -834,13 +834,13 @@ Let's goooooo =))))
 [ĐIỀU KHOẢN SẼ ĐƯỢC TẢI TỰ ĐỘNG TỪ GITHUB]
 `;
 
-const chatForm = document.querySelector('chat-form');
-const chatInput = document.querySelector('chat-input');
+const chatForm = document.querySelector('#chat-form');
+const chatInput = document.querySelector('#chat-input');
 const chatMessages = document.getElementById('chat-messages');
 const imageBtn = document.getElementById('image-btn');
-const imageInput = document.querySelector('image-input');
+const imageInput = document.querySelector('#image-input');
 const fileBtn = document.getElementById('file-btn');
-const fileInput = document.querySelector('file-input');
+const fileInput = document.querySelector('#file-input');
 
 let conversation = [{
     role: 'user',
@@ -1221,7 +1221,7 @@ function showPendingImagePreview(imageDataUrl) {
 }
 
 function showPendingFilePreview(fileData) {
-    let wrapper = document.querySelector('file-preview-wrapper');
+    let wrapper = document.querySelector('#file-preview-wrapper');
     if (!wrapper) {
         wrapper = document.createElement('div');
         wrapper.id = 'file-preview-wrapper';
@@ -1323,7 +1323,7 @@ function clearPendingImagePreview() {
 }
 
 function clearPendingFilePreview() {
-    const wrapper = document.querySelector('file-preview-wrapper');
+    const wrapper = document.querySelector('#file-preview-wrapper');
     if (wrapper) {
         wrapper.style.animation = 'fadeIn 0.3s ease reverse';
         setTimeout(() => wrapper.remove(), 300);
