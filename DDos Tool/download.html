@@ -259,21 +259,6 @@
             line-height: 1.6;
         }
 
-        .debug-info {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.9);
-            color: #0f0;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 11px;
-            max-width: 300px;
-            z-index: 9999;
-            border: 1px solid #333;
-        }
-
         @media (max-width: 600px) {
             .container {
                 padding: 40px 30px;
@@ -298,20 +283,10 @@
                 padding: 16px 35px;
                 font-size: 1rem;
             }
-
-            .debug-info {
-                font-size: 9px;
-                max-width: 200px;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- Debug Info -->
-    <div class="debug-info" id="debugInfo">
-        <div>Loading...</div>
-    </div>
-
     <div class="container">
         <div id="stepSection">
             <h1 class="title">
@@ -363,15 +338,13 @@
         (function() {
             'use strict';
 
-            // Configuration - SIMPLE VERSION
             const CONFIG = {
-                REQUIRED_TIME: 65000, // 65 seconds 
+                REQUIRED_TIME: 65000,
                 REQUIRED_STEPS: 3,
                 TARGET_LINK: 'https://link4m.com/qTDXbp8',
                 STORAGE_KEY: 'ddos_download_session'
             };
 
-            // Elements
             const stepSection = document.getElementById('stepSection');
             const successSection = document.getElementById('successSection');
             const stepText = document.getElementById('stepText');
@@ -379,22 +352,7 @@
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
             const actionBtn = document.getElementById('actionBtn');
-            const debugInfo = document.getElementById('debugInfo');
 
-            // Debug function - simplified
-            function updateDebug(info) {
-                const timeLeft = info.session ? Math.max(0, CONFIG.REQUIRED_TIME - (Date.now() - info.session.startTime)) : 0;
-                debugInfo.innerHTML = `
-                    <div><strong>⚡ SIMPLE DEBUG:</strong></div>
-                    <div>💾 Session: ${info.hasSession ? 'YES' : 'NO'}</div>
-                    <div>📊 Step: ${info.currentStep}/3</div>
-                    <div>⏰ Time Valid: ${info.timeValid}</div>
-                    <div>⏱️ Time Left: ${Math.ceil(timeLeft/1000)}s</div>
-                    <div>🎯 Action: ${info.action}</div>
-                `;
-            }
-
-            // Icons for different steps
             const STEP_ICONS = {
                 0: 'fas fa-play',
                 1: 'fas fa-key',
@@ -415,7 +373,6 @@
                 2: 'Hoàn thành bước 3'
             };
 
-            // Session management - simplified
             function getSession() {
                 try {
                     const stored = localStorage.getItem(CONFIG.STORAGE_KEY);
@@ -429,7 +386,7 @@
                 try {
                     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
                 } catch (e) {
-                    console.error('Cannot save session');
+                    return false;
                 }
             }
 
@@ -437,7 +394,7 @@
                 try {
                     localStorage.removeItem(CONFIG.STORAGE_KEY);
                 } catch (e) {
-                    console.error('Cannot clear session');
+                    return false;
                 }
             }
 
@@ -451,7 +408,6 @@
                 return session;
             }
 
-            // ONLY TIME VALIDATION - super simple!
             function isTimeValid(session) {
                 if (!session || !session.startTime) return false;
                 const timePassed = Date.now() - session.startTime;
@@ -489,7 +445,6 @@
                 });
             }
 
-            // UI Updates
             function updateProgress(step) {
                 const percentage = (step / CONFIG.REQUIRED_STEPS) * 100;
                 progressFill.style.width = percentage + '%';
@@ -509,11 +464,9 @@
                 clearSession();
             }
 
-            // Button click handler
             window.handleButtonClick = async function() {
                 let session = getSession();
 
-                // No session = create new session
                 if (!session) {
                     const loadingAlert = showCreatingSession();
                     
@@ -525,83 +478,38 @@
                     return;
                 }
 
-                // Session exists = redirect
                 window.location.href = CONFIG.TARGET_LINK;
             };
 
-            // SUPER SIMPLE PAGE LOAD LOGIC
             function handlePageLoad() {
                 let session = getSession();
                 const timeValid = session ? isTimeValid(session) : false;
 
-                updateDebug({
-                    hasSession: !!session,
-                    currentStep: session ? session.currentStep : 0,
-                    timeValid: timeValid,
-                    session: session,
-                    action: 'Loading...'
-                });
-
-                // Case 1: No session - show initial state
                 if (!session) {
                     updateProgress(0);
-                    updateDebug({
-                        hasSession: false,
-                        currentStep: 0,
-                        timeValid: false,
-                        session: null,
-                        action: 'Ready to start'
-                    });
                     return;
                 }
 
-                // Case 2: Session exists - check if enough time passed
                 if (!timeValid) {
-                    // Not enough time = bypass attempt
-                    updateDebug({
-                        hasSession: true,
-                        currentStep: session.currentStep,
-                        timeValid: false,
-                        session: session,
-                        action: 'BYPASS DETECTED!'
-                    });
                     showBypassAlert();
                     return;
                 }
 
-                // Case 3: Session exists + enough time = advance step
                 session.currentStep++;
                 session.completedSteps.push({
                     step: session.currentStep,
                     timestamp: Date.now()
                 });
 
-                // Check if completed
                 if (session.currentStep >= CONFIG.REQUIRED_STEPS) {
-                    updateDebug({
-                        hasSession: true,
-                        currentStep: session.currentStep,
-                        timeValid: true,
-                        session: session,
-                        action: 'SUCCESS!'
-                    });
                     showSuccess();
                     return;
                 }
 
-                // Update for next step
                 saveSession(session);
                 updateProgress(session.currentStep);
-                updateDebug({
-                    hasSession: true,
-                    currentStep: session.currentStep,
-                    timeValid: true,
-                    session: session,
-                    action: 'Step advanced'
-                });
             }
 
-            // Initialize
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', handlePageLoad);
             } else {
