@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tool DDos cân all web siêu bá by a hải dz</title>
     <link rel="stylesheet" href="style.css">
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <!-- Nút quay về bio -->
@@ -58,6 +60,28 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Token Box ở dưới bảng lợi ích -->
+        <div class="token-box">
+            <h2 class="token-title">🔑 Tạo token ngay!</h2>
+            <p class="token-description">Tạo token để mở tool.</p>
+            
+            <button id="createTokenBtn" class="create-token-btn">🚀 Tạo Token</button>
+            
+            <div id="tokenDisplay" class="token-display" style="display: none;">
+                <div class="token-header">
+                    <h3>🎯 Token API của bạn</h3>
+                    <div id="timeRemaining" class="time-remaining"></div>
+                </div>
+                <div class="token-content">
+                    <input type="text" id="tokenValue" class="token-input" readonly>
+                    <button id="copyTokenBtn" class="copy-btn">📋 Copy</button>
+                </div>
+                <div class="token-info">
+                    <p>⚠️ Lưu token này cẩn thận! Không chia sẻ với người khác.</p>
+                </div>
+            </div>
         </div>
     </div>
 
