@@ -440,3 +440,29 @@ body {
         font-size: 1.4rem;
     }
 }
+/* Download Section */
+.download-section {
+    text-align: center;
+}
+
+.download-btn-wrapper {
+    margin-top: 20px;
+}
+
+.download-btn {
+    padding: 15px 30px;
+    background: #000;
+    color: #fff;
+    border: 3px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.download-btn:hover {
+    transform: scale(1.05);
+    background: #111;
+}

@@ -20,6 +20,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const copyTokenBtn = document.getElementById("copyTokenBtn");
     const timeRemaining = document.getElementById("timeRemaining");
 
+    // Download elements
+    const downloadBtn = document.getElementById("downloadBtn");
+
     // State variables
     let currentToken = null;
     let tokenExpiry = null;
@@ -98,6 +101,26 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error('Lỗi copy:', error);
             alert('Không thể copy token. Vui lòng copy thủ công.');
         }
+    });
+
+    // ===== DOWNLOAD MANAGEMENT =====
+
+    downloadBtn.addEventListener("click", () => {
+        if (!isLoggedIn) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Khó nha bro!',
+                text: 'Bro chưa đăng nhập thì sao mà tải xuống được!',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#ff6b6b',
+                background: '#111',
+                color: '#fff'
+            });
+            return;
+        }
+
+        // Chuyển hướng tới trang tải demo
+        window.location.href = "https://example.com";
     });
 
     // ===== FUNCTIONS =====
