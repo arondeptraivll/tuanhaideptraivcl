@@ -263,14 +263,15 @@
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             color: #0f0;
             padding: 10px;
             border-radius: 5px;
             font-family: monospace;
-            font-size: 12px;
-            max-width: 300px;
+            font-size: 11px;
+            max-width: 350px;
             z-index: 9999;
+            border: 1px solid #333;
         }
 
         @media (max-width: 600px) {
@@ -299,8 +300,8 @@
             }
 
             .debug-info {
-                font-size: 10px;
-                max-width: 200px;
+                font-size: 9px;
+                max-width: 250px;
             }
         }
     </style>
@@ -383,13 +384,15 @@
             // Debug function
             function updateDebug(info) {
                 debugInfo.innerHTML = `
-                    <div><strong>DEBUG INFO:</strong></div>
-                    <div>Referrer: ${document.referrer || 'none'}</div>
-                    <div>Session: ${info.hasSession ? 'YES' : 'NO'}</div>
-                    <div>Step: ${info.currentStep}</div>
-                    <div>Time Valid: ${info.timeValid}</div>
-                    <div>Referrer Valid: ${info.referrerValid}</div>
-                    <div>Action: ${info.action}</div>
+                    <div><strong>🐛 DEBUG INFO:</strong></div>
+                    <div>📍 Referrer: ${document.referrer || 'none'}</div>
+                    <div>🔗 URL Params: ${window.location.search || 'none'}</div>
+                    <div>💾 Session: ${info.hasSession ? 'YES' : 'NO'}</div>
+                    <div>📊 Step: ${info.currentStep}</div>
+                    <div>⏰ Time Valid: ${info.timeValid}</div>
+                    <div>✅ Referrer Valid: ${info.referrerValid}</div>
+                    <div>🎯 Expected Source: ${info.expectedSource}</div>
+                    <div>🚀 Action: ${info.action}</div>
                 `;
             }
 
@@ -448,17 +451,37 @@
                     startTime: Date.now(),
                     currentStep: 0, 
                     userIP: null,
-                    completedSteps: []
+                    completedSteps: [],
+                    expectedReturn: true // Flag để biết user nên quay về từ link
                 };
                 saveSession(session);
                 return session;
             }
 
-            // Validation functions
+            // Enhanced validation functions
             function isValidReferrer() {
-                const referrer = document.referrer;
+                const referrer = document.referrer.toLowerCase();
+                const urlParams = new URLSearchParams(window.location.search);
+                
                 console.log('Checking referrer:', referrer);
-                return referrer && (referrer.includes('link4m.com') || referrer.includes('link4m'));
+                console.log('URL params:', window.location.search);
+
+                // Check multiple possible sources
+                const validSources = [
+                    'link4m.com',
+                    'link4m',
+                    'linkvertise',
+                    'shorte.st',
+                    'adf.ly'
+                ];
+
+                // Check referrer
+                const referrerValid = validSources.some(source => referrer.includes(source));
+                
+                // Check URL parameters (some link shorteners add params)
+                const hasValidParam = urlParams.has('ref') || urlParams.has('source') || urlParams.has('from');
+                
+                return referrerValid || hasValidParam;
             }
 
             function isTimeValid(session) {
@@ -468,8 +491,19 @@
                 return timePassed >= CONFIG.REQUIRED_TIME;
             }
 
+            function shouldShowBypassAlert(session) {
+                // Show bypass alert if:
+                // 1. Session exists and expected to return from link
+                // 2. Time is valid (enough time passed)
+                // 3. But referrer is invalid (direct access instead of from link)
+                return session && 
+                       session.expectedReturn && 
+                       isTimeValid(session) && 
+                       !isValidReferrer();
+            }
+
             function showBypassAlert() {
-                console.log('Showing bypass alert');
+                console.log('🚨 Showing bypass alert');
                 Swal.fire({
                     icon: 'error',
                     title: 'Khó nha bro!',
@@ -482,7 +516,7 @@
                     console.log('User clicked OK, resetting session');
                     clearSession();
                     updateProgress(0);
-                    location.reload(); // Force reload to reset state
+                    setTimeout(() => location.reload(), 500);
                 });
             }
 
@@ -518,7 +552,7 @@
             }
 
             function showSuccess() {
-                console.log('Showing success screen');
+                console.log('🎉 Showing success screen');
                 stepSection.style.display = 'none';
                 successSection.style.display = 'block';
                 clearSession();
@@ -526,39 +560,42 @@
 
             // Main button click handler
             window.handleButtonClick = async function() {
-                console.log('Button clicked');
+                console.log('🔘 Button clicked');
                 let session = getSession();
 
                 if (!session) {
-                    console.log('No session, creating new one');
+                    console.log('✨ No session, creating new one');
                     const loadingAlert = showCreatingSession();
                     
                     setTimeout(() => {
                         session = createNewSession();
-                        console.log('Session created, redirecting to:', CONFIG.TARGET_LINK);
+                        console.log('📝 Session created, redirecting to:', CONFIG.TARGET_LINK);
                         loadingAlert.close();
                         window.location.href = CONFIG.TARGET_LINK;
                     }, 2000);
                     return;
                 }
 
-                console.log('Session exists, redirecting to:', CONFIG.TARGET_LINK);
+                console.log('🔄 Session exists, redirecting to:', CONFIG.TARGET_LINK);
+                // Set flag that we expect them to return
+                session.expectedReturn = true;
+                saveSession(session);
                 window.location.href = CONFIG.TARGET_LINK;
             };
 
             // Handle page load
             function handlePageLoad() {
-                console.log('Page loaded, starting checks...');
+                console.log('🌟 Page loaded, starting checks...');
                 
                 let session = getSession();
                 const referrer = document.referrer;
                 const referrerValid = isValidReferrer();
                 const timeValid = session ? isTimeValid(session) : false;
 
-                console.log('Session:', session);
-                console.log('Referrer:', referrer);
-                console.log('Referrer valid:', referrerValid);
-                console.log('Time valid:', timeValid);
+                console.log('📊 Session:', session);
+                console.log('📍 Referrer:', referrer);
+                console.log('✅ Referrer valid:', referrerValid);
+                console.log('⏰ Time valid:', timeValid);
 
                 // Update debug info
                 updateDebug({
@@ -566,50 +603,41 @@
                     currentStep: session ? session.currentStep : 0,
                     timeValid: timeValid,
                     referrerValid: referrerValid,
+                    expectedSource: 'link4m.com or URL params',
                     action: 'analyzing...'
                 });
 
-                // Case 1: No session, no valid referrer - show initial state
-                if (!session && !referrerValid) {
-                    console.log('Case 1: No session, no valid referrer - showing initial state');
+                // MAIN LOGIC FLOW
+
+                // Case 1: No session - show initial state
+                if (!session) {
+                    console.log('📌 Case 1: No session - showing initial state');
                     updateProgress(0);
                     updateDebug({
                         hasSession: false,
                         currentStep: 0,
                         timeValid: false,
-                        referrerValid: false,
-                        action: 'Initial state'
+                        referrerValid: referrerValid,
+                        expectedSource: 'link4m.com or URL params',
+                        action: 'Initial state - ready to start'
                     });
                     return;
                 }
 
-                // Case 2: No session but coming from link (bypass attempt)
-                if (!session && referrerValid) {
-                    console.log('Case 2: No session but valid referrer - possible bypass');
-                    updateDebug({
-                        hasSession: false,
-                        currentStep: 0,
-                        timeValid: false,
-                        referrerValid: true,
-                        action: 'Bypass detected!'
-                    });
-                    showBypassAlert();
-                    return;
-                }
-
-                // Case 3: Session exists and coming from valid referrer
+                // Case 2: Session exists, coming from valid referrer
                 if (session && referrerValid) {
-                    console.log('Case 3: Session exists and valid referrer');
+                    console.log('✅ Case 2: Session exists and valid referrer');
                     
                     // Check time requirement
                     if (!timeValid) {
-                        console.log('Time requirement not met');
+                        console.log('⚠️ Time requirement not met - possible bypass');
                         updateDebug({
                             hasSession: true,
                             currentStep: session.currentStep,
                             timeValid: false,
                             referrerValid: true,
-                            action: 'Time not valid - bypass!'
+                            expectedSource: 'link4m.com or URL params',
+                            action: 'BYPASS DETECTED - insufficient time!'
                         });
                         showBypassAlert();
                         return;
@@ -622,18 +650,20 @@
                         timestamp: Date.now(),
                         referrer: referrer
                     });
+                    session.expectedReturn = true; // Expect return for next step
 
-                    console.log('Step completed:', session.currentStep);
+                    console.log('🎯 Step completed:', session.currentStep);
 
                     // Check if completed all steps
                     if (session.currentStep >= CONFIG.REQUIRED_STEPS) {
-                        console.log('All steps completed');
+                        console.log('🏆 All steps completed');
                         updateDebug({
                             hasSession: true,
                             currentStep: session.currentStep,
                             timeValid: true,
                             referrerValid: true,
-                            action: 'SUCCESS!'
+                            expectedSource: 'link4m.com or URL params',
+                            action: '🎉 ALL COMPLETE - SUCCESS!'
                         });
                         showSuccess();
                         return;
@@ -647,33 +677,38 @@
                         currentStep: session.currentStep,
                         timeValid: true,
                         referrerValid: true,
-                        action: 'Step advanced'
+                        expectedSource: 'link4m.com or URL params',
+                        action: '✨ Step advanced successfully'
                     });
 
                 } else if (session && !referrerValid) {
-                    // Case 4: Session exists but not coming from valid referrer
-                    console.log('Case 4: Session exists but invalid referrer');
+                    // Case 3: Session exists but invalid referrer
+                    console.log('🚨 Case 3: Session exists but invalid referrer');
                     
-                    if (session.currentStep > 0) {
-                        console.log('Session has progress but invalid referrer - bypass attempt');
+                    // Check if this is a bypass attempt
+                    if (shouldShowBypassAlert(session)) {
+                        console.log('🛑 Bypass attempt detected');
                         updateDebug({
                             hasSession: true,
                             currentStep: session.currentStep,
                             timeValid: timeValid,
                             referrerValid: false,
-                            action: 'Invalid referrer - bypass!'
+                            expectedSource: 'link4m.com or URL params',
+                            action: '🚨 BYPASS DETECTED - invalid referrer!'
                         });
                         showBypassAlert();
                         return;
                     } else {
-                        console.log('Session exists but no progress - showing current step');
+                        // Direct access or page refresh - show current state
+                        console.log('🔄 Direct access - showing current step');
                         updateProgress(session.currentStep);
                         updateDebug({
                             hasSession: true,
                             currentStep: session.currentStep,
                             timeValid: timeValid,
                             referrerValid: false,
-                            action: 'Direct access'
+                            expectedSource: 'link4m.com or URL params',
+                            action: '📄 Direct access - showing current state'
                         });
                     }
                 }
