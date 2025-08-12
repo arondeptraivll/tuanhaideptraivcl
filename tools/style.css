@@ -1,10 +1,8 @@
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
-
 
 body {
     display: flex;
@@ -17,7 +15,6 @@ body {
     position: relative;
     overflow: hidden;
 }
-
 
 body::before {
     content: '';
@@ -41,7 +38,6 @@ body::before {
     50% { opacity: 0.6; transform: scale(1.1) rotate(180deg); }
 }
 
-
 .card {
     width: 100%;
     max-width: 500px;
@@ -54,7 +50,6 @@ body::before {
     border: 1px solid #333333;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-
 
 .card-title {
     font-size: 2.8rem;
@@ -89,6 +84,56 @@ body::before {
     50% { background-position: 100% 50%; }
 }
 
+/* Navigation arrows */
+.nav-arrow {
+    position: absolute;
+    top: 60%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-arrow:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.nav-arrow:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.nav-arrow.left {
+    left: -15px;
+}
+
+.nav-arrow.right {
+    right: -15px;
+}
+
+/* Tools wrapper and container for slide effect */
+.tools-wrapper {
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.tools-container {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 40px;
+}
 
 .tool-box {
     background: #111111;
@@ -98,6 +143,8 @@ body::before {
     z-index: 2;
     border: 1px solid #333333;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 100%;
+    flex-shrink: 0;
 }
 
 .tool-box:hover {
@@ -124,7 +171,6 @@ body::before {
     line-height: 1.5;
 }
 
-
 .access-btn {
     display: inline-flex;
     align-items: center;
@@ -144,7 +190,6 @@ body::before {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
 }
-
 
 .access-btn::before {
     content: '';
@@ -176,6 +221,43 @@ body::before {
     transform: translateX(6px);
 }
 
+/* Page indicators */
+.page-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.indicator {
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.indicator.active {
+    background: #ffffff;
+    transform: scale(1.5);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .nav-arrow {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .nav-arrow.left {
+        left: 5px;
+    }
+    
+    .nav-arrow.right {
+        right: 5px;
+    }
+}
 
 @media (max-width: 500px) {
     body {
@@ -219,4 +301,39 @@ body::before {
         padding: 14px 28px;
         gap: 8px;
     }
+}
+/* Tools wrapper and container for slide effect */
+.tools-wrapper {
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 30px;
+    width: 100%;
+}
+
+.tools-container {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Bỏ gap để tránh lệch */
+}
+
+.tool-box {
+    background: #111111;
+    border-radius: 24px;
+    padding: 40px 32px;
+    position: relative;
+    z-index: 2;
+    border: 1px solid #333333;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    flex-shrink: 0;
+    /* Thêm margin thay vì gap */
+    margin: 0 20px;
+}
+
+.tool-box:first-child {
+    margin-left: 0;
+}
+
+.tool-box:last-child {
+    margin-right: 0;
 }

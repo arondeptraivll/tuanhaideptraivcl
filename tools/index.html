@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Danh sách tool của anh hải dz</title>
     
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -20,13 +18,43 @@
     <main class="card">
         <h1 class="card-title">Danh sách tool của <br> anh hải dz</h1>
 
-        <div class="tool-box">
-            <h2 class="tool-title">Tool Bypass Funlink</h2>
-            <p class="tool-description">Tool bypass funlink by anh hải dz</p>
-            <button id="access-button" class="access-btn">
-                <span>TRUY CẬP NGAY</span>
-                <i class="fas fa-arrow-right"></i>
-            </button>
+        <!-- Navigation arrows -->
+        <button class="nav-arrow left">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="nav-arrow right">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- Tools container with overflow hidden for slide effect -->
+        <div class="tools-wrapper">
+            <div class="tools-container">
+                <!-- Tool 1: Bypass Funlink -->
+                <div class="tool-box" data-url="https://tuanhaideptraivcl.vercel.app/Bypass%20Funlink/index.html">
+                    <h2 class="tool-title">Tool Bypass Funlink</h2>
+                    <p class="tool-description">Tool bypass funlink by anh hải dz</p>
+                    <button class="access-btn">
+                        <span>TRUY CẬP NGAY</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Tool 2: DDos Vip -->
+                <div class="tool-box" data-url="https://tuanhaideptraivcl.vercel.app/DDos%20Tool/index.html">
+                    <h2 class="tool-title">Tool DDos Vip</h2>
+                    <p class="tool-description">Tool DDos Vip by anh hải dz</p>
+                    <button class="access-btn">
+                        <span>TRUY CẬP NGAY</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page indicators -->
+        <div class="page-indicators">
+            <span class="indicator active"></span>
+            <span class="indicator"></span>
         </div>
     </main>
 
