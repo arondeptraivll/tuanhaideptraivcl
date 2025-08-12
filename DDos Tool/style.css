@@ -1,15 +1,19 @@
-body {
-    background: #000;
-    font-family: 'Arial', sans-serif;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
+/* Reset */
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* Nút quay về bio */
+body {
+    font-family: Arial, sans-serif;
+    background: #000;
+    color: #fff;
+    line-height: 1.6;
+    padding-top: 80px;
+}
+
+/* Back Button */
 .back-btn {
     position: fixed;
     top: 20px;
@@ -17,344 +21,422 @@ body {
     padding: 10px 20px;
     background: #000;
     color: #fff;
-    font-size: 1em;
-    font-weight: bold;
-    border-radius: 8px;
-    border: 3px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    border: 2px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 5px;
     cursor: pointer;
     z-index: 1000;
-    animation: borderRainbow 5s linear infinite;
-    transition: all 0.3s ease;
-}
-.back-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255,255,255,0.8);
+    font-weight: bold;
+    transition: transform 0.2s ease;
 }
 
-/* Widget user/login góc phải */
+.back-btn:hover {
+    transform: scale(1.05);
+}
+
+/* User Widget */
 .user-widget {
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1500;
-    display: flex;
-    align-items: center;
+    z-index: 1000;
 }
 
-/* Nút đăng nhập */
 .login-btn {
-    padding: 8px 16px;
+    padding: 10px 20px;
     background: #000;
     color: #fff;
-    font-weight: bold;
-    border-radius: 8px;
-    border: 3px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
-    animation: borderRainbow 5s linear infinite;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 5px;
     cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.login-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255,255,255,0.7);
+    font-weight: bold;
+    transition: transform 0.2s ease;
 }
 
-/* Thông tin user */
+.login-btn:hover {
+    transform: scale(1.05);
+}
+
 .user-info {
     display: flex;
     align-items: center;
-    background: rgba(0,0,0,0.8);
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 3px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
-    animation: borderRainbow 5s linear infinite;
+    gap: 10px;
+    padding: 8px 15px;
+    background: #111;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 5px;
     cursor: pointer;
-    transition: transform 0.3s ease;
-}
-.user-info:hover {
-    transform: scale(1.05);
 }
 
 .user-avatar {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    margin-right: 8px;
-    border: 2px solid rgba(255,255,255,0.3);
+    border: 1px solid #333;
 }
 
-#usernameDisplay {
-    color: #fff;
-    font-weight: bold;
-    font-size: 0.9em;
-}
-
-/* Container chính */
+/* Container */
 .container {
-    padding: 30px;
-    border-radius: 15px;
-    text-align: center;
-    animation: borderRainbow 5s linear infinite;
     max-width: 800px;
-    margin-top: 80px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
-/* Viền container */
-.rainbow-border {
-    border: 5px solid;
-    border-image-slice: 1;
-    border-width: 5px;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+/* Blog Header */
+.blog-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: #111;
+    border: 3px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 10px;
 }
 
-/* Tiêu đề chữ cầu vồng */
-.rainbow-text {
-    background: linear-gradient(270deg, red, orange, yellow, green, cyan, blue, violet);
-    background-size: 1400% 1400%;
+.blog-title {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    background: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: textRainbow 8s ease infinite;
+    background-clip: text;
 }
 
-/* Nội dung fade */
-.fade-text {
-    animation: fadeInOut 5s ease-in-out infinite;
-    font-size: 1.2em;
+.blog-subtitle {
+    font-size: 1.1rem;
+    color: #ccc;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-/* Gallery dạng dọc */
+/* Blog Content */
+.blog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.blog-section {
+    background: #111;
+    padding: 30px;
+    border: 3px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 10px;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #fff;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+}
+
+.section-description {
+    font-size: 1.1rem;
+    color: #ccc;
+    margin-bottom: 25px;
+}
+
+/* Gallery */
 .gallery {
-    margin-top: 20px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    align-items: center;
 }
-.gallery-item {
-    width: 100%;
-    max-width: 700px;
-    height: auto;
-    border-radius: 10px;
-    cursor: pointer;
-    border: 3px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
-    animation: borderRainbow 5s linear infinite;
-    transition: transform 0.3s ease;
+
+.gallery-item-wrapper {
+    border: 2px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
 }
-.gallery-item:hover {
+
+.gallery-item-wrapper:hover {
     transform: scale(1.02);
 }
 
-/* Bảng tính năng */
-.feature-table-wrapper {
-    margin-top: 30px;
+.gallery-item {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: pointer;
+}
+
+/* Features Table */
+.features-table {
     overflow-x: auto;
 }
 
-.feature-table {
+.features-table table {
     width: 100%;
     border-collapse: collapse;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 8px;
+}
+
+.features-table th,
+.features-table td {
+    padding: 15px;
     text-align: center;
-    font-size: 1.1em;
-    border: 3px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
-    animation: borderRainbow 5s linear infinite;
+    border-bottom: 1px solid #333;
 }
 
-.feature-table th, 
-.feature-table td {
-    padding: 12px;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.feature-table th {
-    background: linear-gradient(270deg, red, orange, yellow, green, cyan, blue, violet);
-    background-size: 400% 400%;
-    animation: textRainbow 8s ease infinite;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.features-table th {
+    background: #222;
     font-weight: bold;
-}
-
-.feature-table td {
     color: #fff;
 }
 
-.feature-table td:last-child {
-    font-size: 1.3em;
-    color: #00ff7f;
+.features-table td {
+    background: #111;
 }
 
-/* ===== TOKEN BOX ===== */
-.token-box {
-    margin-top: 30px;
-    padding: 25px;
-    background: rgba(0,0,0,0.4);
-    border-radius: 15px;
-    border: 3px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
-    animation: borderRainbow 5s linear infinite;
+.features-table tr:hover td {
+    background: #222;
+}
+
+.check {
+    color: #00ff00;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Token Section */
+.token-section {
     text-align: center;
 }
 
-.token-title {
-    background: linear-gradient(270deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #fec163, #ff6b6b);
-    background-size: 1400% 1400%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: textRainbow 8s ease infinite;
-    font-size: 1.8em;
-    margin: 0 0 10px 0;
+.create-section {
+    margin: 25px 0;
 }
 
-.token-description {
-    color: #ccc;
-    font-size: 1.1em;
-    margin-bottom: 20px;
-}
-
-.create-token-btn {
-    padding: 15px 40px;
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #fec163, #ff6b6b);
-    background-size: 300% 300%;
+.create-btn {
+    padding: 15px 30px;
+    background: #000;
     color: #fff;
-    font-size: 1.2em;
+    border: 3px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
+    border-radius: 8px;
+    font-size: 1.1rem;
     font-weight: bold;
-    border: none;
-    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    animation: gradientShift 3s ease infinite;
-    box-shadow: 0 4px 15px rgba(255,255,255,0.3);
+    transition: all 0.2s ease;
 }
 
-.create-token-btn:hover {
+.create-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(255,255,255,0.5);
+    background: #111;
 }
 
-.create-token-btn:disabled {
+.create-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
 
+/* Token Display */
 .token-display {
     margin-top: 25px;
     padding: 20px;
-    background: rgba(0,0,0,0.6);
-    border-radius: 10px;
-    border: 2px solid rgba(255,255,255,0.2);
+    background: #222;
+    border: 2px solid #333;
+    border-radius: 8px;
+    text-align: left;
 }
 
-.token-header {
+.token-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 10px;
 }
 
-.token-header h3 {
-    margin: 0;
-    color: #00ff7f;
-    font-size: 1.3em;
+.token-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #00ff00;
 }
 
-.time-remaining {
+.status-dot {
+    width: 10px;
+    height: 10px;
+    background: #00ff00;
+    border-radius: 50%;
+    animation: blink 2s infinite;
+}
+
+.countdown {
+    font-family: 'Courier New', monospace;
     font-weight: bold;
-    color: #ff6b6b;
-    font-size: 1.1em;
-    background: rgba(0,0,0,0.5);
-    padding: 5px 10px;
-    border-radius: 5px;
+    color: #ff6666;
+    font-size: 1.1rem;
 }
 
-.token-content {
+.token-field {
+    margin-bottom: 15px;
+}
+
+.token-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #ccc;
+}
+
+.input-group {
     display: flex;
     gap: 10px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
 }
 
 .token-input {
     flex: 1;
-    min-width: 200px;
     padding: 12px;
-    background: #1a1a1a;
+    background: #000;
     color: #fff;
-    border: 2px solid #333;
+    border: 1px solid #333;
     border-radius: 5px;
     font-family: 'Courier New', monospace;
-    font-size: 0.9em;
+    font-size: 0.9rem;
+}
+
+.token-input:focus {
+    outline: none;
+    border-color: #666;
 }
 
 .copy-btn {
-    padding: 12px 20px;
-    background: #4ecdc4;
+    padding: 12px 16px;
+    background: #333;
     color: #fff;
-    border: none;
+    border: 1px solid #555;
     border-radius: 5px;
     cursor: pointer;
-    transition: background 0.3s ease;
-    font-weight: bold;
+    transition: background 0.2s ease;
 }
 
 .copy-btn:hover {
-    background: #45b7d1;
+    background: #444;
 }
 
-.token-info {
-    text-align: center;
-    color: #fec163;
-    font-size: 0.9em;
-}
-
-.token-info p {
-    margin: 5px 0;
+.warning {
+    padding: 10px;
+    background: #332200;
+    border: 1px solid #664400;
+    border-radius: 5px;
+    color: #ffcc00;
+    font-size: 0.9rem;
 }
 
 /* Lightbox */
 .lightbox {
     display: none;
     position: fixed;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
     justify-content: center;
     align-items: center;
-    z-index: 2000;
-    overflow: auto;
 }
+
 .lightbox-img {
     max-width: 90%;
     max-height: 90%;
+    border: 3px solid;
+    border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red) 1;
     border-radius: 10px;
-    border: 5px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
-    animation: borderRainbow 5s linear infinite;
 }
+
 .close-btn {
     position: absolute;
     top: 20px;
     right: 30px;
-    font-size: 2.5em;
-    color: white;
+    font-size: 2rem;
+    color: #fff;
     cursor: pointer;
     font-weight: bold;
-    transition: transform 0.3s;
+    background: #000;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 }
+
 .close-btn:hover {
-    transform: 
+    background: #333;
+    transform: scale(1.1);
+}
+
+/* Animations (minimal để tiết kiệm điện) */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .blog-header,
+    .blog-section {
+        padding: 20px;
+    }
+    
+    .blog-title {
+        font-size: 2rem;
+    }
+    
+    .token-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .back-btn,
+    .user-widget {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        margin: 10px;
+    }
+    
+    body {
+        padding-top: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .features-table th,
+    .features-table td {
+        padding: 10px 8px;
+        font-size: 0.9rem;
+    }
+    
+    .blog-title {
+        font-size: 1.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.4rem;
+    }
+}

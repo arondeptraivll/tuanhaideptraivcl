@@ -1,8 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    const container = document.querySelector(".container");
+    // Element references
     const backBtn = document.getElementById("backBtn");
     const galleryItems = document.querySelectorAll(".gallery-item");
-
     const lightbox = document.getElementById("lightbox");
     const lightboxImg = document.getElementById("lightboxImg");
     const closeBtn = document.getElementById("closeBtn");
@@ -14,35 +13,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     const usernameDisplay = document.getElementById("usernameDisplay");
 
     // Token management elements
+    const createTokenSection = document.getElementById("createTokenSection");
     const createTokenBtn = document.getElementById("createTokenBtn");
     const tokenDisplay = document.getElementById("tokenDisplay");
     const tokenValue = document.getElementById("tokenValue");
     const copyTokenBtn = document.getElementById("copyTokenBtn");
     const timeRemaining = document.getElementById("timeRemaining");
 
+    // State variables
     let currentToken = null;
     let tokenExpiry = null;
     let countdownInterval = null;
     let isLoggedIn = false;
 
-    // ✅ ĐỊNH NGHĨA BASE URL
     const BASE_URL = 'https://tuanhaideptraivcl.vercel.app';
-    
-    // Hover container
-    container.addEventListener("mouseover", () => {
-        container.style.transform = "scale(1.01)";
-        container.style.transition = "transform 0.3s ease";
-    });
-    container.addEventListener("mouseout", () => {
-        container.style.transform = "scale(1)";
-    });
 
-    // Nút quay về bio
+    // ===== EVENT LISTENERS =====
+
+    // Navigation
     backBtn.addEventListener("click", () => {
         window.location.href = `${BASE_URL}/`;
     });
 
-    // Zoom ảnh
+    // Gallery
     galleryItems.forEach(img => {
         img.addEventListener("click", () => {
             lightboxImg.src = img.src;
@@ -50,19 +43,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
-    // Đóng lightbox
     closeBtn.addEventListener("click", () => {
         lightbox.style.display = "none";
     });
 
-    // Đóng khi click nền
     lightbox.addEventListener("click", (e) => {
         if (e.target === lightbox) {
             lightbox.style.display = "none";
         }
     });
 
-    // ✅ Xử lý user widget
+    // User auth
     loginButton.addEventListener("click", () => {
         window.location.href = `${BASE_URL}/login`;
     });
@@ -71,99 +62,96 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.location.href = `${BASE_URL}/`;
     });
 
-    // ✅ TOKEN MANAGEMENT
+    // ===== TOKEN MANAGEMENT =====
 
-    // Tạo token
     createTokenBtn.addEventListener("click", async () => {
         if (!isLoggedIn) {
-            // Hiện SweetAlert2 nếu chưa đăng nhập
             Swal.fire({
                 icon: 'error',
                 title: 'Khó nha bro!',
                 text: 'bro chưa đăng nhập thì sao mà tạo token được',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#ff6b6b',
-                background: '#1a1a1a',
+                background: '#111',
                 color: '#fff'
             });
             return;
         }
 
+        await createNewToken();
+    });
+
+    copyTokenBtn.addEventListener("click", async () => {
+        try {
+            await navigator.clipboard.writeText(currentToken);
+            
+            const originalText = copyTokenBtn.textContent;
+            copyTokenBtn.textContent = '✅ Đã copy!';
+            copyTokenBtn.style.background = '#006600';
+            
+            setTimeout(() => {
+                copyTokenBtn.textContent = originalText;
+                copyTokenBtn.style.background = '#333';
+            }, 2000);
+
+        } catch (error) {
+            console.error('Lỗi copy:', error);
+            alert('Không thể copy token. Vui lòng copy thủ công.');
+        }
+    });
+
+    // ===== FUNCTIONS =====
+
+    async function createNewToken() {
         try {
             createTokenBtn.disabled = true;
             createTokenBtn.textContent = '🔄 Đang tạo...';
 
-            console.log('🔗 Gọi API tạo token...');
-            
-            // ✅ SỬA URL API - thử các đường dẫn khả thi
-            const apiUrls = [
-                `${BASE_URL}/api/ddos?action=create`,  // Đường dẫn gốc
-                `../api/ddos?action=create`,           // Relative path
-                `/api/ddos?action=create`              // Absolute path
-            ];
-
-            let response = null;
-            let lastError = null;
-
-            // Thử từng URL cho đến khi thành công
-            for (const url of apiUrls) {
-                try {
-                    console.log(`🧪 Thử URL: ${url}`);
-                    response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        console.log(`✅ URL thành công: ${url}`);
-                        break;
-                    } else {
-                        console.log(`❌ URL thất bại (${response.status}): ${url}`);
-                    }
-                } catch (error) {
-                    console.log(`❌ URL lỗi: ${url}`, error.message);
-                    lastError = error;
-                    continue;
+            const response = await fetch(`${BASE_URL}/api/ddos?action=create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            }
-
-            if (!response || !response.ok) {
-                throw new Error(`Không thể kết nối API. Status: ${response?.status || 'Network Error'}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
-                console.error('📄 Response không phải JSON:', text);
-                throw new Error('Server trả về định dạng không hợp lệ');
-            }
+            });
 
             const data = await response.json();
-            console.log('📡 Response từ API:', data);
 
             if (data.success) {
                 currentToken = data.token;
                 tokenExpiry = new Date(data.expires_at);
                 
-                // Hiện thông báo thành công
                 Swal.fire({
                     icon: 'success',
                     title: 'Tạo token thành công!',
                     text: 'Token API đã được tạo và sẵn sàng sử dụng',
                     confirmButtonText: 'OK',
-                    confirmButtonColor: '#4ecdc4',
-                    background: '#1a1a1a',
+                    confirmButtonColor: '#00aa00',
+                    background: '#111',
                     color: '#fff'
                 });
 
-                // Hiển thị token
+                hideCreateTokenButton();
                 showTokenDisplay();
                 startCountdown();
                 
             } else {
-                throw new Error(data.message || 'Tạo token thất bại');
+                if (response.status === 429) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Không thể tạo token!',
+                        text: data.message,
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#ffaa00',
+                        background: '#111',
+                        color: '#fff'
+                    });
+                    
+                    if (data.existing_token) {
+                        showExistingToken(data.existing_token);
+                    }
+                } else {
+                    throw new Error(data.message || 'Tạo token thất bại');
+                }
             }
 
         } catch (error) {
@@ -174,62 +162,60 @@ document.addEventListener("DOMContentLoaded", async () => {
                 text: `Không thể tạo token: ${error.message}`,
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#ff6b6b',
-                background: '#1a1a1a',
+                background: '#111',
                 color: '#fff'
             });
         } finally {
             createTokenBtn.disabled = false;
             createTokenBtn.textContent = '🚀 Tạo Token';
         }
-    });
+    }
 
-    // Copy token
-    copyTokenBtn.addEventListener("click", async () => {
+    async function checkExistingTokenByIP() {
         try {
-            await navigator.clipboard.writeText(currentToken);
+            const response = await fetch(`${BASE_URL}/api/ddos?action=check`);
+            const data = await response.json();
             
-            // Thay đổi text tạm thời
-            const originalText = copyTokenBtn.textContent;
-            copyTokenBtn.textContent = '✅ Đã copy!';
-            copyTokenBtn.style.background = '#00ff7f';
+            if (data.success && data.has_token) {
+                currentToken = data.token;
+                tokenExpiry = new Date(data.expires_at);
+                
+                hideCreateTokenButton();
+                showTokenDisplay();
+                startCountdown();
+                return true;
+            }
             
-            setTimeout(() => {
-                copyTokenBtn.textContent = originalText;
-                copyTokenBtn.style.background = '#4ecdc4';
-            }, 2000);
-
+            return false;
         } catch (error) {
-            console.error('Lỗi copy:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi copy!',
-                text: 'Không thể copy token. Vui lòng copy thủ công.',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#ff6b6b',
-                background: '#1a1a1a',
-                color: '#fff'
-            });
+            console.error('Lỗi check token:', error);
+            return false;
         }
-    });
+    }
 
-    // Hiển thị token display
+    function hideCreateTokenButton() {
+        createTokenSection.style.display = 'none';
+    }
+
+    function showCreateTokenButton() {
+        createTokenSection.style.display = 'block';
+        tokenDisplay.style.display = 'none';
+    }
+
+    function showExistingToken(existingData) {
+        tokenExpiry = new Date(existingData.expires_at);
+        hideCreateTokenButton();
+        
+        tokenValue.value = '*** Token đang hoạt động - Đã ẩn vì bảo mật ***';
+        tokenDisplay.style.display = 'block';
+        startCountdown();
+    }
+
     function showTokenDisplay() {
         tokenValue.value = currentToken;
         tokenDisplay.style.display = 'block';
-        createTokenBtn.disabled = true;
-        createTokenBtn.textContent = '⏳ Token đang hoạt động';
     }
 
-    // Ẩn token display
-    function hideTokenDisplay() {
-        tokenDisplay.style.display = 'none';
-        createTokenBtn.disabled = false;
-        createTokenBtn.textContent = '🚀 Tạo Token';
-        currentToken = null;
-        tokenExpiry = null;
-    }
-
-    // Countdown timer
     function startCountdown() {
         if (countdownInterval) {
             clearInterval(countdownInterval);
@@ -240,23 +226,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             const diff = tokenExpiry - now;
 
             if (diff <= 0) {
-                // Token hết hạn
                 clearInterval(countdownInterval);
-                hideTokenDisplay();
+                showCreateTokenButton();
                 
                 Swal.fire({
-                    icon: 'warning',
+                    icon: 'info',
                     title: 'Token đã hết hạn!',
                     text: 'Bạn có thể tạo token mới ngay bây giờ.',
                     confirmButtonText: 'OK',
-                    confirmButtonColor: '#fec163',
-                    background: '#1a1a1a',
+                    confirmButtonColor: '#0088ff',
+                    background: '#111',
                     color: '#fff'
                 });
                 return;
             }
 
-            // Tính toán thời gian còn lại
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
@@ -265,22 +249,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, 1000);
     }
 
-    // ✅ Kiểm tra trạng thái đăng nhập
+    // ===== INITIALIZATION =====
+
     try {
-        console.log("🔍 Đang kiểm tra session...");
-        
         const res = await fetch(`${BASE_URL}/api/auth?action=check_session`, {
             method: 'GET',
             credentials: 'include'
         });
         
         const data = await res.json();
-        console.log("📡 Phản hồi từ API:", data);
 
         if (data.has_session && data.user) {
-            // ✅ Đã đăng nhập
-            console.log("✅ User đã đăng nhập:", data.user.displayName || data.user.username);
-            
             isLoggedIn = true;
             loginButton.style.display = "none";
             userInfo.style.display = "flex";
@@ -291,9 +270,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             userAvatar.onerror = function() {
                 this.src = "https://cdn.discordapp.com/embed/avatars/0.png";
             };
+
+            await checkExistingTokenByIP();
+            
         } else {
-            // ❌ Chưa đăng nhập
-            console.log("❌ User chưa đăng nhập");
             isLoggedIn = false;
             loginButton.style.display = "block";
             userInfo.style.display = "none";
