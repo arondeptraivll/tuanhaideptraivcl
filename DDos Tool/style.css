@@ -1,0 +1,246 @@
+body {
+    background: #000;
+    font-family: 'Arial', sans-serif;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Nút quay về bio */
+.back-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    background: #000;
+    color: #fff;
+    font-size: 1em;
+    font-weight: bold;
+    border-radius: 8px;
+    border: 3px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    cursor: pointer;
+    z-index: 1000;
+    animation: borderRainbow 5s linear infinite;
+    transition: all 0.3s ease;
+}
+.back-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,255,255,0.8);
+}
+
+/* Widget user/login góc phải */
+.user-widget {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+}
+
+/* Nút đăng nhập */
+.login-btn {
+    padding: 8px 16px;
+    background: #000;
+    color: #fff;
+    font-weight: bold;
+    border-radius: 8px;
+    border: 3px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    animation: borderRainbow 5s linear infinite;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.login-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,255,255,0.7);
+}
+
+/* Thông tin user */
+.user-info {
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.8);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 3px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    animation: borderRainbow 5s linear infinite;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+.user-info:hover {
+    transform: scale(1.05);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+#usernameDisplay {
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+/* Container chính */
+.container {
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    animation: borderRainbow 5s linear infinite;
+    max-width: 800px;
+    margin-top: 80px;
+}
+
+/* Viền container */
+.rainbow-border {
+    border: 5px solid;
+    border-image-slice: 1;
+    border-width: 5px;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+}
+
+/* Tiêu đề chữ cầu vồng */
+.rainbow-text {
+    background: linear-gradient(270deg, red, orange, yellow, green, cyan, blue, violet);
+    background-size: 1400% 1400%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: textRainbow 8s ease infinite;
+}
+
+/* Nội dung fade */
+.fade-text {
+    animation: fadeInOut 5s ease-in-out infinite;
+    font-size: 1.2em;
+}
+
+/* Gallery dạng dọc */
+.gallery {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+.gallery-item {
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 3px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    animation: borderRainbow 5s linear infinite;
+    transition: transform 0.3s ease;
+}
+.gallery-item:hover {
+    transform: scale(1.02);
+}
+
+/* Bảng tính năng */
+.feature-table-wrapper {
+    margin-top: 30px;
+    overflow-x: auto;
+}
+
+.feature-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    font-size: 1.1em;
+    border: 3px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    animation: borderRainbow 5s linear infinite;
+}
+
+.feature-table th, 
+.feature-table td {
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.feature-table th {
+    background: linear-gradient(270deg, red, orange, yellow, green, cyan, blue, violet);
+    background-size: 400% 400%;
+    animation: textRainbow 8s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+}
+
+.feature-table td {
+    color: #fff;
+}
+
+.feature-table td:last-child {
+    font-size: 1.3em;
+    color: #00ff7f;
+}
+
+/* Lightbox */
+.lightbox {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    overflow: auto;
+}
+.lightbox-img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+    border: 5px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red);
+    animation: borderRainbow 5s linear infinite;
+}
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 2.5em;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+.close-btn:hover {
+    transform: scale(1.2);
+    color: red;
+}
+
+/* Animation cầu vồng */
+@keyframes textRainbow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes fadeInOut {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+@keyframes borderRainbow {
+    0% { border-image-source: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, red); }
+    100% { border-image-source: linear-gradient(405deg, red, orange, yellow, green, cyan, blue, violet, red); }
+}
