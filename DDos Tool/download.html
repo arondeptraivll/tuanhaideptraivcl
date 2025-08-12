@@ -259,6 +259,20 @@
             line-height: 1.6;
         }
 
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 9999;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 40px 30px;
@@ -283,10 +297,20 @@
                 padding: 16px 35px;
                 font-size: 1rem;
             }
+
+            .debug-info {
+                font-size: 10px;
+                max-width: 200px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Debug Info -->
+    <div class="debug-info" id="debugInfo">
+        <div>Loading...</div>
+    </div>
+
     <div class="container">
         <div id="stepSection">
             <h1 class="title">
@@ -354,6 +378,20 @@
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
             const actionBtn = document.getElementById('actionBtn');
+            const debugInfo = document.getElementById('debugInfo');
+
+            // Debug function
+            function updateDebug(info) {
+                debugInfo.innerHTML = `
+                    <div><strong>DEBUG INFO:</strong></div>
+                    <div>Referrer: ${document.referrer || 'none'}</div>
+                    <div>Session: ${info.hasSession ? 'YES' : 'NO'}</div>
+                    <div>Step: ${info.currentStep}</div>
+                    <div>Time Valid: ${info.timeValid}</div>
+                    <div>Referrer Valid: ${info.referrerValid}</div>
+                    <div>Action: ${info.action}</div>
+                `;
+            }
 
             // Icons for different steps
             const STEP_ICONS = {
@@ -382,6 +420,7 @@
                     const stored = localStorage.getItem(CONFIG.STORAGE_KEY);
                     return stored ? JSON.parse(stored) : null;
                 } catch (e) {
+                    console.error('Error getting session:', e);
                     return null;
                 }
             }
@@ -389,23 +428,25 @@
             function saveSession(data) {
                 try {
                     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
+                    console.log('Session saved:', data);
                 } catch (e) {
-                    console.error('Cannot save session');
+                    console.error('Cannot save session:', e);
                 }
             }
 
             function clearSession() {
                 try {
                     localStorage.removeItem(CONFIG.STORAGE_KEY);
+                    console.log('Session cleared');
                 } catch (e) {
-                    console.error('Cannot clear session');
+                    console.error('Cannot clear session:', e);
                 }
             }
 
             function createNewSession() {
                 const session = {
                     startTime: Date.now(),
-                    currentStep: 0, // Bắt đầu từ 0, chưa hoàn thành bước nào
+                    currentStep: 0, 
                     userIP: null,
                     completedSteps: []
                 };
@@ -416,15 +457,19 @@
             // Validation functions
             function isValidReferrer() {
                 const referrer = document.referrer;
-                return referrer && referrer.includes('link4m.com');
+                console.log('Checking referrer:', referrer);
+                return referrer && (referrer.includes('link4m.com') || referrer.includes('link4m'));
             }
 
             function isTimeValid(session) {
+                if (!session || !session.startTime) return false;
                 const timePassed = Date.now() - session.startTime;
+                console.log('Time passed:', timePassed, 'Required:', CONFIG.REQUIRED_TIME);
                 return timePassed >= CONFIG.REQUIRED_TIME;
             }
 
             function showBypassAlert() {
+                console.log('Showing bypass alert');
                 Swal.fire({
                     icon: 'error',
                     title: 'Khó nha bro!',
@@ -434,9 +479,10 @@
                     background: '#111',
                     color: '#fff'
                 }).then(() => {
-                    // Reset session và UI về bước 0
+                    console.log('User clicked OK, resetting session');
                     clearSession();
                     updateProgress(0);
+                    location.reload(); // Force reload to reset state
                 });
             }
 
@@ -472,60 +518,104 @@
             }
 
             function showSuccess() {
+                console.log('Showing success screen');
                 stepSection.style.display = 'none';
                 successSection.style.display = 'block';
-                
-                // Clear session after success
                 clearSession();
             }
 
             // Main button click handler
             window.handleButtonClick = async function() {
+                console.log('Button clicked');
                 let session = getSession();
 
-                // Case 1: No session exists - create new session
                 if (!session) {
+                    console.log('No session, creating new one');
                     const loadingAlert = showCreatingSession();
                     
-                    // Simulate session creation delay
                     setTimeout(() => {
                         session = createNewSession();
+                        console.log('Session created, redirecting to:', CONFIG.TARGET_LINK);
                         loadingAlert.close();
                         window.location.href = CONFIG.TARGET_LINK;
                     }, 2000);
                     return;
                 }
 
-                // Case 2: Session exists - redirect to link for next step
+                console.log('Session exists, redirecting to:', CONFIG.TARGET_LINK);
                 window.location.href = CONFIG.TARGET_LINK;
             };
 
             // Handle page load
             function handlePageLoad() {
+                console.log('Page loaded, starting checks...');
+                
                 let session = getSession();
                 const referrer = document.referrer;
+                const referrerValid = isValidReferrer();
+                const timeValid = session ? isTimeValid(session) : false;
+
+                console.log('Session:', session);
+                console.log('Referrer:', referrer);
+                console.log('Referrer valid:', referrerValid);
+                console.log('Time valid:', timeValid);
+
+                // Update debug info
+                updateDebug({
+                    hasSession: !!session,
+                    currentStep: session ? session.currentStep : 0,
+                    timeValid: timeValid,
+                    referrerValid: referrerValid,
+                    action: 'analyzing...'
+                });
 
                 // Case 1: No session, no valid referrer - show initial state
-                if (!session && !isValidReferrer()) {
+                if (!session && !referrerValid) {
+                    console.log('Case 1: No session, no valid referrer - showing initial state');
                     updateProgress(0);
+                    updateDebug({
+                        hasSession: false,
+                        currentStep: 0,
+                        timeValid: false,
+                        referrerValid: false,
+                        action: 'Initial state'
+                    });
                     return;
                 }
 
-                // Case 2: No session but coming from link (shouldn't happen)
-                if (!session && isValidReferrer()) {
+                // Case 2: No session but coming from link (bypass attempt)
+                if (!session && referrerValid) {
+                    console.log('Case 2: No session but valid referrer - possible bypass');
+                    updateDebug({
+                        hasSession: false,
+                        currentStep: 0,
+                        timeValid: false,
+                        referrerValid: true,
+                        action: 'Bypass detected!'
+                    });
                     showBypassAlert();
                     return;
                 }
 
                 // Case 3: Session exists and coming from valid referrer
-                if (session && isValidReferrer()) {
+                if (session && referrerValid) {
+                    console.log('Case 3: Session exists and valid referrer');
+                    
                     // Check time requirement
-                    if (!isTimeValid(session)) {
+                    if (!timeValid) {
+                        console.log('Time requirement not met');
+                        updateDebug({
+                            hasSession: true,
+                            currentStep: session.currentStep,
+                            timeValid: false,
+                            referrerValid: true,
+                            action: 'Time not valid - bypass!'
+                        });
                         showBypassAlert();
                         return;
                     }
 
-                    // Valid step completion - advance to next step
+                    // Valid step completion
                     session.currentStep++;
                     session.completedSteps.push({
                         step: session.currentStep,
@@ -533,8 +623,18 @@
                         referrer: referrer
                     });
 
+                    console.log('Step completed:', session.currentStep);
+
                     // Check if completed all steps
                     if (session.currentStep >= CONFIG.REQUIRED_STEPS) {
+                        console.log('All steps completed');
+                        updateDebug({
+                            hasSession: true,
+                            currentStep: session.currentStep,
+                            timeValid: true,
+                            referrerValid: true,
+                            action: 'SUCCESS!'
+                        });
                         showSuccess();
                         return;
                     }
@@ -542,17 +642,39 @@
                     // Update for next step
                     saveSession(session);
                     updateProgress(session.currentStep);
+                    updateDebug({
+                        hasSession: true,
+                        currentStep: session.currentStep,
+                        timeValid: true,
+                        referrerValid: true,
+                        action: 'Step advanced'
+                    });
 
-                } else if (session && !isValidReferrer()) {
+                } else if (session && !referrerValid) {
                     // Case 4: Session exists but not coming from valid referrer
-                    // Check if they have bypass attempt or just direct access
+                    console.log('Case 4: Session exists but invalid referrer');
+                    
                     if (session.currentStep > 0) {
-                        // They have progress, might be bypass attempt
+                        console.log('Session has progress but invalid referrer - bypass attempt');
+                        updateDebug({
+                            hasSession: true,
+                            currentStep: session.currentStep,
+                            timeValid: timeValid,
+                            referrerValid: false,
+                            action: 'Invalid referrer - bypass!'
+                        });
                         showBypassAlert();
                         return;
                     } else {
-                        // Just direct access, show current step
+                        console.log('Session exists but no progress - showing current step');
                         updateProgress(session.currentStep);
+                        updateDebug({
+                            hasSession: true,
+                            currentStep: session.currentStep,
+                            timeValid: timeValid,
+                            referrerValid: false,
+                            action: 'Direct access'
+                        });
                     }
                 }
             }
