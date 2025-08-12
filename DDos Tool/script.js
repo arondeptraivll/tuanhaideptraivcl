@@ -25,6 +25,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     let countdownInterval = null;
     let isLoggedIn = false;
 
+    // ✅ ĐỊNH NGHĨA BASE URL
+    const BASE_URL = 'https://tuanhaideptraivcl.vercel.app';
+    
     // Hover container
     container.addEventListener("mouseover", () => {
         container.style.transform = "scale(1.01)";
@@ -36,7 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Nút quay về bio
     backBtn.addEventListener("click", () => {
-        window.location.href = "https://tuanhaideptraivcl.vercel.app/";
+        window.location.href = `${BASE_URL}/`;
     });
 
     // Zoom ảnh
@@ -61,11 +64,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // ✅ Xử lý user widget
     loginButton.addEventListener("click", () => {
-        window.location.href = "https://tuanhaideptraivcl.vercel.app/login";
+        window.location.href = `${BASE_URL}/login`;
     });
 
     userInfo.addEventListener("click", () => {
-        window.location.href = "https://tuanhaideptraivcl.vercel.app/";
+        window.location.href = `${BASE_URL}/`;
     });
 
     // ✅ TOKEN MANAGEMENT
@@ -90,14 +93,55 @@ document.addEventListener("DOMContentLoaded", async () => {
             createTokenBtn.disabled = true;
             createTokenBtn.textContent = '🔄 Đang tạo...';
 
-            const response = await fetch('https://tuanhaideptraivcl.vercel.app/api/ddos?action=create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+            console.log('🔗 Gọi API tạo token...');
+            
+            // ✅ SỬA URL API - thử các đường dẫn khả thi
+            const apiUrls = [
+                `${BASE_URL}/api/ddos?action=create`,  // Đường dẫn gốc
+                `../api/ddos?action=create`,           // Relative path
+                `/api/ddos?action=create`              // Absolute path
+            ];
+
+            let response = null;
+            let lastError = null;
+
+            // Thử từng URL cho đến khi thành công
+            for (const url of apiUrls) {
+                try {
+                    console.log(`🧪 Thử URL: ${url}`);
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✅ URL thành công: ${url}`);
+                        break;
+                    } else {
+                        console.log(`❌ URL thất bại (${response.status}): ${url}`);
+                    }
+                } catch (error) {
+                    console.log(`❌ URL lỗi: ${url}`, error.message);
+                    lastError = error;
+                    continue;
                 }
-            });
+            }
+
+            if (!response || !response.ok) {
+                throw new Error(`Không thể kết nối API. Status: ${response?.status || 'Network Error'}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('📄 Response không phải JSON:', text);
+                throw new Error('Server trả về định dạng không hợp lệ');
+            }
 
             const data = await response.json();
+            console.log('📡 Response từ API:', data);
 
             if (data.success) {
                 currentToken = data.token;
@@ -123,11 +167,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
         } catch (error) {
-            console.error('Lỗi tạo token:', error);
+            console.error('🚨 Lỗi tạo token:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Lỗi!',
-                text: 'Không thể tạo token. Vui lòng thử lại.',
+                text: `Không thể tạo token: ${error.message}`,
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#ff6b6b',
                 background: '#1a1a1a',
@@ -135,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         } finally {
             createTokenBtn.disabled = false;
-            createTokenBtn.textContent = '🔑 Tạo Token API';
+            createTokenBtn.textContent = '🚀 Tạo Token';
         }
     });
 
@@ -180,7 +224,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     function hideTokenDisplay() {
         tokenDisplay.style.display = 'none';
         createTokenBtn.disabled = false;
-        createTokenBtn.textContent = '🔑 Tạo Token API';
+        createTokenBtn.textContent = '🚀 Tạo Token';
         currentToken = null;
         tokenExpiry = null;
     }
@@ -225,7 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         console.log("🔍 Đang kiểm tra session...");
         
-        const res = await fetch(`https://tuanhaideptraivcl.vercel.app/api/auth?action=check_session`, {
+        const res = await fetch(`${BASE_URL}/api/auth?action=check_session`, {
             method: 'GET',
             credentials: 'include'
         });
