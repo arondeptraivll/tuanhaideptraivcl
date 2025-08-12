@@ -367,7 +367,13 @@
                 0: 'Sẵn sàng bắt đầu',
                 1: 'Hoàn thành bước đầu tiên',
                 2: 'Đã qua nửa chặng đường',
-                3: 'Sắp hoàn thành'
+                3: 'Hoàn thành tất cả bước'
+            };
+
+            const BUTTON_TEXTS = {
+                0: 'Bắt đầu bước 1',
+                1: 'Tiếp tục bước 2', 
+                2: 'Hoàn thành bước 3'
             };
 
             // Session management
@@ -388,10 +394,18 @@
                 }
             }
 
+            function clearSession() {
+                try {
+                    localStorage.removeItem(CONFIG.STORAGE_KEY);
+                } catch (e) {
+                    console.error('Cannot clear session');
+                }
+            }
+
             function createNewSession() {
                 const session = {
                     startTime: Date.now(),
-                    currentStep: 1,
+                    currentStep: 0, // Bắt đầu từ 0, chưa hoàn thành bước nào
                     userIP: null,
                     completedSteps: []
                 };
@@ -419,6 +433,25 @@
                     confirmButtonColor: '#ff6b6b',
                     background: '#111',
                     color: '#fff'
+                }).then(() => {
+                    // Reset session và UI về bước 0
+                    clearSession();
+                    updateProgress(0);
+                });
+            }
+
+            function showCreatingSession() {
+                return Swal.fire({
+                    title: 'Đang tạo session...',
+                    text: 'Vui lòng đợi trong giây lát',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    background: '#111',
+                    color: '#fff',
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
                 });
             }
 
@@ -432,8 +465,9 @@
                 // Update icon
                 stepIcon.innerHTML = `<i class="${STEP_ICONS[step] || 'fas fa-cog'}"></i>`;
                 
+                // Update button text
                 if (step < CONFIG.REQUIRED_STEPS) {
-                    actionBtn.innerHTML = `<i class="fas fa-rocket"></i> Bắt đầu bước ${step + 1}`;
+                    actionBtn.innerHTML = `<i class="fas fa-rocket"></i> ${BUTTON_TEXTS[step] || 'Tiếp tục'}`;
                 }
             }
 
@@ -442,51 +476,56 @@
                 successSection.style.display = 'block';
                 
                 // Clear session after success
-                localStorage.removeItem(CONFIG.STORAGE_KEY);
+                clearSession();
             }
 
             // Main button click handler
-            window.handleButtonClick = function() {
+            window.handleButtonClick = async function() {
                 let session = getSession();
 
-                // If no session exists, create one and redirect
+                // Case 1: No session exists - create new session
                 if (!session) {
-                    session = createNewSession();
-                    updateProgress(1);
-                    window.location.href = CONFIG.TARGET_LINK;
+                    const loadingAlert = showCreatingSession();
+                    
+                    // Simulate session creation delay
+                    setTimeout(() => {
+                        session = createNewSession();
+                        loadingAlert.close();
+                        window.location.href = CONFIG.TARGET_LINK;
+                    }, 2000);
                     return;
                 }
 
-                // If session exists, redirect to link
+                // Case 2: Session exists - redirect to link for next step
                 window.location.href = CONFIG.TARGET_LINK;
             };
 
-            // Handle page load (only check existing session, don't create)
+            // Handle page load
             function handlePageLoad() {
                 let session = getSession();
                 const referrer = document.referrer;
 
-                // If no session and no valid referrer, just show initial state
+                // Case 1: No session, no valid referrer - show initial state
                 if (!session && !isValidReferrer()) {
                     updateProgress(0);
                     return;
                 }
 
-                // If no session but coming from link (shouldn't happen), show alert
+                // Case 2: No session but coming from link (shouldn't happen)
                 if (!session && isValidReferrer()) {
                     showBypassAlert();
                     return;
                 }
 
-                // If session exists and coming from valid referrer
+                // Case 3: Session exists and coming from valid referrer
                 if (session && isValidReferrer()) {
-                    // Validate time requirement
+                    // Check time requirement
                     if (!isTimeValid(session)) {
                         showBypassAlert();
                         return;
                     }
 
-                    // Valid step completion
+                    // Valid step completion - advance to next step
                     session.currentStep++;
                     session.completedSteps.push({
                         step: session.currentStep,
@@ -494,7 +533,8 @@
                         referrer: referrer
                     });
 
-                    if (session.currentStep > CONFIG.REQUIRED_STEPS) {
+                    // Check if completed all steps
+                    if (session.currentStep >= CONFIG.REQUIRED_STEPS) {
                         showSuccess();
                         return;
                     }
@@ -504,9 +544,16 @@
                     updateProgress(session.currentStep);
 
                 } else if (session && !isValidReferrer()) {
-                    // Session exists but not coming from valid referrer
-                    // Just show current step without error (they might have bookmarked)
-                    updateProgress(session.currentStep);
+                    // Case 4: Session exists but not coming from valid referrer
+                    // Check if they have bypass attempt or just direct access
+                    if (session.currentStep > 0) {
+                        // They have progress, might be bypass attempt
+                        showBypassAlert();
+                        return;
+                    } else {
+                        // Just direct access, show current step
+                        updateProgress(session.currentStep);
+                    }
                 }
             }
 
